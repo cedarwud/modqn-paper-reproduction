@@ -1,0 +1,26 @@
+config_role: resolved-run-experiment
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+training_experiment:
+  kind: reward-calibration
+  experiment_id: EXP-MODQN-CAL-001
+  label: diagnostic-abs-fixed-scales
+  status: experimental
+  purpose: >
+    Opt-in sensitivity run that calibrates trainer-side rewards by fixed
+    per-objective scales derived from the repo-local reward-geometry
+    diagnostic analysis. The baseline resolved template remains the
+    paper-faithful default; this config exists only for explicit
+    calibration experiments.
+  reward_calibration:
+    enabled: true
+    mode: divide-by-fixed-scales
+    source: reward-geometry diagnostic-abs scales
+    scales:
+      r1: 491.28614764527117
+      r2: 0.5
+      r3: 17.54593384447397
+    reporting:
+      evaluation_metrics: raw-paper-metrics
+      checkpoint_selection_metric: raw-weighted-eval
+      training_targets: calibrated-by-fixed-scales

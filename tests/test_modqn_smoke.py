@@ -79,6 +79,7 @@ def test_config_load():
     assert seeds["train_seed"] == 42
     assert seeds["environment_seed"] == 1337
     assert seeds["mobility_seed"] == 7
+    assert seeds["evaluation_seed_set"] == [100, 200, 300, 400, 500]
 
 
 # ---------------------------------------------------------------------------
@@ -437,6 +438,45 @@ def test_checkpoint_save_and_load():
         assert payload["checkpoint_rule"]["secondary_implemented"] is False
 
 
+def test_best_eval_checkpoint_capture():
+    """Greedy eval loop captures and persists the best-eval checkpoint."""
+    env = StepEnvironment(StepConfig(num_users=10))
+    tc = TrainerConfig(
+        episodes=3,
+        replay_capacity=512,
+        batch_size=32,
+        target_update_every_episodes=1,
+    )
+    trainer = MODQNTrainer(
+        env=env,
+        config=tc,
+        train_seed=42,
+        env_seed=1337,
+        mobility_seed=7,
+    )
+    trainer.train(
+        progress_every=0,
+        evaluation_seed_set=(100, 200),
+        evaluation_every_episodes=1,
+    )
+
+    summary = trainer.best_eval_summary()
+    assert summary is not None
+    assert summary.eval_seeds == (100, 200)
+    assert summary.evaluation_every_episodes == 1
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        checkpoint_path = Path(tmp_dir) / "best-weighted-reward-on-eval.pt"
+        trainer.save_best_eval_checkpoint(checkpoint_path)
+        assert checkpoint_path.exists()
+
+        payload = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+        assert payload["checkpoint_kind"] == tc.checkpoint_secondary_report
+        assert payload["checkpoint_rule"]["secondary_implemented"] is True
+        assert payload["evaluation_summary"]["eval_seeds"] == [100, 200]
+        assert payload["evaluation_summary"]["episode"] >= 0
+
+
 # ---------------------------------------------------------------------------
 # Run all tests
 # ---------------------------------------------------------------------------
@@ -457,6 +497,7 @@ if __name__ == "__main__":
         test_epsilon_schedule,
         test_masked_action_selection,
         test_checkpoint_save_and_load,
+        test_best_eval_checkpoint_capture,
     ]
 
     passed = 0

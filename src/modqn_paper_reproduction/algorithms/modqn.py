@@ -95,6 +95,51 @@ class TrainerConfig:
     checkpoint_primary_report: str = "final-episode-policy"
     checkpoint_secondary_report: str = "best-weighted-reward-on-eval"
 
+    # -- explicit experiment surface ---------------------------------------
+    training_experiment_kind: str = "baseline"
+    training_experiment_id: str = ""
+    reward_calibration_enabled: bool = False
+    reward_calibration_mode: str = "raw-unscaled"
+    reward_calibration_source: str = "raw-unscaled"
+    reward_calibration_scales: tuple[float, float, float] = (1.0, 1.0, 1.0)
+
+    def __post_init__(self) -> None:
+        if len(self.objective_weights) != 3:
+            raise ValueError(
+                "objective_weights must have length 3, "
+                f"got {self.objective_weights!r}"
+            )
+        if len(self.reward_calibration_scales) != 3:
+            raise ValueError(
+                "reward_calibration_scales must have length 3, "
+                f"got {self.reward_calibration_scales!r}"
+            )
+        if self.reward_calibration_mode not in {
+            "raw-unscaled",
+            "divide-by-fixed-scales",
+        }:
+            raise ValueError(
+                "reward_calibration_mode must be one of "
+                "{'raw-unscaled', 'divide-by-fixed-scales'}, "
+                f"got {self.reward_calibration_mode!r}"
+            )
+        if self.reward_calibration_enabled:
+            if self.training_experiment_kind != "reward-calibration":
+                raise ValueError(
+                    "reward_calibration_enabled requires "
+                    "training_experiment_kind='reward-calibration'."
+                )
+            if self.reward_calibration_mode != "divide-by-fixed-scales":
+                raise ValueError(
+                    "reward_calibration_enabled currently requires "
+                    "reward_calibration_mode='divide-by-fixed-scales'."
+                )
+            if any(scale <= 0 for scale in self.reward_calibration_scales):
+                raise ValueError(
+                    "reward_calibration_scales must all be > 0 when calibration is enabled, "
+                    f"got {self.reward_calibration_scales!r}"
+                )
+
 
 # ---------------------------------------------------------------------------
 # Network
@@ -233,6 +278,42 @@ def state_dim_for(num_beams_total: int) -> int:
     return 5 * num_beams_total
 
 
+def scalarize_objectives(
+    reward_vector: np.ndarray | tuple[float, float, float],
+    objective_weights: tuple[float, float, float],
+) -> float:
+    """Scalarize a three-objective reward vector with the given weights."""
+    rewards = np.asarray(reward_vector, dtype=np.float64)
+    weights = np.asarray(objective_weights, dtype=np.float64)
+    if rewards.shape != (3,) or weights.shape != (3,):
+        raise ValueError(
+            "scalarize_objectives requires shape-(3,) rewards and weights, "
+            f"got rewards={rewards.shape}, weights={weights.shape}"
+        )
+    return float(np.dot(weights, rewards))
+
+
+def apply_reward_calibration(
+    reward_vector: np.ndarray | tuple[float, float, float],
+    config: TrainerConfig,
+) -> np.ndarray:
+    """Apply the opt-in trainer-side reward calibration transform."""
+    rewards = np.asarray(reward_vector, dtype=np.float64)
+    if rewards.shape != (3,):
+        raise ValueError(
+            "apply_reward_calibration requires a shape-(3,) reward vector, "
+            f"got {rewards.shape}"
+        )
+    if not config.reward_calibration_enabled:
+        return rewards.copy()
+    if config.reward_calibration_mode == "divide-by-fixed-scales":
+        scales = np.asarray(config.reward_calibration_scales, dtype=np.float64)
+        return rewards / scales
+    raise ValueError(
+        f"Unsupported reward_calibration_mode={config.reward_calibration_mode!r}"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Trainer
 # ---------------------------------------------------------------------------
@@ -251,6 +332,25 @@ class EpisodeLog:
     total_handovers: int
     replay_size: int
     losses: tuple[float, float, float] = (0.0, 0.0, 0.0)
+
+
+@dataclass(frozen=True)
+class EvalSummary:
+    """Aggregated greedy-policy evaluation over the configured eval seeds."""
+
+    episode: int
+    evaluation_every_episodes: int
+    eval_seeds: tuple[int, ...]
+    mean_scalar_reward: float
+    std_scalar_reward: float
+    mean_r1: float
+    std_r1: float
+    mean_r2: float
+    std_r2: float
+    mean_r3: float
+    std_r3: float
+    mean_total_handovers: float
+    std_total_handovers: float
 
 
 class MODQNTrainer:
@@ -315,6 +415,14 @@ class MODQNTrainer:
 
         self._loss_fn = nn.MSELoss()
         self._loaded_checkpoint_metadata: dict[str, Any] | None = None
+        self._secondary_checkpoint_enabled: bool = False
+        self._secondary_checkpoint_status: str = (
+            "not-yet-implemented: no eval loop / best-eval checkpoint in this training run"
+        )
+        self._evaluation_every_episodes: int | None = None
+        self._evaluation_seed_set: tuple[int, ...] = ()
+        self._best_eval_summary: EvalSummary | None = None
+        self._best_eval_payload: dict[str, Any] | None = None
 
     # -- epsilon schedule (ASSUME-MODQN-REP-004) ----------------------------
 
@@ -333,6 +441,8 @@ class MODQNTrainer:
         states_encoded: np.ndarray,
         masks: list[ActionMask],
         eps: float,
+        *,
+        objective_weights: tuple[float, float, float] | None = None,
     ) -> np.ndarray:
         """Epsilon-greedy masked action selection with scalarized Q.
 
@@ -346,7 +456,7 @@ class MODQNTrainer:
         """
         U = len(masks)
         actions = np.zeros(U, dtype=np.int32)
-        w = self.config.objective_weights
+        w = objective_weights or self.config.objective_weights
 
         with torch.no_grad():
             st = torch.tensor(
@@ -428,6 +538,109 @@ class MODQNTrainer:
         for i in range(3):
             self.target_nets[i].load_state_dict(self.q_nets[i].state_dict())
 
+    def _encode_states(self, states: list[UserState]) -> np.ndarray:
+        """Encode a list of user states with the active trainer config."""
+        return np.array(
+            [encode_state(s, self.num_users, self.config) for s in states],
+            dtype=np.float32,
+        )
+
+    def _evaluate_one_seed(
+        self,
+        eval_seed: int,
+        *,
+        objective_weights: tuple[float, float, float] | None = None,
+    ) -> dict[str, float]:
+        """Greedy rollout for one evaluation seed."""
+        env_seed_seq, mobility_seed_seq = np.random.SeedSequence(eval_seed).spawn(2)
+        env_rng = np.random.default_rng(env_seed_seq)
+        mobility_rng = np.random.default_rng(mobility_seed_seq)
+        weights = objective_weights or self.config.objective_weights
+
+        states, masks, _diag = self.env.reset(env_rng, mobility_rng)
+        encoded = self._encode_states(states)
+
+        ep_reward = np.zeros(3, dtype=np.float64)
+        ep_handovers = 0
+
+        for _step_idx in range(self.env.config.steps_per_episode):
+            actions = self.select_actions(
+                encoded,
+                masks,
+                eps=0.0,
+                objective_weights=weights,
+            )
+            result = self.env.step(actions, env_rng)
+
+            for rw in result.rewards:
+                reward_vec = np.array(
+                    [rw.r1_throughput, rw.r2_handover, rw.r3_load_balance],
+                    dtype=np.float64,
+                )
+                ep_reward += reward_vec
+                if rw.r2_handover < 0:
+                    ep_handovers += 1
+
+            if result.done:
+                break
+
+            encoded = self._encode_states(result.user_states)
+            masks = result.action_masks
+
+        avg_reward = ep_reward / max(self.num_users, 1)
+        scalar = scalarize_objectives(avg_reward, weights)
+
+        return {
+            "scalar_reward": float(scalar),
+            "r1_mean": float(avg_reward[0]),
+            "r2_mean": float(avg_reward[1]),
+            "r3_mean": float(avg_reward[2]),
+            "total_handovers": float(ep_handovers),
+        }
+
+    def evaluate_policy(
+        self,
+        evaluation_seed_set: tuple[int, ...],
+        *,
+        episode: int,
+        evaluation_every_episodes: int,
+        objective_weights: tuple[float, float, float] | None = None,
+    ) -> EvalSummary:
+        """Evaluate the greedy policy over the configured evaluation seeds."""
+        if not evaluation_seed_set:
+            raise ValueError("evaluation_seed_set must be non-empty for evaluation")
+
+        rows = [
+            self._evaluate_one_seed(seed, objective_weights=objective_weights)
+            for seed in evaluation_seed_set
+        ]
+
+        def mean_std(key: str) -> tuple[float, float]:
+            values = np.array([row[key] for row in rows], dtype=np.float64)
+            return float(np.mean(values)), float(np.std(values))
+
+        scalar_mean, scalar_std = mean_std("scalar_reward")
+        r1_mean, r1_std = mean_std("r1_mean")
+        r2_mean, r2_std = mean_std("r2_mean")
+        r3_mean, r3_std = mean_std("r3_mean")
+        handover_mean, handover_std = mean_std("total_handovers")
+
+        return EvalSummary(
+            episode=episode,
+            evaluation_every_episodes=evaluation_every_episodes,
+            eval_seeds=tuple(int(seed) for seed in evaluation_seed_set),
+            mean_scalar_reward=scalar_mean,
+            std_scalar_reward=scalar_std,
+            mean_r1=r1_mean,
+            std_r1=r1_std,
+            mean_r2=r2_mean,
+            std_r2=r2_std,
+            mean_r3=r3_mean,
+            std_r3=r3_std,
+            mean_total_handovers=handover_mean,
+            std_total_handovers=handover_std,
+        )
+
     # -- checkpointing (ASSUME-MODQN-REP-015) ------------------------------
 
     def checkpoint_rule(self) -> dict[str, Any]:
@@ -436,10 +649,8 @@ class MODQNTrainer:
             "assumption_id": self.config.checkpoint_assumption_id,
             "primary_report": self.config.checkpoint_primary_report,
             "secondary_report": self.config.checkpoint_secondary_report,
-            "secondary_implemented": False,
-            "secondary_status": (
-                "not-yet-implemented: no eval loop / best-eval checkpoint in this hardening pass"
-            ),
+            "secondary_implemented": self._secondary_checkpoint_enabled,
+            "secondary_status": self._secondary_checkpoint_status,
         }
 
     def build_checkpoint_payload(
@@ -449,6 +660,7 @@ class MODQNTrainer:
         checkpoint_kind: str,
         logs: list[EpisodeLog] | None = None,
         include_optimizers: bool = True,
+        evaluation_summary: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Build a serializable checkpoint payload."""
         payload: dict[str, Any] = {
@@ -471,6 +683,52 @@ class MODQNTrainer:
             ]
         if logs:
             payload["last_episode_log"] = asdict(logs[-1])
+        if evaluation_summary is not None:
+            summary = copy.deepcopy(evaluation_summary)
+            if "eval_seeds" in summary:
+                summary["eval_seeds"] = [int(seed) for seed in summary["eval_seeds"]]
+            payload["evaluation_summary"] = summary
+        return payload
+
+    def _write_checkpoint_payload(
+        self,
+        path: str | Path,
+        payload: dict[str, Any],
+    ) -> Path:
+        """Write a pre-built checkpoint payload to disk."""
+        checkpoint_path = Path(path)
+        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+        torch.save(payload, checkpoint_path)
+        return checkpoint_path
+
+    def _load_checkpoint_payload(
+        self,
+        payload: dict[str, Any],
+        *,
+        checkpoint_path: str | Path | None = None,
+        load_optimizers: bool = True,
+    ) -> dict[str, Any]:
+        """Load trainer weights/state from a checkpoint payload."""
+        for net, state in zip(self.q_nets, payload["q_networks"]):
+            net.load_state_dict(state)
+        for net, state in zip(self.target_nets, payload["target_networks"]):
+            net.load_state_dict(state)
+            net.eval()
+
+        optimizer_loaded = False
+        if load_optimizers and "optimizers" in payload:
+            for optimizer, state in zip(self.optimizers, payload["optimizers"]):
+                optimizer.load_state_dict(state)
+            optimizer_loaded = True
+
+        self._loaded_checkpoint_metadata = {
+            "path": str(checkpoint_path) if checkpoint_path is not None else None,
+            "checkpoint_kind": payload.get("checkpoint_kind"),
+            "episode": payload.get("episode"),
+            "checkpoint_rule": payload.get("checkpoint_rule", {}),
+            "optimizer_loaded": optimizer_loaded,
+            "evaluation_summary": payload.get("evaluation_summary"),
+        }
         return payload
 
     def save_checkpoint(
@@ -481,18 +739,45 @@ class MODQNTrainer:
         checkpoint_kind: str,
         logs: list[EpisodeLog] | None = None,
         include_optimizers: bool = True,
+        evaluation_summary: dict[str, Any] | None = None,
     ) -> Path:
         """Save the current trainer weights/state to disk."""
-        checkpoint_path = Path(path)
-        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
         payload = self.build_checkpoint_payload(
             episode=episode,
             checkpoint_kind=checkpoint_kind,
             logs=logs,
             include_optimizers=include_optimizers,
+            evaluation_summary=evaluation_summary,
         )
-        torch.save(payload, checkpoint_path)
-        return checkpoint_path
+        return self._write_checkpoint_payload(path, payload)
+
+    def has_best_eval_checkpoint(self) -> bool:
+        """Whether an eval-selected secondary checkpoint is available."""
+        return self._best_eval_payload is not None
+
+    def best_eval_summary(self) -> EvalSummary | None:
+        """Return the current best eval summary, if one exists."""
+        return self._best_eval_summary
+
+    def save_best_eval_checkpoint(self, path: str | Path) -> Path:
+        """Persist the best eval-selected checkpoint discovered during training."""
+        if self._best_eval_payload is None:
+            raise ValueError("No best-eval checkpoint payload is available")
+        return self._write_checkpoint_payload(path, copy.deepcopy(self._best_eval_payload))
+
+    def restore_best_eval_checkpoint(
+        self,
+        *,
+        load_optimizers: bool = True,
+    ) -> dict[str, Any]:
+        """Restore the in-memory best-eval checkpoint into the live trainer."""
+        if self._best_eval_payload is None:
+            raise ValueError("No best-eval checkpoint payload is available")
+        return self._load_checkpoint_payload(
+            copy.deepcopy(self._best_eval_payload),
+            checkpoint_path="<in-memory-best-eval>",
+            load_optimizers=load_optimizers,
+        )
 
     def load_checkpoint(
         self,
@@ -507,37 +792,48 @@ class MODQNTrainer:
             map_location=self.device,
             weights_only=False,
         )
-
-        for net, state in zip(self.q_nets, payload["q_networks"]):
-            net.load_state_dict(state)
-        for net, state in zip(self.target_nets, payload["target_networks"]):
-            net.load_state_dict(state)
-            net.eval()
-
-        optimizer_loaded = False
-        if load_optimizers and "optimizers" in payload:
-            for optimizer, state in zip(self.optimizers, payload["optimizers"]):
-                optimizer.load_state_dict(state)
-            optimizer_loaded = True
-
-        self._loaded_checkpoint_metadata = {
-            "path": str(checkpoint_path),
-            "checkpoint_kind": payload.get("checkpoint_kind"),
-            "episode": payload.get("episode"),
-            "checkpoint_rule": payload.get("checkpoint_rule", {}),
-            "optimizer_loaded": optimizer_loaded,
-        }
-        return payload
+        return self._load_checkpoint_payload(
+            payload,
+            checkpoint_path=checkpoint_path,
+            load_optimizers=load_optimizers,
+        )
 
     # -- training loop ------------------------------------------------------
 
-    def train(self, progress_every: int = 100) -> list[EpisodeLog]:
+    def train(
+        self,
+        progress_every: int = 100,
+        *,
+        evaluation_seed_set: tuple[int, ...] | None = None,
+        evaluation_every_episodes: int | None = None,
+    ) -> list[EpisodeLog]:
         """Full MODQN training loop.
 
         Returns a list of per-episode metrics.
         """
         cfg = self.config
         logs: list[EpisodeLog] = []
+        eval_seeds = tuple(int(seed) for seed in (evaluation_seed_set or ()))
+        eval_every = max(
+            int(evaluation_every_episodes or cfg.target_update_every_episodes),
+            1,
+        )
+
+        self._best_eval_summary = None
+        self._best_eval_payload = None
+        self._evaluation_every_episodes = eval_every if eval_seeds else None
+        self._evaluation_seed_set = eval_seeds
+        self._secondary_checkpoint_enabled = bool(eval_seeds)
+        if eval_seeds:
+            self._secondary_checkpoint_status = (
+                "best-eval checkpoint captured from mean weighted reward over "
+                f"{len(eval_seeds)} evaluation seeds; evaluated every "
+                f"{eval_every} episodes and at the final episode"
+            )
+        else:
+            self._secondary_checkpoint_status = (
+                "not-yet-implemented: no eval loop / best-eval checkpoint in this training run"
+            )
 
         for ep in range(cfg.episodes):
             eps = self.epsilon(ep)
@@ -548,10 +844,7 @@ class MODQNTrainer:
             )
 
             # Encode states
-            encoded = np.array(
-                [encode_state(s, self.num_users, cfg) for s in states],
-                dtype=np.float32,
-            )
+            encoded = self._encode_states(states)
 
             ep_reward = np.zeros(3, dtype=np.float64)
             ep_handovers = 0
@@ -566,28 +859,26 @@ class MODQNTrainer:
                 result = self.env.step(actions, self._env_rng)
 
                 # Encode next states
-                next_encoded = np.array(
-                    [encode_state(s, self.num_users, cfg) for s in result.user_states],
-                    dtype=np.float32,
-                )
+                next_encoded = self._encode_states(result.user_states)
 
                 # Store transitions per user (ASSUME-MODQN-REP-007: shared policy)
                 for uid in range(self.num_users):
                     rw = result.rewards[uid]
-                    r3 = np.array(
+                    reward_vec = np.array(
                         [rw.r1_throughput, rw.r2_handover, rw.r3_load_balance],
-                        dtype=np.float32,
+                        dtype=np.float64,
                     )
+                    reward_vec_train = apply_reward_calibration(reward_vec, cfg)
                     self.replay.push(
                         encoded[uid],
                         int(actions[uid]),
-                        r3,
+                        reward_vec_train.astype(np.float32),
                         next_encoded[uid],
                         masks[uid].mask.copy(),
                         result.action_masks[uid].mask.copy(),
                         result.done,
                     )
-                    ep_reward += r3
+                    ep_reward += reward_vec
                     if rw.r2_handover < 0:
                         ep_handovers += 1
 
@@ -610,11 +901,7 @@ class MODQNTrainer:
 
             # Record metrics
             avg_reward = ep_reward / max(self.num_users, 1)
-            scalar = (
-                cfg.objective_weights[0] * avg_reward[0]
-                + cfg.objective_weights[1] * avg_reward[1]
-                + cfg.objective_weights[2] * avg_reward[2]
-            )
+            scalar = scalarize_objectives(avg_reward, cfg.objective_weights)
             avg_losses = ep_losses / max(update_count, 1)
 
             log = EpisodeLog(
@@ -629,6 +916,38 @@ class MODQNTrainer:
                 losses=(float(avg_losses[0]), float(avg_losses[1]), float(avg_losses[2])),
             )
             logs.append(log)
+
+            if self._secondary_checkpoint_enabled:
+                should_evaluate = ((ep + 1) % eval_every == 0) or (ep == cfg.episodes - 1)
+                if should_evaluate:
+                    eval_summary = self.evaluate_policy(
+                        eval_seeds,
+                        episode=ep,
+                        evaluation_every_episodes=eval_every,
+                    )
+                    is_best = (
+                        self._best_eval_summary is None
+                        or eval_summary.mean_scalar_reward
+                        > self._best_eval_summary.mean_scalar_reward
+                    )
+                    if is_best:
+                        self._best_eval_summary = eval_summary
+                        self._best_eval_payload = copy.deepcopy(
+                            self.build_checkpoint_payload(
+                                episode=ep,
+                                checkpoint_kind=cfg.checkpoint_secondary_report,
+                                logs=logs,
+                                include_optimizers=True,
+                                evaluation_summary=asdict(eval_summary),
+                            )
+                        )
+                        if progress_every > 0:
+                            print(
+                                f"[eval {ep+1:5d}/{cfg.episodes}] "
+                                f"best-mean-scalar={eval_summary.mean_scalar_reward:.4e} "
+                                f"std={eval_summary.std_scalar_reward:.4e} "
+                                f"seeds={len(eval_seeds)}"
+                            )
 
             if progress_every > 0 and (ep + 1) % progress_every == 0:
                 print(

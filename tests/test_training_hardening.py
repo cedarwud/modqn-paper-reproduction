@@ -6,16 +6,19 @@ from pathlib import Path
 
 import numpy as np
 
+from modqn_paper_reproduction.algorithms import apply_reward_calibration
 from modqn_paper_reproduction.cli import train_main
 from modqn_paper_reproduction.config_loader import (
     ConfigValidationError,
     build_environment,
+    build_trainer_config,
     load_training_yaml,
     load_yaml,
 )
 
 
 RESOLVED_CONFIG = "configs/modqn-paper-baseline.resolved-template.yaml"
+REWARD_CALIBRATION_CONFIG = "configs/modqn-paper-baseline.reward-calibration.resolved.yaml"
 PAPER_ENVELOPE_CONFIG = "configs/modqn-paper-baseline.yaml"
 
 
@@ -105,10 +108,12 @@ def test_train_cli_writes_final_checkpoint_and_metadata(tmp_path: Path) -> None:
     assert rc == 0
 
     checkpoint_path = out_dir / "checkpoints" / "final-episode-policy.pt"
+    best_eval_checkpoint_path = out_dir / "checkpoints" / "best-weighted-reward-on-eval.pt"
     metadata_path = out_dir / "run_metadata.json"
     log_path = out_dir / "training_log.json"
 
     assert checkpoint_path.exists()
+    assert best_eval_checkpoint_path.exists()
     assert metadata_path.exists()
     assert log_path.exists()
 
@@ -118,7 +123,61 @@ def test_train_cli_writes_final_checkpoint_and_metadata(tmp_path: Path) -> None:
     assert metadata["checkpoint_rule"]["secondary_report"] == (
         "best-weighted-reward-on-eval"
     )
-    assert metadata["checkpoint_rule"]["secondary_implemented"] is False
+    assert metadata["checkpoint_rule"]["secondary_implemented"] is True
+    assert metadata["checkpoint_files"]["secondary_best_eval"] == str(best_eval_checkpoint_path)
+    assert metadata["best_eval_summary"] is not None
     assert metadata["runtime_environment"]["r3_gap_scope"] == "all-reachable-beams"
     assert metadata["runtime_environment"]["user_heading_stride_rad"] == 2.3998277
     assert metadata["runtime_environment"]["user_scatter_radius_km"] == 50.0
+
+
+def test_reward_calibration_experiment_is_opt_in() -> None:
+    baseline_cfg = load_training_yaml(RESOLVED_CONFIG)
+    baseline_trainer_cfg = build_trainer_config(baseline_cfg)
+    assert baseline_trainer_cfg.reward_calibration_enabled is False
+    assert baseline_trainer_cfg.reward_calibration_mode == "raw-unscaled"
+
+    experiment_cfg = load_training_yaml(REWARD_CALIBRATION_CONFIG)
+    experiment_trainer_cfg = build_trainer_config(experiment_cfg)
+    assert experiment_trainer_cfg.training_experiment_kind == "reward-calibration"
+    assert experiment_trainer_cfg.training_experiment_id == "EXP-MODQN-CAL-001"
+    assert experiment_trainer_cfg.reward_calibration_enabled is True
+    assert experiment_trainer_cfg.reward_calibration_mode == "divide-by-fixed-scales"
+    np.testing.assert_allclose(
+        experiment_trainer_cfg.reward_calibration_scales,
+        np.array([491.28614764527117, 0.5, 17.54593384447397], dtype=np.float64),
+    )
+
+    raw = np.array([491.28614764527117, -0.5, -17.54593384447397], dtype=np.float64)
+    np.testing.assert_allclose(
+        apply_reward_calibration(raw, experiment_trainer_cfg),
+        np.array([1.0, -1.0, -1.0], dtype=np.float64),
+    )
+    np.testing.assert_allclose(
+        apply_reward_calibration(raw, baseline_trainer_cfg),
+        raw,
+    )
+
+
+def test_train_cli_writes_reward_calibration_experiment_metadata(tmp_path: Path) -> None:
+    out_dir = tmp_path / "reward-calibration-run"
+    rc = train_main([
+        "--config",
+        REWARD_CALIBRATION_CONFIG,
+        "--episodes",
+        "1",
+        "--progress-every",
+        "0",
+        "--output-dir",
+        str(out_dir),
+    ])
+    assert rc == 0
+
+    metadata = json.loads((out_dir / "run_metadata.json").read_text())
+    assert metadata["config_role"] == "resolved-run-experiment"
+    assert metadata["training_experiment"]["kind"] == "reward-calibration"
+    assert metadata["training_experiment"]["experiment_id"] == "EXP-MODQN-CAL-001"
+    assert metadata["reward_calibration"]["enabled"] is True
+    assert metadata["reward_calibration"]["mode"] == "divide-by-fixed-scales"
+    assert metadata["reward_calibration"]["training_experiment_kind"] == "reward-calibration"
+    assert metadata["trainer_config"]["reward_calibration_enabled"] is True

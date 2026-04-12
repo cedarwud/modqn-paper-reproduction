@@ -31,14 +31,20 @@ What exists now:
 4. paper-envelope config plus executable resolved-run config
 5. environment modules for orbit, beam, channel, and step semantics
 6. MODQN trainer, replay buffer, target sync, checkpoints, and CLI entrypoints
-7. smoke and hardening tests for training flow
+7. final and best-eval checkpoint capture with run metadata
+8. executable `Table II` sweep surface for `MODQN`, `DQN_throughput`, `DQN_scalar`, and `RSS_max`
+9. training-run export to CSV/PNG bundle surfaces
+10. analysis outputs for `Table II` winners, spreads, deltas-vs-MODQN, and long-run linkage
+11. explicit experimental `reward-geometry` analysis surface for re-scoring existing artifacts
+12. explicit experimental reward-calibrated training config for sensitivity runs
+13. first executable `Fig. 3` to `Fig. 6` sweep surfaces with figure-style CSV/JSON/PNG outputs
+14. smoke and hardening tests for training flow, sweeps, export, and analysis
 
 What does not exist yet:
 
-1. comparator baselines
-2. sweep/figure generation logic
-3. Phase 2 export bundle implementation
-4. secondary best-eval checkpoint flow for `ASSUME-MODQN-REP-015`
+1. Phase 2 stable export bundle freeze
+2. full paper-scale comparator runs and figure bundle generation
+3. paper-visual parity polish for the original figure layouts
 
 ## Directory Layout
 
@@ -88,16 +94,30 @@ Primary training commands:
 ```bash
 ./.venv/bin/python scripts/train_modqn.py --config configs/modqn-paper-baseline.resolved-template.yaml --episodes 5 --output-dir artifacts/final-smoke
 ./.venv/bin/python scripts/train_modqn.py --config configs/modqn-paper-baseline.resolved-template.yaml --episodes 200 --output-dir artifacts/pilot-01
+./.venv/bin/python scripts/train_modqn.py --config configs/modqn-paper-baseline.reward-calibration.resolved.yaml --episodes 5 --output-dir artifacts/reward-calibration-smoke
 ```
 
 Additional entrypoints:
 
 ```bash
-./.venv/bin/python scripts/run_sweeps.py --config configs/modqn-paper-baseline.resolved-template.yaml
-./.venv/bin/python scripts/export_ntn_sim_core_bundle.py --input artifacts/example-run
+./.venv/bin/python scripts/run_sweeps.py --config configs/modqn-paper-baseline.resolved-template.yaml --suite table-ii --episodes 1 --max-weight-rows 2 --output-dir artifacts/table-ii-smoke --reference-run artifacts/run-9000
+./.venv/bin/python scripts/run_sweeps.py --config configs/modqn-paper-baseline.resolved-template.yaml --suite fig-3 --episodes 1 --max-figure-points 2 --output-dir artifacts/fig-3-smoke --reference-run artifacts/run-9000
+./.venv/bin/python scripts/run_sweeps.py --config configs/modqn-paper-baseline.resolved-template.yaml --suite reward-geometry --input-table-ii artifacts/table-ii-200ep-01 --reference-run artifacts/run-9000 --output-dir artifacts/reward-geometry-01
+./.venv/bin/python scripts/export_ntn_sim_core_bundle.py --input artifacts/pilot-02-best-eval --output-dir artifacts/pilot-02-best-eval/export-bundle
 ```
 
-`train_modqn.py` is a real training entrypoint. Sweep and export entrypoints remain placeholders.
+`train_modqn.py` is a real training entrypoint and writes both the final checkpoint and
+the eval-selected secondary checkpoint when an output directory is requested. `run_sweeps.py`
+now implements a first executable `Table II` slice plus first executable `Fig. 3`
+to `Fig. 6` sweep surfaces, and can emit objective-decomposition
+analysis against a reference run. It also exposes an explicit experimental
+`reward-geometry` suite for re-scoring existing `Table II` artifacts under alternative
+normalization scales without changing the baseline training rule. The separate
+`modqn-paper-baseline.reward-calibration.resolved.yaml` surface is an opt-in
+training experiment: it calibrates trainer-side rewards by fixed scales while
+keeping evaluation, logged raw objectives, and checkpoint selection on the
+raw paper metric surface. `export_ntn_sim_core_bundle.py`
+now exports a completed training run into CSV/PNG bundle surfaces.
 
 ## Config Surfaces
 
@@ -107,6 +127,8 @@ This project intentionally separates two config roles:
    Paper-envelope config. It records `paper-backed` parameters, `recovered-from-paper` Table II weights, paper ranges, and unresolved assumption references. It is not the final executable run config.
 2. `configs/modqn-paper-baseline.resolved-template.yaml`
    Resolved-run template. This is the surface where concrete `reproduction-assumption` values, seeds, aggregation, and checkpoint rules are frozen before a real training run is allowed.
+3. `configs/modqn-paper-baseline.reward-calibration.resolved.yaml`
+   Explicit experimental resolved-run config. It inherits the baseline resolved template but opt-in enables trainer-side reward calibration for sensitivity runs. It is not the default paper-baseline training surface.
 
 No implementation should silently promote the paper-envelope config into an executable run by inventing default values in code.
 

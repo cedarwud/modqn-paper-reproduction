@@ -138,6 +138,16 @@ def _merge_dicts(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any
     return merged
 
 
+def _training_experiment_block(cfg: dict[str, Any]) -> dict[str, Any]:
+    """Return the optional training-experiment block."""
+    block = cfg.get("training_experiment", {})
+    if block in ({}, None):
+        return {}
+    if not isinstance(block, dict):
+        raise ConfigValidationError("'training_experiment' must be a mapping when present.")
+    return block
+
+
 def build_step_config(cfg: dict[str, Any]) -> StepConfig:
     """Build StepConfig from the resolved-run YAML."""
     base = cfg.get("baseline", cfg)
@@ -271,6 +281,7 @@ def build_channel_config(cfg: dict[str, Any]) -> ChannelConfig:
 def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
     """Build TrainerConfig from the resolved-run YAML."""
     base = cfg.get("baseline", cfg)
+    experiment_block = _training_experiment_block(cfg)
 
     # Epsilon schedule (ASSUME-MODQN-REP-004)
     eps_val = _resolved_assumption_value(cfg, "epsilon_schedule")
@@ -304,6 +315,102 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
         )
 
     hidden = base.get("hidden_layers", [100, 50, 50])
+
+    training_experiment_kind = "baseline"
+    training_experiment_id = ""
+    reward_calibration_enabled = False
+    reward_calibration_mode = "raw-unscaled"
+    reward_calibration_source = "raw-unscaled"
+    reward_calibration_scales = (1.0, 1.0, 1.0)
+
+    if experiment_block:
+        training_experiment_kind = str(
+            _required_mapping_field(
+                experiment_block,
+                "kind",
+                context="training_experiment",
+            )
+        )
+        training_experiment_id = str(experiment_block.get("experiment_id", "")).strip()
+
+        if training_experiment_kind != "reward-calibration":
+            raise ConfigValidationError(
+                "Only training_experiment.kind='reward-calibration' is currently supported, "
+                f"got {training_experiment_kind!r}."
+            )
+
+        reward_calibration_block = _required_mapping_field(
+            experiment_block,
+            "reward_calibration",
+            context="training_experiment",
+        )
+        if not isinstance(reward_calibration_block, dict):
+            raise ConfigValidationError(
+                "training_experiment.reward_calibration must be a mapping."
+            )
+
+        reward_calibration_enabled = bool(
+            _required_mapping_field(
+                reward_calibration_block,
+                "enabled",
+                context="training_experiment.reward_calibration",
+            )
+        )
+        reward_calibration_mode = str(
+            _required_mapping_field(
+                reward_calibration_block,
+                "mode",
+                context="training_experiment.reward_calibration",
+            )
+        )
+        reward_calibration_source = str(
+            reward_calibration_block.get("source", "unspecified")
+        )
+
+        if not reward_calibration_enabled:
+            raise ConfigValidationError(
+                "training_experiment.reward_calibration.enabled must be true when the "
+                "reward-calibration experiment surface is selected."
+            )
+
+        if reward_calibration_mode != "divide-by-fixed-scales":
+            raise ConfigValidationError(
+                "Only reward_calibration.mode='divide-by-fixed-scales' is currently "
+                f"supported, got {reward_calibration_mode!r}."
+            )
+
+        scales_val = _required_mapping_field(
+            reward_calibration_block,
+            "scales",
+            context="training_experiment.reward_calibration",
+        )
+        if not isinstance(scales_val, dict):
+            raise ConfigValidationError(
+                "training_experiment.reward_calibration.scales must be a mapping."
+            )
+        reward_calibration_scales = (
+            float(
+                _required_mapping_field(
+                    scales_val,
+                    "r1",
+                    context="training_experiment.reward_calibration.scales",
+                )
+            ),
+            float(
+                _required_mapping_field(
+                    scales_val,
+                    "r2",
+                    context="training_experiment.reward_calibration.scales",
+                )
+            ),
+            float(
+                _required_mapping_field(
+                    scales_val,
+                    "r3",
+                    context="training_experiment.reward_calibration.scales",
+                )
+            ),
+        )
 
     return TrainerConfig(
         hidden_layers=tuple(hidden),
@@ -339,18 +446,26 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
                 context="Resolved assumption 'checkpoint_selection_rule'",
             )
         ),
+        training_experiment_kind=training_experiment_kind,
+        training_experiment_id=training_experiment_id,
+        reward_calibration_enabled=reward_calibration_enabled,
+        reward_calibration_mode=reward_calibration_mode,
+        reward_calibration_source=reward_calibration_source,
+        reward_calibration_scales=reward_calibration_scales,
     )
 
 
-def get_seeds(cfg: dict[str, Any]) -> dict[str, int]:
+def get_seeds(cfg: dict[str, Any]) -> dict[str, Any]:
     """Extract seed values from the resolved-run YAML."""
     resolved = cfg.get("resolved_assumptions", {})
     seed_block = resolved.get("seed_and_rng_policy", {})
     seed_val = seed_block.get("value", {}) if isinstance(seed_block, dict) else {}
+    eval_seed_set = seed_val.get("evaluation_seed_set", [])
     return {
         "train_seed": seed_val.get("train_seed", 42),
         "environment_seed": seed_val.get("environment_seed", 1337),
         "mobility_seed": seed_val.get("mobility_seed", 7),
+        "evaluation_seed_set": [int(seed) for seed in eval_seed_set],
     }
 
 

@@ -101,8 +101,22 @@ def train_main(argv: list[str] | None = None) -> int:
         "[modqn-train] checkpoint-rule: "
         f"primary={trainer_cfg.checkpoint_primary_report}, "
         f"secondary={trainer_cfg.checkpoint_secondary_report} "
-        "(secondary save not yet implemented in this pass)"
+        "(secondary best-eval checkpoint uses the configured evaluation seed set)"
     )
+    if trainer_cfg.reward_calibration_enabled:
+        print(
+            "[modqn-train] experiment: "
+            f"kind={trainer_cfg.training_experiment_kind} "
+            f"id={trainer_cfg.training_experiment_id or '<unspecified>'} "
+            f"reward-calibration={trainer_cfg.reward_calibration_mode} "
+            f"source={trainer_cfg.reward_calibration_source} "
+            f"scales={trainer_cfg.reward_calibration_scales}"
+        )
+        print(
+            "[modqn-train] experiment-reporting: "
+            "training rewards are calibrated in the trainer, while evaluation, "
+            "logged r1/r2/r3, and checkpoint selection remain raw paper metrics"
+        )
 
     # Build and run trainer
     trainer = MODQNTrainer(
@@ -128,7 +142,12 @@ def train_main(argv: list[str] | None = None) -> int:
         )
 
     t0 = time.time()
-    logs = trainer.train(progress_every=args.progress_every)
+    evaluation_seed_set = tuple(seeds.get("evaluation_seed_set", ()))
+    logs = trainer.train(
+        progress_every=args.progress_every,
+        evaluation_seed_set=evaluation_seed_set,
+        evaluation_every_episodes=trainer_cfg.target_update_every_episodes,
+    )
     elapsed = time.time() - t0
 
     print(f"[modqn-train] done: {len(logs)} episodes in {elapsed:.1f}s")
@@ -172,6 +191,7 @@ def train_main(argv: list[str] | None = None) -> int:
             resumed_from["episode"] if resumed_from else -1
         )
         checkpoint_dir = out_dir / "checkpoints"
+        best_eval_summary = None
         final_checkpoint_path = trainer.save_checkpoint(
             checkpoint_dir / f"{trainer_cfg.checkpoint_primary_report}.pt",
             episode=final_episode,
@@ -181,16 +201,47 @@ def train_main(argv: list[str] | None = None) -> int:
         )
         print(f"[modqn-train] final checkpoint saved to {final_checkpoint_path}")
 
+        secondary_checkpoint_path = None
+        if trainer.has_best_eval_checkpoint():
+            best_eval_summary_obj = trainer.best_eval_summary()
+            best_eval_summary = (
+                asdict(best_eval_summary_obj)
+                if best_eval_summary_obj is not None
+                else None
+            )
+            secondary_checkpoint_path = trainer.save_best_eval_checkpoint(
+                checkpoint_dir / f"{trainer_cfg.checkpoint_secondary_report}.pt"
+            )
+            print(
+                "[modqn-train] best-eval checkpoint saved to "
+                f"{secondary_checkpoint_path}"
+            )
+
         metadata = {
             "paper_id": PAPER_ID,
             "package_version": PACKAGE_VERSION,
             "config_path": str(Path(args.config)),
             "config_role": cfg.get("config_role"),
+            "training_experiment": cfg.get("training_experiment"),
             "seeds": seeds,
             "checkpoint_rule": trainer.checkpoint_rule(),
+            "reward_calibration": {
+                "enabled": trainer_cfg.reward_calibration_enabled,
+                "mode": trainer_cfg.reward_calibration_mode,
+                "source": trainer_cfg.reward_calibration_source,
+                "scales": list(trainer_cfg.reward_calibration_scales),
+                "training_experiment_kind": trainer_cfg.training_experiment_kind,
+                "training_experiment_id": trainer_cfg.training_experiment_id,
+                "evaluation_metrics": "raw-paper-metrics",
+                "checkpoint_selection_metric": "raw-weighted-eval",
+            },
             "checkpoint_files": {
                 "primary_final": str(final_checkpoint_path),
-                "secondary_best_eval": None,
+                "secondary_best_eval": (
+                    str(secondary_checkpoint_path)
+                    if secondary_checkpoint_path is not None
+                    else None
+                ),
             },
             "resolved_assumptions": cfg.get("resolved_assumptions", {}),
             "runtime_environment": {
@@ -204,6 +255,7 @@ def train_main(argv: list[str] | None = None) -> int:
                 "user_scatter_distribution": env.config.user_scatter_distribution,
             },
             "trainer_config": asdict(trainer_cfg),
+            "best_eval_summary": best_eval_summary,
             "resume_from": resumed_from,
             "training_summary": {
                 "episodes_requested": trainer_cfg.episodes,
@@ -223,11 +275,119 @@ def train_main(argv: list[str] | None = None) -> int:
 
 def sweep_main(argv: list[str] | None = None) -> int:
     parser = _build_parser("modqn-sweeps")
+    parser.add_argument(
+        "--suite",
+        choices=["table-ii", "reward-geometry", "fig-3", "fig-4", "fig-5", "fig-6"],
+        default="table-ii",
+        help="Sweep/export suite to run.",
+    )
+    parser.add_argument(
+        "--episodes",
+        type=int,
+        default=None,
+        help="Override episode count for sweep training jobs.",
+    )
+    parser.add_argument(
+        "--progress-every",
+        type=int,
+        default=100,
+        help="Print progress every N episodes (0 = silent).",
+    )
+    parser.add_argument(
+        "--output-dir",
+        required=True,
+        help="Directory to write sweep outputs.",
+    )
+    parser.add_argument(
+        "--max-weight-rows",
+        type=int,
+        default=None,
+        help="Optional limit on Table II weight rows for quick runs.",
+    )
+    parser.add_argument(
+        "--max-figure-points",
+        type=int,
+        default=None,
+        help="Optional limit on Fig. 3-6 point counts for quick runs.",
+    )
+    parser.add_argument(
+        "--methods",
+        default="modqn,dqn_throughput,dqn_scalar,rss_max",
+        help="Comma-separated method list.",
+    )
+    parser.add_argument(
+        "--reference-run",
+        default=None,
+        help="Optional reference training artifact directory for analysis linkage.",
+    )
+    parser.add_argument(
+        "--input-table-ii",
+        default=None,
+        help="Existing Table II artifact directory for analysis-only suites.",
+    )
     args = parser.parse_args(argv)
     print(f"[modqn-sweeps] paper={PAPER_ID} version={PACKAGE_VERSION}")
     print(f"[modqn-sweeps] config={args.config}")
-    print("[modqn-sweeps] sweep runner not yet implemented (Phase 1 focus: MODQN trainer)")
-    print("[modqn-sweeps] next-step: implement Table II and Fig. 3-6 sweep runners")
+    print(f"[modqn-sweeps] suite={args.suite}")
+    print(f"[modqn-sweeps] output-dir={args.output_dir}")
+
+    from .config_loader import (
+        ConfigValidationError,
+        load_training_yaml,
+    )
+    from .export.pipeline import export_reward_geometry_analysis
+    from .sweeps import FIGURE_SUITES, run_figure_suite, run_table_ii
+
+    try:
+        cfg = load_training_yaml(args.config)
+    except ConfigValidationError as exc:
+        print(f"[modqn-sweeps] ERROR: {exc}", file=sys.stderr)
+        return 2
+
+    methods = tuple(
+        part.strip().lower() for part in args.methods.split(",") if part.strip()
+    )
+
+    if args.suite == "table-ii":
+        outputs = run_table_ii(
+            cfg,
+            output_dir=args.output_dir,
+            episodes=args.episodes,
+            progress_every=args.progress_every,
+            max_weight_rows=args.max_weight_rows,
+            methods=methods,
+            reference_run_dir=args.reference_run,
+        )
+    elif args.suite == "reward-geometry":
+        if not args.input_table_ii:
+            print(
+                "[modqn-sweeps] ERROR: --input-table-ii is required for reward-geometry",
+                file=sys.stderr,
+            )
+            return 2
+        outputs = export_reward_geometry_analysis(
+            args.output_dir,
+            cfg=cfg,
+            table_ii_dir=args.input_table_ii,
+            reference_run_dir=args.reference_run,
+        )
+    elif args.suite in FIGURE_SUITES:
+        outputs = run_figure_suite(
+            cfg,
+            suite=args.suite,
+            output_dir=args.output_dir,
+            episodes=args.episodes,
+            progress_every=args.progress_every,
+            max_points=args.max_figure_points,
+            methods=methods,
+            reference_run_dir=args.reference_run,
+        )
+    else:
+        print(f"[modqn-sweeps] ERROR: unsupported suite {args.suite!r}", file=sys.stderr)
+        return 2
+
+    for key, path in outputs.items():
+        print(f"[modqn-sweeps] {key}={path}")
     return 0
 
 
@@ -237,8 +397,29 @@ def export_main(argv: list[str] | None = None) -> int:
         "--input", required=True,
         help="Path to a completed run artifact directory.",
     )
+    parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="Directory to write exported CSV/PNG bundle surfaces.",
+    )
     args = parser.parse_args(argv)
     print(f"[modqn-export] paper={PAPER_ID}")
     print(f"[modqn-export] input={Path(args.input)}")
-    print("[modqn-export] export not yet implemented (Phase 2)")
+
+    from .export.pipeline import export_training_run
+
+    input_dir = Path(args.input)
+    output_dir = (
+        Path(args.output_dir)
+        if args.output_dir is not None
+        else input_dir / "export-bundle"
+    )
+    try:
+        outputs = export_training_run(input_dir, output_dir)
+    except FileNotFoundError as exc:
+        print(f"[modqn-export] ERROR: {exc}", file=sys.stderr)
+        return 2
+
+    for key, path in outputs.items():
+        print(f"[modqn-export] {key}={path}")
     return 0

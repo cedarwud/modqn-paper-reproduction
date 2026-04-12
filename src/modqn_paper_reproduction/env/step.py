@@ -278,6 +278,7 @@ class StepEnvironment:
         self._assignments: np.ndarray = np.zeros(0, dtype=np.int32)
         self._user_positions: list[tuple[float, float]] = []
         self._diagnostics_emitted: bool = False
+        self._last_diagnostics: DiagnosticsReport | None = None
 
     # -- properties -----------------------------------------------------------
 
@@ -341,9 +342,15 @@ class StepEnvironment:
         # Build state and masks
         states, masks, _beam_thr, _user_thr, _beam_loads = self._build_states_and_masks(rng)
 
-        # Diagnostics on first reset
-        diag = self._emit_diagnostics(rng)
-        self._diagnostics_emitted = True
+        # Diagnostics on first reset only. The report depends on config, not on
+        # mutable episode state, so later resets can safely reuse the cached
+        # report instead of spamming stderr on every episode.
+        if not self._diagnostics_emitted or self._last_diagnostics is None:
+            diag = self._emit_diagnostics(rng)
+            self._last_diagnostics = diag
+            self._diagnostics_emitted = True
+        else:
+            diag = self._last_diagnostics
 
         return states, masks, diag
 

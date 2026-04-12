@@ -3,8 +3,17 @@
 Current scripts expose this command surface:
 
 1. `train_modqn.py`
-   Real MODQN training entrypoint. Requires a resolved-run config and writes logs/checkpoints.
+   Real MODQN training entrypoint. Requires a resolved-run config and writes logs, the
+   final checkpoint, and the eval-selected best checkpoint. It can also run the
+   explicit experimental reward-calibration resolved config without changing the
+   default baseline config.
 2. `run_sweeps.py`
-   Placeholder for Figure/Table sweeps for users, satellites, and speeds.
+   Real sweep entrypoint for the first `Table II` slice plus first executable
+   `Fig. 3` to `Fig. 6` surfaces. Emits machine-readable CSV/JSON plus PNG plots for
+   `MODQN`, `DQN_throughput`, `DQN_scalar`, and `RSS_max`. It can
+   also emit winners/spreads/deltas analysis and link the sweep to a reference training run.
+   It additionally supports an experimental `reward-geometry` suite that re-scores an
+   existing `Table II` artifact under alternative normalization scales.
 3. `export_ntn_sim_core_bundle.py`
-   Placeholder for exporting one stable run bundle for `ntn-sim-core` consumption.
+   Real export entrypoint for completed training artifacts. Emits training CSVs,
+   summary JSON, and PNG plots. The full Phase 02 stable bundle contract is still pending.
