@@ -1,0 +1,36 @@
+# Virtual environments
+.venv/
+venv/
+
+# Python cache / compiled files
+__pycache__/
+*.py[cod]
+
+# Test and coverage output
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Packaging / build output
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Type / lint / automation caches
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+
+# Local training artifacts
+artifacts/*
+!artifacts/README.md
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo

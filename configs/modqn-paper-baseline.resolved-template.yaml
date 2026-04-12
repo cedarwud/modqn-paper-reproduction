@@ -1,0 +1,144 @@
+config_role: resolved-run-template
+inherits_from: modqn-paper-baseline.yaml
+executable_when_all_required_values_are_filled: true
+
+resolved_assumptions:
+  topology_handling_strategy:
+    assumption_id: ASSUME-MODQN-REP-011
+    value: per-topology-retrain
+  action_masking_semantics:
+    assumption_id: ASSUME-MODQN-REP-012
+    value:
+      eligibility_rule: satellite-visible-above-0deg-horizon
+      action_catalog_order: satellite-major-beam-minor
+      invalid_action_q_value: -inf
+  orbit_layout:
+    assumption_id: ASSUME-MODQN-REP-001
+    value:
+      shell_name: walker-like-delta-4-1-0-single-plane-proxy
+      altitude_km: 780
+      orbital_planes: 1
+      satellites_per_plane: 4
+      in_plane_spacing_deg: 90
+      inclination_deg: 90.0
+      raan_deg: 0.0
+  beam_geometry:
+    assumption_id: ASSUME-MODQN-REP-002
+    value:
+      layout: hex-7
+      center_beam: nadir
+      ring_beam_count: 6
+      ring_order: clockwise
+      center_to_ring_spacing_rule: theta_3dB
+      theta_3db_deg: 2.0
+  handover_cost_values:
+    assumption_id: ASSUME-MODQN-REP-003
+    value:
+      phi1: 0.5
+      phi2: 1.0
+  noise_semantics:
+    assumption_id: ASSUME-MODQN-REP-008
+    value:
+      sigma_squared_rule: N0_times_total_bandwidth
+      units: linear
+  atmospheric_formula_sign:
+    assumption_id: ASSUME-MODQN-REP-009
+    value:
+      primary_run_formula: paper-published-sign
+      primary_expression: "A(d) = 10^(+3 d chi / (10 h))"
+      sign_anomaly_disclosure: published-sign-yields-gain-for-typical-values
+      required_sensitivity_formula: "A_corrected(d) = 10^(-3 d chi / (10 h))"
+  evaluation_aggregation:
+    assumption_id: ASSUME-MODQN-REP-010
+    value:
+      metric_aggregation_rule: mean-and-std
+      aggregation_scope: evaluation_seed_set
+      primary_report: mean
+      secondary_report: std
+  checkpoint_selection_rule:
+    assumption_id: ASSUME-MODQN-REP-015
+    value:
+      primary_report: final-episode-policy
+      secondary_report: best-weighted-reward-on-eval
+  figure_discrete_point_set:
+    assumption_id: ASSUME-MODQN-REP-016
+    value:
+      user_count: [40, 60, 80, 100, 120, 140, 160, 180, 200]
+      satellite_count: [2, 3, 4, 5, 6, 7, 8]
+      user_speed_kmh: [30, 60, 90, 120, 150]
+      satellite_speed_km_s: [7.0, 7.2, 7.4, 7.6, 7.8]
+  comparator_training_protocol:
+    assumption_id: ASSUME-MODQN-REP-017
+    value: "DQN_scalar retrain per weight row"
+  seed_and_rng_policy:
+    assumption_id: ASSUME-MODQN-REP-018
+    value:
+      train_seed: 42
+      environment_seed: 1337
+      mobility_seed: 7
+      evaluation_seed_set: [100, 200, 300, 400, 500]
+
+  # -- trainer-side assumptions (closed for Phase 1 training) ----------------
+
+  epsilon_schedule:
+    assumption_id: ASSUME-MODQN-REP-004
+    value:
+      schedule_type: linear
+      epsilon_start: 1.0
+      epsilon_end: 0.01
+      epsilon_decay_episodes: 7000
+
+  target_update_cadence:
+    assumption_id: ASSUME-MODQN-REP-005
+    value:
+      update_mode: hard-copy
+      target_update_every_episodes: 50
+
+  replay_capacity:
+    assumption_id: ASSUME-MODQN-REP-006
+    value:
+      capacity: 50000
+      sampling: uniform-random
+
+  policy_sharing_mode:
+    assumption_id: ASSUME-MODQN-REP-007
+    value:
+      mode: shared-policy
+      description: "single DQN per objective, parameters shared across all users"
+
+  state_encoding_and_normalization:
+    assumption_id: ASSUME-MODQN-REP-013
+    value:
+      layout: "flat-concat [access_vector, log1p(snr), offsets/scale, loads/num_users]"
+      snr_encoding: log1p
+      offset_scale_km: 100.0
+      load_normalization: divide_by_num_users
+
+  # -- env-side assumptions (active in step runtime, now surfaced) -----------
+
+  r3_gap_beam_scope:
+    assumption_id: ASSUME-MODQN-REP-019
+    value:
+      scope: all-reachable-beams
+      empty_beam_throughput: 0
+      description: "gap spans union of all users' visibility masks; empty reachable beams contribute throughput=0 to min"
+
+  user_heading_stride:
+    assumption_id: ASSUME-MODQN-REP-020
+    value:
+      model: deterministic-irrational-stride
+      stride_rad: 2.3998277
+      description: "heading = (uid * stride) mod 2pi — quasi-uniform angular spread without RNG"
+
+  user_scatter_radius:
+    assumption_id: ASSUME-MODQN-REP-021
+    value:
+      distribution: uniform-circular
+      radius_km: 50.0
+      description: "users scattered uniformly in circle around ground point"
+
+  ground_point:
+    value:
+      lat_deg: 0.0
+      lon_deg: 0.0
+      note: "equator default — visible to polar-orbit satellites; paper does not specify"

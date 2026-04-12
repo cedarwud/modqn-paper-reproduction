@@ -1,0 +1,364 @@
+"""Config loader for MODQN paper reproduction YAML.
+
+Training entrypoints must load an executable resolved-run config and
+must reject the paper-envelope config. Critical runtime assumptions for
+ASSUME-MODQN-REP-015/019/020/021 are validated here so that the trainer
+cannot silently fall back to module constants.
+"""
+
+from __future__ import annotations
+
+import copy
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+from .env.orbit import OrbitConfig
+from .env.beam import BeamConfig
+from .env.channel import AtmosphericSignMode, ChannelConfig
+from .env.step import StepConfig, StepEnvironment
+from .algorithms.modqn import TrainerConfig
+
+
+class ConfigValidationError(ValueError):
+    """Raised when a training config violates the authority contract."""
+
+
+def load_yaml(path: str | Path) -> dict[str, Any]:
+    """Load a YAML config file."""
+    config_path = Path(path)
+    with open(config_path) as f:
+        cfg = yaml.safe_load(f) or {}
+
+    inherits_from = cfg.get("inherits_from")
+    if inherits_from:
+        parent_path = Path(inherits_from)
+        if not parent_path.is_absolute():
+            parent_path = config_path.parent / parent_path
+        parent_cfg = load_yaml(parent_path)
+        cfg = _merge_dicts(parent_cfg, cfg)
+
+    return cfg
+
+
+def load_training_yaml(path: str | Path) -> dict[str, Any]:
+    """Load and validate an executable resolved-run training config."""
+    cfg = load_yaml(path)
+    require_training_config(cfg, config_path=path)
+    return cfg
+
+
+def require_training_config(
+    cfg: dict[str, Any],
+    config_path: str | Path | None = None,
+) -> None:
+    """Reject non-executable training configs.
+
+    Paper-envelope configs are authority/reference surfaces only and may
+    not be used as training input. The executable training surface must
+    be a resolved-run config.
+    """
+    role = str(cfg.get("config_role", "")).strip()
+    location = str(config_path) if config_path is not None else "<config>"
+
+    if role == "paper-envelope":
+        raise ConfigValidationError(
+            f"Training input {location!r} has config_role='paper-envelope'. "
+            "Use a resolved-run config instead; the paper-envelope config is "
+            "authority-only and cannot start training."
+        )
+    if not role.startswith("resolved-run"):
+        raise ConfigValidationError(
+            f"Training input {location!r} must be a resolved-run config, "
+            f"got config_role={role!r}."
+        )
+    if not isinstance(cfg.get("resolved_assumptions"), dict):
+        raise ConfigValidationError(
+            f"Training input {location!r} is missing 'resolved_assumptions'."
+        )
+
+
+def _resolved_assumption_block(
+    cfg: dict[str, Any],
+    name: str,
+    *,
+    required: bool = False,
+) -> dict[str, Any]:
+    resolved = cfg.get("resolved_assumptions", {})
+    block = resolved.get(name, {})
+    if isinstance(block, dict):
+        return block
+    if required:
+        raise ConfigValidationError(
+            f"Resolved config is missing assumption block '{name}'."
+        )
+    return {}
+
+
+def _resolved_assumption_value(
+    cfg: dict[str, Any],
+    name: str,
+    *,
+    required: bool = False,
+) -> Any:
+    block = _resolved_assumption_block(cfg, name, required=required)
+    if "value" in block:
+        return block["value"]
+    if required:
+        raise ConfigValidationError(
+            f"Resolved config assumption '{name}' is missing its 'value' field."
+        )
+    return {}
+
+
+def _required_mapping_field(
+    mapping: dict[str, Any],
+    key: str,
+    *,
+    context: str,
+) -> Any:
+    if key not in mapping:
+        raise ConfigValidationError(f"{context} is missing required field '{key}'.")
+    return mapping[key]
+
+
+def _merge_dicts(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
+    """Deep-merge config dictionaries with child values overriding parent."""
+    merged = copy.deepcopy(base)
+    for key, value in overlay.items():
+        if (
+            key in merged
+            and isinstance(merged[key], dict)
+            and isinstance(value, dict)
+        ):
+            merged[key] = _merge_dicts(merged[key], value)
+        else:
+            merged[key] = copy.deepcopy(value)
+    return merged
+
+
+def build_step_config(cfg: dict[str, Any]) -> StepConfig:
+    """Build StepConfig from the resolved-run YAML."""
+    base = cfg.get("baseline", cfg)
+
+    phi1 = 0.5
+    phi2 = 1.0
+    ho_val = _resolved_assumption_value(cfg, "handover_cost_values")
+    if isinstance(ho_val, dict):
+        phi1 = ho_val.get("phi1", phi1)
+        phi2 = ho_val.get("phi2", phi2)
+
+    gp_val = _resolved_assumption_value(cfg, "ground_point")
+    gp_val = gp_val if isinstance(gp_val, dict) else {}
+    lat = gp_val.get("lat_deg", 0.0)
+    lon = gp_val.get("lon_deg", 0.0)
+
+    r3_gap_val = _resolved_assumption_value(
+        cfg, "r3_gap_beam_scope", required=True
+    )
+    if not isinstance(r3_gap_val, dict):
+        raise ConfigValidationError(
+            "Resolved assumption 'r3_gap_beam_scope' must be a mapping."
+        )
+
+    heading_val = _resolved_assumption_value(
+        cfg, "user_heading_stride", required=True
+    )
+    if not isinstance(heading_val, dict):
+        raise ConfigValidationError(
+            "Resolved assumption 'user_heading_stride' must be a mapping."
+        )
+
+    scatter_val = _resolved_assumption_value(
+        cfg, "user_scatter_radius", required=True
+    )
+    if not isinstance(scatter_val, dict):
+        raise ConfigValidationError(
+            "Resolved assumption 'user_scatter_radius' must be a mapping."
+        )
+
+    return StepConfig(
+        num_users=base.get("users", 100),
+        slot_duration_s=base.get("slot_duration_s", 1.0),
+        episode_duration_s=base.get("episode_duration_s", 10.0),
+        user_speed_kmh=base.get("user_speed_kmh", 30.0),
+        phi1=phi1,
+        phi2=phi2,
+        user_lat_deg=lat,
+        user_lon_deg=lon,
+        r3_gap_scope=_required_mapping_field(
+            r3_gap_val,
+            "scope",
+            context="Resolved assumption 'r3_gap_beam_scope'",
+        ),
+        r3_empty_beam_throughput=float(
+            r3_gap_val.get("empty_beam_throughput", 0.0)
+        ),
+        user_heading_stride_rad=float(
+            _required_mapping_field(
+                heading_val,
+                "stride_rad",
+                context="Resolved assumption 'user_heading_stride'",
+            )
+        ),
+        user_scatter_radius_km=float(
+            _required_mapping_field(
+                scatter_val,
+                "radius_km",
+                context="Resolved assumption 'user_scatter_radius'",
+            )
+        ),
+        user_scatter_distribution=str(
+            scatter_val.get("distribution", "uniform-circular")
+        ),
+    )
+
+
+def build_orbit_config(cfg: dict[str, Any]) -> OrbitConfig:
+    """Build OrbitConfig from the resolved-run YAML."""
+    base = cfg.get("baseline", cfg)
+    ol_val = _resolved_assumption_value(cfg, "orbit_layout")
+    ol_val = ol_val if isinstance(ol_val, dict) else {}
+
+    return OrbitConfig(
+        altitude_km=ol_val.get("altitude_km", base.get("altitude_km", 780.0)),
+        num_satellites=ol_val.get("satellites_per_plane", base.get("satellites", 4)),
+        num_planes=ol_val.get("orbital_planes", 1),
+        satellite_speed_km_s=base.get("satellite_speed_km_s", 7.4),
+        inclination_deg=ol_val.get("inclination_deg", 90.0),
+        raan_deg=ol_val.get("raan_deg", 0.0),
+        min_elevation_deg=0.0,
+    )
+
+
+def build_beam_config(cfg: dict[str, Any]) -> BeamConfig:
+    """Build BeamConfig from the resolved-run YAML."""
+    base = cfg.get("baseline", cfg)
+    bg_val = _resolved_assumption_value(cfg, "beam_geometry")
+    bg_val = bg_val if isinstance(bg_val, dict) else {}
+
+    return BeamConfig(
+        beams_per_satellite=base.get("beams_per_satellite", 7),
+        theta_3db_deg=bg_val.get("theta_3db_deg", 2.0),
+    )
+
+
+def build_channel_config(cfg: dict[str, Any]) -> ChannelConfig:
+    """Build ChannelConfig from the resolved-run YAML."""
+    base = cfg.get("baseline", cfg)
+    atm_val = _resolved_assumption_value(cfg, "atmospheric_formula_sign")
+    atm_val = atm_val if isinstance(atm_val, dict) else {}
+    sign_str = atm_val.get("primary_run_formula", "paper-published-sign")
+    if "corrected" in sign_str:
+        sign_mode = AtmosphericSignMode.CORRECTED_LOSSY
+    else:
+        sign_mode = AtmosphericSignMode.PAPER_PUBLISHED
+
+    return ChannelConfig(
+        carrier_frequency_hz=base.get("carrier_frequency_ghz", 20.0) * 1e9,
+        bandwidth_hz=base.get("bandwidth_mhz", 500.0) * 1e6,
+        tx_power_w=base.get("tx_power_w", 2.0),
+        noise_psd_dbm_hz=base.get("noise_psd_dbm_hz", -174.0),
+        rician_k_db=base.get("rician_k_db", 20.0),
+        attenuation_db_per_km=base.get(
+            "atmospheric_attenuation_coefficient_db_per_km", 0.05
+        ),
+        atmospheric_sign_mode=sign_mode,
+    )
+
+
+def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
+    """Build TrainerConfig from the resolved-run YAML."""
+    base = cfg.get("baseline", cfg)
+
+    # Epsilon schedule (ASSUME-MODQN-REP-004)
+    eps_val = _resolved_assumption_value(cfg, "epsilon_schedule")
+    eps_val = eps_val if isinstance(eps_val, dict) else {}
+
+    # Target update (ASSUME-MODQN-REP-005)
+    tgt_val = _resolved_assumption_value(cfg, "target_update_cadence")
+    tgt_val = tgt_val if isinstance(tgt_val, dict) else {}
+
+    # Replay (ASSUME-MODQN-REP-006)
+    rep_val = _resolved_assumption_value(cfg, "replay_capacity")
+    rep_val = rep_val if isinstance(rep_val, dict) else {}
+
+    # Policy sharing (ASSUME-MODQN-REP-007)
+    pol_val = _resolved_assumption_value(cfg, "policy_sharing_mode")
+    pol_val = pol_val if isinstance(pol_val, dict) else {}
+
+    # State encoding (ASSUME-MODQN-REP-013)
+    enc_val = _resolved_assumption_value(cfg, "state_encoding_and_normalization")
+    enc_val = enc_val if isinstance(enc_val, dict) else {}
+
+    ckpt_block = _resolved_assumption_block(
+        cfg, "checkpoint_selection_rule", required=True
+    )
+    ckpt_val = _resolved_assumption_value(
+        cfg, "checkpoint_selection_rule", required=True
+    )
+    if not isinstance(ckpt_val, dict):
+        raise ConfigValidationError(
+            "Resolved assumption 'checkpoint_selection_rule' must be a mapping."
+        )
+
+    hidden = base.get("hidden_layers", [100, 50, 50])
+
+    return TrainerConfig(
+        hidden_layers=tuple(hidden),
+        activation=base.get("activation", "tanh"),
+        learning_rate=base.get("learning_rate", 0.01),
+        discount_factor=base.get("discount_factor", 0.9),
+        batch_size=base.get("batch_size", 128),
+        episodes=base.get("episodes", 9000),
+        objective_weights=tuple(base.get("objective_weights", [0.5, 0.3, 0.2])),
+        epsilon_start=eps_val.get("epsilon_start", 1.0),
+        epsilon_end=eps_val.get("epsilon_end", 0.01),
+        epsilon_decay_episodes=eps_val.get("epsilon_decay_episodes", 7000),
+        target_update_every_episodes=tgt_val.get("target_update_every_episodes", 50),
+        replay_capacity=rep_val.get("capacity", 50_000),
+        policy_sharing_mode=pol_val.get("mode", "shared"),
+        snr_encoding=enc_val.get("snr_encoding", "log1p"),
+        offset_scale_km=enc_val.get("offset_scale_km", 100.0),
+        load_normalization=enc_val.get("load_normalization", "divide_by_num_users"),
+        checkpoint_assumption_id=str(
+            ckpt_block.get("assumption_id", "ASSUME-MODQN-REP-015")
+        ),
+        checkpoint_primary_report=str(
+            _required_mapping_field(
+                ckpt_val,
+                "primary_report",
+                context="Resolved assumption 'checkpoint_selection_rule'",
+            )
+        ),
+        checkpoint_secondary_report=str(
+            _required_mapping_field(
+                ckpt_val,
+                "secondary_report",
+                context="Resolved assumption 'checkpoint_selection_rule'",
+            )
+        ),
+    )
+
+
+def get_seeds(cfg: dict[str, Any]) -> dict[str, int]:
+    """Extract seed values from the resolved-run YAML."""
+    resolved = cfg.get("resolved_assumptions", {})
+    seed_block = resolved.get("seed_and_rng_policy", {})
+    seed_val = seed_block.get("value", {}) if isinstance(seed_block, dict) else {}
+    return {
+        "train_seed": seed_val.get("train_seed", 42),
+        "environment_seed": seed_val.get("environment_seed", 1337),
+        "mobility_seed": seed_val.get("mobility_seed", 7),
+    }
+
+
+def build_environment(cfg: dict[str, Any]) -> StepEnvironment:
+    """Build a complete StepEnvironment from the resolved-run YAML."""
+    return StepEnvironment(
+        step_config=build_step_config(cfg),
+        orbit_config=build_orbit_config(cfg),
+        beam_config=build_beam_config(cfg),
+        channel_config=build_channel_config(cfg),
+    )
