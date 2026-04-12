@@ -1,0 +1,420 @@
+2834                                                                                      IEEE COMMUNICATIONS LETTERS, VOL. 28, NO. 12, DECEMBER 2024
+
+
+
+
+          Handover for Multi-Beam LEO Satellite Networks: A Multi-Objective
+                           Reinforcement Learning Method
+  Yang Sun , Member, IEEE, Yuqing Zhai, Wenjun Wu , Member, IEEE, Pengbo Si , Senior Member, IEEE,
+                                  and Fei Richard Yu , Fellow, IEEE
+
+
+   Abstract— In multi-beam low-earth orbit (LEO) satellite                         of service (QoS) improvement [5], and network load bal-
+networks, frequent handovers between intra-satellite and inter-                    ancing [6]. However, the graph construction of the above
+satellite beams are inevitable. In this letter, we design a beam                   handover schemes was often based on a large amount of
+handover strategy based on the multi-objective reinforcement
+learning (MORL) method to achieve seamless and effective
+                                                                                   global information, which can’t adapt to the dynamics of
+handover between multiple beams of LEO satellites. We first                        the LEO networks. With the development of artificial intel-
+model the handover optimization problem of the multi-beam                          ligence, deep reinforcement learning (DRL) has also been
+LEO satellite networks as a multi-objective optimization (MOO)                     applied to handover optimization [7], [8], [9], [10]. Wang
+problem to jointly maximize throughput, minimize the handover                      et al. simultaneously considered multiple handover factors
+frequency, and keep the network load balanced. On this basis,                      and proposed a DRL-based handover scheme to make the
+we convert the MOO problem into a multi-objective Markov
+decision process (MOMDP), and utilize an MORL method, called                       handover decisions [7]. Yang et al. designed a deep Q-learning
+multi-objective deep Q-learning network (MODQN), to learn                          network (DQN) framework of adaptive learning rate with
+and achieve the optimal solution. Simulation results show the                      momentum to optimize the multi-metric handover problem [8].
+effectiveness and superiority of the proposed handover scheme.                     Lee et al. developed a novel DRL-based handover protocol
+  Index Terms— Multi-beam LEO satellite networks, beam han-                        that simplified the handover process to minimize access delays
+dover, multi-objective reinforcement learning.                                     and collision rates [9]. Liu et al. proposed a multi-agent
+                                                                                   successive hysteretic deep Q-learning algorithm to determine
+                           I. I NTRODUCTION                                        the handover decisions for LEO mega-constellations [10].
+                                                                                   However, the above DRL-based handover schemes generally
+
+A     S A powerful supplement to the terrestrial networks, low-
+      earth orbit (LEO) satellite networks can transcend the
+terrain limitations to achieve universal coverage around the
+                                                                                   used the single-objective DRL algorithm based on the scalar
+                                                                                   reward of several performance indicators to find the optimal
+                                                                                   handover strategy for the LEO satellite networks with a known
+world and have gradually attracted widespread attention [1].                       preference. These customized handover schemes are unable to
+The dynamic changes in LEO satellite network topology lead                         clearly distinguish the trade-offs between multiple objectives,
+to the frequent triggering of handovers not only between intra-                    and can’t be widely applied to different preference scenarios
+satellite beams but also between inter-satellite beams [2], [3].                   of LEO satellite networks.
+Frequent beam handover will significantly increase service                            In this letter, we comprehensively consider various per-
+interruptions and affect the user’s service experience.                            formance metrics and propose an intelligent beam handover
+   Recently, most existing handover schemes mainly focused                         scheme based on the multi-objective reinforcement learning
+on inter-satellite handovers. Several researchers utilized the                     (MORL) method. The handover problem of multi-beam LEO
+graph theory to optimize the handover decisions of LEO                             satellite networks is modeled as a multi-objective optimization
+satellites [4], [5], [6]. These graph-based handover schemes                       (MOO) problem with the aim of maximizing the throughput,
+generally abstracted the coverage relationship between satel-                      and minimizing the handover frequency while keeping load
+lites and users into a weighted directed graph, and found                          balancing of networks. To optimize the multiple conflict-
+the shortest path to determine the user’s optimal handover                         ing objectives and make the optimal handover decisions,
+sequence with the aim of throughput maximization [4], quality                      we transform the MOO problem into a multi-objective Markov
+                                                                                   decision process (MOMDP) and propose a multi-objective
+  Received 25 August 2024; revised 24 September 2024; accepted 26                  deep Q-learning network (MODQN) algorithm to solve it.
+September 2024. Date of publication 30 September 2024; date of current
+version 12 December 2024. This work was funded in part by the Natural              Simulation results show that the proposed handover scheme
+Science Foundation of Beijing Municipality under Grant L212003, in part by         can achieve more effective and robust performance compared
+the National Natural Science Foundation of China under Grant 62001011 and          to other comparison schemes.
+62371014, in part by the Natural Science Foundation of Beijing Municipality
+under Grant L211002 and 4222002. The associate editor coordinating the
+review of this letter and approving it for publication was S. A. Tegos.                 II. S YSTEM M ODEL AND P ROBLEM F ORMULATION
+(Corresponding author: Wenjun Wu.)
+  Yang Sun, Yuqing Zhai, Wenjun Wu, and Pengbo Si are with the School              A. System Model
+of Information Science and Technology, Beijing University of Technology,
+Beijing 100124, China (e-mail: sunyang@bjut.edu.cn; zhaiyuqing@emails.                Here we consider a multi-beam LEO satellite network in
+bjut.edu.cn; wenjunwu@bjut.edu.cn; sipengbo@bjut.edu.cn).                          which a LEO constellation with L satellites serving I users,
+  Fei Richard Yu is with the Department of System and Computer                     as shown in Fig.1. The set of LEO satellites is denoted as
+Engineering, Carleton University, Ottawa, ON K1S 5B6, Canada (e-mail:
+richard.yu@carleton.ca).                                                           L = {1, 2, . . . l, . . . , L}. Each satellite has V beams, the
+  Digital Object Identifier 10.1109/LCOMM.2024.3470890                             set of which is denoted as V = {1, 2, . . . , v, . . . , V }. For
+                        1558-2558 © 2024 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission.
+                                      See https://www.ieee.org/publications/rights/index.html for more information.
+
+       Authorized licensed use limited to: National Taipei University. Downloaded on February 05,2025 at 11:39:21 UTC from IEEE Xplore. Restrictions apply.
+SUN et al.: HANDOVER FOR MULTI-BEAM LEO SATELLITE NETWORKS: A MORL METHOD                                                                                           2835
+
+
+
+                                                                                  B. Problem Formulation
+                                                                                     To maximize the throughput, minimize the number of
+                                                                                  handover events, and balance the loads among the beams, the
+                                                                                  handover optimization problem in multi-beam LEO satellite
+                                                                                  networks can be formulated as a dynamic MOO problem.
+                                                                                  We define P1 as the maximization of long-term throughput
+                                                                                  for all users, P2 as the minimization of handover cost, and
+                                                                                  P3 as the minimization of the difference between the maximal
+Fig. 1.   System model of multi-beam LEO satellite networks.                      and minimal throughput of beams which represents the degree
+                                                                                  of load balancing of the network. The handover optimization
+convenience, we introduce a new set K = L × V to define                           problem can be formulated as follows:
+all the beams in the network, and the two-dimensional vector
+κ = (l, v) ∈ K denotes the v-th beam of satellite l. The set of                                                T
+                                                                                                               X −1    X X
+users is denoted as I = {1, 2, . . . , i, · · · , I}. We use a binary                 opt. P1 = max                                ui,l,v (t)ci,l,v (t)
+                                                                                                    {ui (t)}
+indicator ui,l,v (t) to express whether user i is connected with                                               t=0 (l,v)∈K i∈I
+beam (l, v) or not. When user i requests to access beam (l, v)                                                 T
+                                                                                                               X −1    X X
+at time slot t, ui,l,v (t) = 1, and otherwise, ui,l,v (t) = 0.                               P2 = min                              Ψi (t)
+                                                                                                    {ui (t)}
+ui (t) = [ui,1,1 (t), . . . , ui,l,v (t), . . . , ui,L,V (t)] represents the                                   t=0 (l,v)∈K i∈I
+access vector between all beams and user i. Specifically,                                                      T −1
+                                                                                                                      
+                                                                                                                           max
+                                                                                                                                 P
+                                                                                                                                        ui,l,v (t)ci,l,v (t)−
+                                                                                                                                                                
+we use ρi (t) = l ∈ L and δi (t) = v ∈ V to denote the                                       P3 = min
+                                                                                                               X
+                                                                                                                       (l,v)∈K i∈I
+                                                                                                                                P                        ,
+satellite and the corresponding beam that user i accesses at                                        {ui (t)}              min       ui,l,v (t)ci,l,v (t)
+                                                                                                               t=0        (l,v)∈K i∈I
+time slot t, respectively.
+   The channel gain Gi,l,v (t) between user i and beam (l, v)                         s.t. C1 : ui,l,v (t) ∈ {0, 1} , ∀i ∈ I, ∀(l, v) ∈ K
+                                                                                                X
+at time slot t is mainly composed of path loss, atmospheric                                C2 :         ui,l,v (t) = 1, ∀i ∈ I, ∀(l, v) ∈ K                         (5)
+fading and Rician small-scale fading, and can be expressed as                                      (l,v)∈K
+                                            2
+                                  ξ
+         Gi,l,v (t) =                              · A(di,l,v (t)) · η,  (1)      where the constraints C1 and C2 denote each user should
+                          4πdi,l,v (t)fc                                          select and can only select no more than one beam for access.
+where ξ and fc are speeds of light and carrier frequency, η                       Due to the dynamics of the networks, seeking the optimal
+is Rician small-scale fading, di,l,v (t) is the distance between                  handover strategy for long-term benefits based on traditional
+                                              3di,l,v (t)χ
+                                                
+                                                                                  optimization methods may result in significant computational
+satellite and user. A(di,l,v (t)) = 10 10hl,v (t) is atmospheric
+                                                                                  costs. MORL is committed to pursuing the simultaneous
+fading [5], where χ is the attenuation through clouds and rain,
+                                                                                  optimization of multiple conflicting objectives and has unique
+hl,v (t) is the altitude of the satellite.
+                                                                                  advantages in solving the dynamic MOO problems.
+   The signal-to-noise ratio (SNR) between user i and beam
+(l, v) is
+                                                                                    III. H ANDOVER S CHEME BASED ON M ULTI -O BJECTIVE
+                                    pi,l,v · Gi,l,v (t)
+                      γi,l,v (t) =                      ,    (2)                               D EEP Q-L EARNING N ETWORK
+                                            σ2
+where pi,l,v is the transmit power between user i and beam                           In this section, we first transform the multi-objective han-
+(l, v), σ 2 is the white Gaussian noise power.                                    dover optimization problem into an MOMDP model, and
+   According to Shannon formula, the transmission rate from                       utilize the MORL method, called MODQN algorithm, to learn
+beam (l, v) to user i in time slot t is given by                                  and approach the optimal handover decisions.
+                                 B
+               ci,l,v (t) =            log (1 + γi,l,v (t)), (3)
+                              Nl,v (t) 2                                          A. MOMDP Model
+where B is the bandwidth and Nl,v (t) is the number of users
+                                                                                     The principal structure D
+                                                                                                             of MORLE is MOMDP, which can
+currently being served by beam (l, v).                                                                              →
+                                                                                                                    −                     →
+                                                                                                                                          −
+   Due to the high-speed movement of satellites, there are a                      be described by a 3-tuple S, A, R , where S, A and R are
+large number of handovers that occur between intra-satellite                      the state space, action space and reward vector, respectively.
+and inter-satellite beams. The different types of handover result                    1) State Space: Here we treat each user as an agent, each
+in different handover costs, which are defined as follows                         user i can locally observe the state information from the
+                                                                                 environment. The state sit ∈ S can be defined as
+           0,
+                   ρi (t) = ρi (t − 1) and δi (t) = δi (t − 1)
+   Ψi(t) = φ1 , ρi (t) = ρi (t − 1) and δi (t) ̸= δi (t − 1),                                        sit = (ui (t), Gi (t), Γ(t), N(t)),                            (6)
+          
+           φ , ρ (t) ̸= ρ (t − 1)
+               2      i       i
+                                                                                  where Gi (t) = [Gi,1,1 (t), . . . , Gi,l,v (t), . . . , Gi,L,V (t)]
+                                                                          (4)
+                                                                                  denotes the channel quality between all beams and user i,
+where φ1 is the handover cost between beams within the same                       Γ(t) = [Γ1,1 (t), . . . , Γl,v (t), . . . , ΓL,V (t)] denotes the location
+satellite, φ2 is the handover cost between beams of different                     of all beams, and N(t) = [N1,1 (t), . . . , Nl,v (t), . . . , NL,V (t)]
+satellites, and we have 0 < φ1 < φ2 .                                             denotes the number of users served by each beam.
+
+      Authorized licensed use limited to: National Taipei University. Downloaded on February 05,2025 at 11:39:21 UTC from IEEE Xplore. Restrictions apply.
+2836                                                                                         IEEE COMMUNICATIONS LETTERS, VOL. 28, NO. 12, DECEMBER 2024
+
+
+
+  2) Action Space: We use the access vector to represent the
+action ait ∈ A of user i at time slot t, which can be defined as
+        (                                          P                )
+                                                        ui,l,v = 1,
+    i
+  at = ui,1,1 , . . . , ui,l,v , . . . , ui,L,V (l,v)∈K               .
+                                                ui,l,v ∈ {0, 1}
+                                                                      (7)
+  3) Reward: Unlike the single-objective DQN, MODQN
+                         →
+                         −       →
+                                 −
+uses a vector of rewards R it ∈ R instead of a scalarization
+function with respect to the three objectives, which can be                        Fig. 2.    The framework of the proposed MODQN.
+defined as
+                   →
+                   −i  i        i      i
+                                                                                  ζ (st , at ) to score the action of multiple objectives, which can
+                   R t = r1,t , r2,t , r3,t   ,          (8)                       be calculated by
+        i     i      i
+where r1,t , r2,t , r3,t are the rewards of throughput, handover                                                                  3
+                                                                                                             →
+                                                                                                             −              X
+cost and load balancing, respectively.                                                   ζ (st , at ) = ΩT • Q (st , at ) =   ωj Qj (st , at ).               (12)
+  To improve the quality of user data services as much as                                                                       j=1
+possible, the throughput reward of user i is defined as
+                           X                                                          In each step, the agent can select the action ait by using the
+                   i
+                 r1,t  =         ui,l,v (t) · ci,l,v (t).    (9)                   ϵ-greedy strategy:
+                            (l,v)∈K
+                                                                                                            ait = arg max ζ(sit , a) .                        (13)
+  Frequent handovers may lead to significant signaling inter-                                                           a∈A
+actions and transmission interruptions, so the handover cost                          When the agent performs an action in MODQN, the envi-
+reward of user i is defined as                                                                                                →
+                                                                                                                              −i         i      i      i
+                                                                                  ronment will return a reward vector
+                                                                                                                             R t = r1,t    , r2,t , r3,t  . The
+                  ρi (t) = ρi (t − 1) and δi (t) = δi (t − 1)                                      i i i          i
+         0,
+                                                                                  agent stores st , at , rj,t , st+1 of each objective j in the replay
+    i                                                                              memory individually. The DQN network of each objective
+  r2,t = −φ1 , ρi (t) = ρi (t − 1) and δi (t) ̸= δi (t − 1).
+        
+         −φ , ρ (t) ̸= ρ (t − 1)                                                  is trained and optimized independently. Wherein, the training
+              2     i       i
+                                                                                   process of each DQN involves two neural networks, i.e., the
+                                                                          (10)     evaluation network and the target network. The action-value
+   To achieve the fairness scheduling of the beams, here we                        function of evaluation network      Qj (st , at ; θj ) is updated every
+describe the load balancing performance of the networks                            iteration, while Qj st , at ; θj− of the target network is updated
+by using the difference between the maximal and minimal                            periodically at specified episodes, where θj , θj− are learnable
+throughput of beams, which is defined as follows                                   parameters of evaluation and target network, respectively.
+                             P                                                   In each iteration, each DQN is trained by randomly sampling
+                       max        ui,l,v (t)ci,l,v (t)−                            a batch from the corresponding replay memory.
+          i      1    (l,v)∈K i∈I
+        r3,t =−              P                         . (11)                       The update formula for the network parameter θj under each
+                 I      min       ui,l,v (t)ci,l,v (t)
+                            (l,v)∈K i∈I                                            objective is as follows
+                                                                                                                                                               
+                                                                                                                          ′    ′     −
+                                                                                                                                       
+B. MODQN                                                                            θj = θj + α rj,t + β max      ′
+                                                                                                                     Q j s  , a
+                                                                                                                          t t j  ; θ     − Q  j  (s  , a
+                                                                                                                                                    t t j; θ  )
+                                                                                                                  at
+   MODQN is a generalization of standard single-objective                                                                       ∇Qj (st , at ; θj ) .         (14)
+DQN and is suitable to optimize multiple conflicting objec-
+tives. The main idea of MODQN is to establish a separate                           where α is the learning rate, and β is the discount factor.
+DQN network for each objective and find the optimal solution                          The loss function can be calculated by using the mean
+by scalarizing the action-value functions of multiple DQNs.                        square error after the DQN network has been trained, which
+   The framework of the proposed MODQN is shown in                                 is defined as follows
+Fig. 2. In MODQN, the agent comprises three parallel                                                       h                            i
+training DQN networks, each has an action-value function                                       L (θj ) = E (yj,t − Qj (st , at ; θj )) ,     (15)
+Q (st , at ) that represents the expected discounted reward
+corresponding to each objective. The action-value vector of                        where yj,t is the temporal difference (TD) target and is
+                                                          →
+                                                          −                        expressed as
+three DQN networks can be expressed as Q (st , at ) =
+[Q1 (st , at ) , Q2 (st , at ) , Q3 (st , at )]. Since the optimization                     (
+                                                                                              rj,t ,      if t + 1 is terminal 
+problem has multiple conflicting objectives, MODQN needs                             yj,t = rj,t + β max Q− st+1 , at+1 ; θ− , else . (16)
+                                                                                                                       j                   j
+to find the optimal action that maximizes the benefit between                                               at+1 ∈A
+multiple objectives in each step. Here we use the linear
+scalarization method [11] to make the agent choose a single                          We employ the Adam optimization algorithm to train each
+action to perform. Let Ω = [ω1 , ω2 , ω3 ] be the weight vector of                 DQN network to minimize the loss function. The detailed
+the optimization objectives, we use a scalarized action-value                      process of the proposed MODQN is presented in Algorithm 1.
+
+
+       Authorized licensed use limited to: National Taipei University. Downloaded on February 05,2025 at 11:39:21 UTC from IEEE Xplore. Restrictions apply.
+SUN et al.: HANDOVER FOR MULTI-BEAM LEO SATELLITE NETWORKS: A MORL METHOD                                                                                   2837
+
+
+Algorithm 1 MODQN Algorithm                                                                                      TABLE I
+ 1: Initialize three DQN networks and replay memory                                                      S IMULATION PARAMETERS
+    M1 M 2 M3 .
+ 2: for each episode h do
+ 3:    for each step t do
+ 4:       Select action ait with ϵ-greedy strategy;
+                                                               →
+                                                               −
+ 5:       Update next state sit+1 and obtain reward vector R it ;
+ 6:       for each objective j do 
+ 7:          Store sit , ait , rj,t
+                                i
+                                    , sit+1 in replay memory Mj .
+ 8:       end for
+ 9:       for each objective j do                                                                              TABLE II
+10:          Sample a batch from the replay memory;                                               R EWARDS U NDER D IFFERENT W EIGHTS
+11:          Calculate the loss function L (θj,t );
+12:          Train the evaluation and target neural networks by
+             using the Adam optimizer;
+13:          Update θj and θj− according to Eq.(14).
+14:       end for
+15:    end for
+16: end for
+
+
+
+C. Complexity Analysis
+   Here we provide a comparison of the computational com-
+plexity between traditional DQN and MODQN for solving
+MOO problems. Traditional DQN generally transforms the
+MOO problem into a single-objective optimization prob-
+lem by using a scalar reward in the MDP model. The
+computational
+               complexity
+                           of traditional DQN training is
+         Z−1
+         P
+O TH         xz xz+1 , where T , H represent the numbers
+         z=1                                                                     Fig. 3. Performance comparison under different user numbers. (a) Detailed
+of time steps and training episodes, Z is the number of                          performance of three objectives. (b) Weighted reward.
+neural network layers, xz is the input size of the z-th layer.
+When the preference among objectives changes frequently,                         are listed in Table I. Moreover, several handover schemes are
+traditional DQN needs to be retrained many times which                           considered as the benchmarks for performance comparison
+will cause a large amount of time and resource consumption.                      with the proposed MODQN algorithm: RSS_max selects the
+In contrast, MODQN optimizes multiple objectives simulta-                        beam with the best channel quality; DQN_throughput uses the
+neously and can adapt to different preferences through one                       traditional DQN that only maximizes throughput; DQN_scalar
+training.
+         The computational
+                            complexity can be expressed as                      uses the traditional DQN with a weighted reward of three
+           Z−1
+                                                                                 objectives [7].
+            P
+O JT H         xz xz+1 , where J is the number of objectives.
+           z=1                                                                      To evaluate the impact of the preferences among objectives,
+                                                                                 we compare the rewards corresponding to each      P objective    under
+          IV. S IMULATION R ESULT AND A NALYSIS                                                                                            P      P
+                                                                                 different weights in Table II. Specifically,         r1 ,   r2 ,    r3
+   In this section, we evaluate the performance of the pro-                      represent the rewards ofPthroughput,
+                                                                                                                 P           handover   cost and   load
+posed handover scheme through extensive simulations using                        balancing, respectively.            r is the sum of rewards for the
+the Python 3.8 platform. We construct an LEO constellation                       three objectives. [ω1 , ω2 , ω3 ] = [1, 1, 1] is used as the baseline
+based on System Tool Kit (STK), each satellite runs in the                       for the evaluation. As shown in Table II, when [ω1 , ω2 , ω3 ] =
+given orbit at a fixed speed. Multiple users are randomly                        [0.5, 0.3, 0.2], the trade-off among three objectives is well bal-
+distributed within a 200km×90km rectangular area centered                        anced and the overall performance is significantly improved.
+on (40◦ N, 116◦ E), and each user’s movement adopts the                             Based on the default simulation scenario, we set the weight
+random wandering mode. To verify the performance of the                          to [ω1 , ω2 , ω3 ] = [0.5, 0.3, 0.2] and give a comprehensive per-
+proposed MODQN algorithm under different preferences and                         formance evaluation of the proposed algorithm under different
+network conditions, here we set a default simulation scenario                    network conditions by changing a single network parameter at
+in which the numbers of users and satellites are 100 and 4, and                  a time. Fig. 3 and Fig. 4 give the performance comparisons
+the speeds of the users and satellites are 30km/h and 7.4km/s.                   under different numbers of users and satellites. Fig. 3(a)
+The neural networks of the three objectives in MODQN have                        and Fig. 4(a) provide three-dimensional diagrams of detailed
+the same structure which consists of three hidden layers with                    performances of three objectives under different numbers of
+100, 50, and 50 neurons, respectively. The tanh function is                      users and satellites. Clearly, as the number of users or satellites
+adopted as the activation function. The detailed parameters                      rises, both throughput and handover cost increase, and load
+
+     Authorized licensed use limited to: National Taipei University. Downloaded on February 05,2025 at 11:39:21 UTC from IEEE Xplore. Restrictions apply.
+2838                                                                                      IEEE COMMUNICATIONS LETTERS, VOL. 28, NO. 12, DECEMBER 2024
+
+
+
+                                                                                   MODQN can always achieve better performance compared
+                                                                                   with other comparison schemes under different network con-
+                                                                                   ditions, which also verifies the robustness and effectiveness of
+                                                                                   the proposed algorithm.
+
+                                                                                                           V. C ONCLUSION
+Fig. 4.      Performance comparison under different satellite numbers.                In this letter, an intelligent beam handover strategy based
+(a) Detailed performance of three objectives. (b) Weighted reward.                 on the MODQN algorithm was proposed for multi-beam
+                                                                                   LEO satellite networks to reduce the handover frequency and
+                                                                                   improve the network performance. We modeled the handover
+                                                                                   problem as an MOO problem and transformed it into an
+                                                                                   MOMDP model. We utilized the MODQN algorithm with the
+                                                                                   scalarization method to learn and achieve optimal handover
+                                                                                   decisions. Simulation results showed that the proposed scheme
+                                                                                   can better optimize and balance multiple objectives, and can
+Fig. 5. Performance comparison under user speeds. (a) Detailed performance         adapt to different performance preference scenarios with lower
+of three objectives. (b) Weighted reward.                                          computational and storage resource costs. It should be noted
+                                                                                   that the proposed MODQN algorithm can also be suitable
+                                                                                   for the handover optimization of terrestrial networks or space
+                                                                                   networks. In the future, we expect to combine MODQN with
+                                                                                   distributed learning to further explore handover strategies with
+                                                                                   low complexity for large-constellation LEO networks.
+
+                                                                                                                 R EFERENCES
+Fig. 6. Performance comparison under different satellite speeds. (a) Detailed       [1] X. Lin, S. Cioni, G. Charbit, N. Chuberre, S. Hellsten, and J.-F. Boutil-
+performance of three objectives. (b) Weighted reward.                                   lon, “On the path to 6G: Embracing the next wave of low earth orbit
+                                                                                        satellite access,” IEEE Commun. Mag., vol. 59, no. 12, pp. 36–42,
+                                                                                        Dec. 2021.
+balancing performance deteriorates. Specifically, compared                          [2] J. Li et al., “Collaborative ground-space communications via
+with RSS_max and DQN_throughput that support a single                                   evolutionary multi-objective deep reinforcement learning,” IEEE
+                                                                                        J. Sel. Areas Commun., early access, Sep. 12, 2024, doi:
+handover criterion, DQN_scalar and the proposed MODQN                                   10.1109/JSAC.2024.3459029.
+can achieve more effective and balanced improvements in                             [3] J. Zhu, Y. Sun, and M. Peng, “Beam management in low earth orbit
+the performance of all three objectives. To assess the overall                          satellite networks with random traffic arrival and time-varying topology,”
+                                                                                        IEEE Trans. Veh. Technol., vol. 73, no. 9, pp. 13352–13367, Sep. 2024,
+performance, we further compare the weighted sum of the                                 doi: 10.1109/TVT.2024.3393924.
+average rewards for the three objectives which is referred to                       [4] X. Lv, S. Wu, A. Li, J. Jiao, N. Zhang, and Q. Zhang, “A weighted
+as the weighted reward for brevity. It can be observed from                             graph-based handover strategy for aeronautical traffic in LEO SatCom
+                                                                                        networks,” IEEE Netw. Lett., vol. 4, no. 3, pp. 132–136, Sep. 2022.
+Fig. 3(b) and Fig. 4(b) that the weighted reward decreases
+                                                                                    [5] M. Hozayen, T. Darwish, G. K. Kurt, and H. Yanikomeroglu, “A graph-
+as the number of users increases, while the weighted reward                             based customizable handover framework for LEO satellite networks,” in
+increases as the number of satellites increases. No matter                              Proc. IEEE Globecom Workshops, Dec. 2022, pp. 868–873.
+how the number of users or satellites changes, the weighted                         [6] H. Chen, G. Nie, and H. Tian, “A multi-slot load balancing scheme for
+                                                                                        LEO satellite communication handover target selection,” in Proc. IEEE
+reward of the proposed MODQN is notably superior to other                               Wireless Commun. Netw. Conf. (WCNC), Apr. 2024, pp. 1–6.
+comparison schemes.                                                                 [7] J. Wang, W. Mu, Y. Liu, L. Guo, S. Zhang, and G. Gui, “Deep
+   Fig. 5 and Fig. 6 show the performance comparisons under                             reinforcement learning-based satellite handover scheme for satellite
+different user speeds and satellite speeds. We can infer from                           communications,” in Proc. 13th Int. Conf. Wireless Commun. Signal
+                                                                                        Process. (WCSP), Changsha, China, Dec. 2021, pp. 1–6.
+Fig. 5(a) and Fig. 6(a) that the increase in user and satellite                     [8] J. Yang, Z. Xiao, H. Cui, J. Zhao, G. Jiang, and Z. Han, “DQN-
+speeds can accelerate the changes in the coverage of satellite                          ALrM-based intelligent handover method for satellite-ground integrated
+beams and increase the possibility of handover occurrences                              network,” IEEE Trans. Cognit. Commun. Netw., vol. 9, no. 4,
+                                                                                        pp. 977–990, Aug. 2023.
+between satellite beams, which leads to a reduction of the
+                                                                                    [9] J.-H. Lee, C. Park, S. Park, and A. F. Molisch, “Handover protocol learn-
+performance of the three objectives. As shown in Fig. 5(b)                              ing for LEO satellite networks: Access delay and collision minimiza-
+and Fig. 6(b), the weighted reward decreases with the increase                          tion,” IEEE Trans. Wireless Commun., vol. 23, no. 7, pp. 7624–7637,
+of user and satellite speeds. It can be seen that the detailed                          Jul. 2024.
+                                                                                   [10] H. Liu, Y. Wang, P. Li, and J. Cheng, “A multi-agent deep reinforcement
+performance and the weighted reward of three objectives of                              learning based handover scheme for mega-constellation under dynamic
+the proposed MODQN are better than those of RSS_max                                     propagation conditions,” IEEE Trans. Wireless Commun., early access,
+and DQN_scalar. Although DQN_throughput is slightly better                              Jun. 6, 2024, doi: 10.1109/TWC.2024.3407358.
+                                                                                   [11] T. Tajmajer, “Modular multi-objective deep reinforcement learning with
+than the proposed MODQN in terms of throughput, but under-                              decision values,” in Proc. Federated Conf. Comput. Sci. Inf. Syst.
+performs in handover cost and load balancing. The proposed                              (FedCSIS), Sep. 2018, pp. 85–93.
+
+
+
+
+       Authorized licensed use limited to: National Taipei University. Downloaded on February 05,2025 at 11:39:21 UTC from IEEE Xplore. Restrictions apply.
+

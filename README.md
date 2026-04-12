@@ -20,29 +20,33 @@ This project keeps the first implementation focused on:
 
 ## Current Status
 
-Authority/config ready for Phase 1 implementation. Runtime code is still scaffold only.
+Training-ready baseline reproduction surface with a real environment stack, MODQN trainer,
+resolved-run config enforcement, checkpointing, and smoke-tested training entrypoints.
 
 What exists now:
 
 1. project structure
-2. phase-based SDDs
-3. assumption register with accepted Phase 01 blocking values
-4. paper-envelope config plus filled resolved-run template
-5. minimal Python package/CLI skeleton
+2. repo-local paper source snapshot under `paper-source/`
+3. phase-based SDDs and assumption register
+4. paper-envelope config plus executable resolved-run config
+5. environment modules for orbit, beam, channel, and step semantics
+6. MODQN trainer, replay buffer, target sync, checkpoints, and CLI entrypoints
+7. smoke and hardening tests for training flow
 
 What does not exist yet:
 
-1. full environment implementation
-2. MODQN trainer
-3. comparator baselines
-4. figure generation logic
-5. `ntn-sim-core` artifact export adapter
+1. comparator baselines
+2. sweep/figure generation logic
+3. Phase 2 export bundle implementation
+4. secondary best-eval checkpoint flow for `ASSUME-MODQN-REP-015`
 
 ## Directory Layout
 
 ```text
 modqn-paper-reproduction/
+├── AGENTS.md
 ├── README.md
+├── paper-source/
 ├── pyproject.toml
 ├── configs/
 ├── docs/
@@ -58,15 +62,16 @@ modqn-paper-reproduction/
 
 When details conflict, use this order:
 
-1. `../paper-catalog/ref/2024_09_Handover_for_Multi-Beam_LEO_Satellite_Networks_A_Multi-Objective_Reinforcement_Learning_Method.pdf`
-2. `../paper-catalog/txt_layout_all/2024_09_Handover_for_Multi-Beam_LEO_Satellite_Networks_A_Multi-Objective_Reinforcement_Learning_Method.layout.txt`
-3. `../paper-catalog/catalog/PAP-2024-MORL-MULTIBEAM.json`
+1. `paper-source/ref/2024_09_Handover_for_Multi-Beam_LEO_Satellite_Networks_A_Multi-Objective_Reinforcement_Learning_Method.pdf`
+2. `paper-source/txt_layout/2024_09_Handover_for_Multi-Beam_LEO_Satellite_Networks_A_Multi-Objective_Reinforcement_Learning_Method.layout.txt`
+3. `paper-source/catalog/PAP-2024-MORL-MULTIBEAM.json`
 4. `docs/phases/phase-01-python-baseline-reproduction-sdd.md`
 5. `docs/assumptions/modqn-reproduction-assumption-register.md`
 6. `docs/phases/phase-02-artifact-bridge-sdd.md`
 7. `docs/phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
 
-`../system-model-refs/` is reference material for cross-checking formulas and identifying where the paper is simplified; it must not silently override the paper when this project is operating in reproduction mode.
+If an external historical workspace exists, use it only as a cross-check. The repo-local
+`paper-source/` snapshot is the portable authority surface for standalone work.
 
 ## Quick Start
 
@@ -78,15 +83,21 @@ source .venv/bin/activate
 pip install -e ".[train]"
 ```
 
-Current scaffold commands:
+Primary training commands:
 
 ```bash
-python scripts/train_modqn.py --config configs/modqn-paper-baseline.resolved-template.yaml
-python scripts/run_sweeps.py --config configs/modqn-paper-baseline.resolved-template.yaml
-python scripts/export_ntn_sim_core_bundle.py --input artifacts/example-run
+./.venv/bin/python scripts/train_modqn.py --config configs/modqn-paper-baseline.resolved-template.yaml --episodes 5 --output-dir artifacts/final-smoke
+./.venv/bin/python scripts/train_modqn.py --config configs/modqn-paper-baseline.resolved-template.yaml --episodes 200 --output-dir artifacts/pilot-01
 ```
 
-The current scripts are placeholders that only confirm the intended entry points and configuration surface.
+Additional entrypoints:
+
+```bash
+./.venv/bin/python scripts/run_sweeps.py --config configs/modqn-paper-baseline.resolved-template.yaml
+./.venv/bin/python scripts/export_ntn_sim_core_bundle.py --input artifacts/example-run
+```
+
+`train_modqn.py` is a real training entrypoint. Sweep and export entrypoints remain placeholders.
 
 ## Config Surfaces
 
@@ -98,6 +109,8 @@ This project intentionally separates two config roles:
    Resolved-run template. This is the surface where concrete `reproduction-assumption` values, seeds, aggregation, and checkpoint rules are frozen before a real training run is allowed.
 
 No implementation should silently promote the paper-envelope config into an executable run by inventing default values in code.
+
+Training entrypoints now hard-reject the paper-envelope config and require a resolved-run config.
 
 ## Documentation Map
 

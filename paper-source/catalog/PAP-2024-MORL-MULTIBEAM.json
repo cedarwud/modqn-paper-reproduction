@@ -1,0 +1,471 @@
+{
+  "paperId": "PAP-2024-MORL-MULTIBEAM",
+  "fileName": "2024_09_Handover_for_Multi-Beam_LEO_Satellite_Networks_A_Multi-Objective_Reinforcement_Learning_Method.txt",
+  "title": "Handover for Multi-Beam LEO Satellite Networks: A Multi-Objective Reinforcement Learning Method",
+  "authors": [
+    "Yang Sun",
+    "Yuqing Zhai",
+    "Wenjun Wu",
+    "Pengbo Si",
+    "Fei Richard Yu"
+  ],
+  "year": 2024,
+  "month": 9,
+  "venue": "IEEE Communications Letters",
+  "isCoreRef": false,
+  "algorithmType": "DRL",
+  "algorithmName": "MODQN (Multi-Objective Deep Q-Learning Network)",
+  "isAI": true,
+  "isMultiAgent": false,
+  "baselineAlgorithms": [
+    "RSS_max",
+    "DQN_throughput",
+    "DQN_scalar"
+  ],
+  "sinrFormula": false,
+  "signalMetric": "SNR",
+  "channelComponents": [
+    "free-space-path-loss",
+    "atmospheric-fading",
+    "Rician-small-scale-fading"
+  ],
+  "includesElevationAngle": false,
+  "includesInterference": false,
+  "antennaModel": "not-specified",
+  "frequencyBand": "20 GHz",
+  "handoverType": "joint",
+  "handoverTrigger": "RL-decision",
+  "isMultiBeam": true,
+  "isBeamHopping": false,
+  "supportsMultiConnectivity": false,
+  "objectives": [
+    "throughput",
+    "handover-count",
+    "load-balancing"
+  ],
+  "isMultiObjective": true,
+  "constellation": "custom",
+  "numSatellites": 4,
+  "altitude_km": 780,
+  "numUsers": 100,
+  "userSpeed": "vehicular",
+  "simulationTool": "Python",
+  "tags": [
+    "LEO",
+    "handover",
+    "multi-beam",
+    "multi-objective",
+    "MORL",
+    "DQN",
+    "load-balancing"
+  ],
+  "sinrFormulaDetail": {
+    "formula": "\\gamma_{i,l,v}(t) = \\frac{p_{i,l,v} \\cdot G_{i,l,v}(t)}{\\sigma^2}",
+    "variables": {
+      "p_{i,l,v}": "transmit power between user i and beam (l,v)",
+      "G_{i,l,v}(t)": "channel gain between user i and beam (l,v) at time t",
+      "\\sigma^2": "white Gaussian noise power"
+    },
+    "notes": "SNR formula (no interference term). Channel gain includes path loss, atmospheric fading, and Rician small-scale fading."
+  },
+  "channelModelDetail": {
+    "pathLossFormula": "G_{i,l,v}(t) = \\left(\\frac{\\xi}{4\\pi d_{i,l,v}(t) f_c}\\right)^2 \\cdot A(d_{i,l,v}(t)) \\cdot \\eta",
+    "pathLossVariables": {
+      "\\xi": "speed of light",
+      "f_c": "carrier frequency",
+      "d_{i,l,v}(t)": "distance between satellite and user",
+      "A(d_{i,l,v}(t))": "atmospheric fading factor = 10^{3 d_{i,l,v}(t) \\chi / (10 h_{l,v}(t))}",
+      "\\chi": "attenuation through clouds and rain",
+      "h_{l,v}(t)": "altitude of the satellite",
+      "\\eta": "Rician small-scale fading"
+    },
+    "fadingModel": "Rician small-scale fading",
+    "shadowingModel": null,
+    "atmosphericModel": "Cloud and rain attenuation modeled via exponential distance-altitude factor",
+    "antennaGainFormula": null
+  },
+  "algorithmDetail": {
+    "stateSpace": "s_i_t = (u_i(t), G_i(t), Gamma(t), N(t)) — access vector, channel gains to all beams, beam locations, number of users per beam",
+    "actionSpace": "a_i_t = (u_{i,1,1}, ..., u_{i,L,V}) — binary access vector selecting one beam, sum = 1",
+    "rewardFunction": "Vector reward R_i_t = (r1, r2, r3): r1 = throughput of user i; r2 = -phi1 (intra-sat HO) or -phi2 (inter-sat HO) or 0; r3 = -(max beam throughput - min beam throughput)/I",
+    "networkArchitecture": "Three parallel DQN networks (one per objective), each with 3 hidden layers (100, 50, 50 neurons), tanh activation",
+    "trainingParams": {
+      "learningRate": 0.01,
+      "discountFactor": 0.9,
+      "explorationStrategy": "epsilon-greedy",
+      "optimizer": "Adam",
+      "batchSize": 128,
+      "timeSlotDuration_s": 1,
+      "episodeDuration_s": 10,
+      "episodes": 9000,
+      "weights": "[omega1, omega2, omega3] = [0.5, 0.3, 0.2] (best)"
+    },
+    "convergence": "Trained over episodes; linear scalarization of Q-values for action selection; adapts to different preference weights without retraining"
+  },
+  "handoverProcedure": "1) Each user agent observes state (access vector, channel gains, beam locations, beam loads). 2) Agent computes scalarized Q-value ζ = Ω^T · Q(s,a) across three DQN networks. 3) Action selected via ε-greedy: a = argmax ζ(s,a). 4) User connects to the selected beam (l,v). 5) If selected beam differs from previous, handover occurs (intra-satellite if same satellite, inter-satellite otherwise). 6) Environment returns vector reward and transitions to next state.",
+  "keyEquations": [
+    {
+      "name": "Channel Gain",
+      "formula": "G_{i,l,v}(t) = \\left(\\frac{\\xi}{4\\pi d_{i,l,v}(t) f_c}\\right)^2 \\cdot A(d_{i,l,v}(t)) \\cdot \\eta",
+      "variables": {
+        "\\xi": "speed of light",
+        "f_c": "carrier frequency",
+        "d": "distance",
+        "A": "atmospheric fading",
+        "\\eta": "Rician fading"
+      },
+      "purpose": "Compute channel quality between user and beam"
+    },
+    {
+      "name": "SNR",
+      "formula": "\\gamma_{i,l,v}(t) = \\frac{p_{i,l,v} \\cdot G_{i,l,v}(t)}{\\sigma^2}",
+      "variables": {
+        "p": "transmit power",
+        "G": "channel gain",
+        "\\sigma^2": "noise power"
+      },
+      "purpose": "Signal quality metric for rate calculation"
+    },
+    {
+      "name": "Transmission Rate",
+      "formula": "c_{i,l,v}(t) = \\frac{B}{N_{l,v}(t)} \\log_2(1 + \\gamma_{i,l,v}(t))",
+      "variables": {
+        "B": "bandwidth",
+        "N_{l,v}(t)": "number of users served by beam"
+      },
+      "purpose": "Per-user achievable rate with equal bandwidth sharing"
+    },
+    {
+      "name": "Scalarized Q-value",
+      "formula": "\\zeta(s_t, a_t) = \\Omega^T \\cdot \\vec{Q}(s_t, a_t) = \\sum_{j=1}^{3} \\omega_j Q_j(s_t, a_t)",
+      "variables": {
+        "\\Omega": "weight vector [ω1, ω2, ω3]",
+        "Q_j": "Q-value for objective j"
+      },
+      "purpose": "Combine multiple objective Q-values for action selection"
+    }
+  ],
+  "performanceMetrics": [
+    "throughput (per-user and aggregate)",
+    "handover cost (intra-satellite vs inter-satellite)",
+    "load balancing (max-min beam throughput difference)",
+    "weighted reward (weighted sum of three objective rewards)"
+  ],
+  "keyFindings": "With weights [0.5, 0.3, 0.2], MODQN achieves the best trade-off among throughput, handover cost, and load balancing compared to RSS_max, DQN_throughput, and DQN_scalar across varying user counts (40-200), satellite counts (2-8), user speeds (30-150 km/h), and satellite speeds (7.0-7.8 km/s). MODQN adapts to different preference scenarios via one-time training, avoiding the retraining overhead of traditional scalar-reward DQN approaches.",
+  "simulationParameters": {
+    "orbital": {
+      "constellation": "custom LEO constellation built in STK",
+      "numSatellites": 4,
+      "altitude_km": 780,
+      "satelliteSpeed_km_s": 7.4
+    },
+    "RF": {
+      "carrierFrequency_GHz": 20,
+      "bandwidth_MHz": 500,
+      "transmitPower_W": 2,
+      "noisePowerSpectralDensity_dBm_Hz": -174,
+      "RicianKFactor_dB": 20,
+      "atmosphericAttenuation_dB_km": 0.05
+    },
+    "antenna": {
+      "beamsPerSatellite": 7
+    },
+    "user": {
+      "count": 100,
+      "area": "200 km x 90 km rectangular area centered at (40°N, 116°E)",
+      "speed_km_h": 30,
+      "mobilityModel": "random wandering"
+    },
+    "network": {
+      "intraHandoverCost_phi1": "phi1 (0 < phi1 < phi2)",
+      "interHandoverCost_phi2": "phi2"
+    },
+    "DRL": {
+      "platform": "Python 3.8",
+      "hiddenLayers": [
+        100,
+        50,
+        50
+      ],
+      "activationFunction": "tanh",
+      "optimizer": "Adam",
+      "explorationStrategy": "epsilon-greedy",
+      "learningRate_alpha": 0.01,
+      "discountFactor_beta": 0.9,
+      "batchSize": 128,
+      "timeSlotDuration_s": 1,
+      "episodeDuration_s": 10,
+      "episodes": 9000,
+      "bestWeights": "[0.5, 0.3, 0.2]"
+    }
+  },
+  "baselineDetails": [
+    {
+      "name": "RSS_max",
+      "description": "Selects the beam with the best channel quality (maximum received signal strength)",
+      "source": "conventional"
+    },
+    {
+      "name": "DQN_throughput",
+      "description": "Traditional single-objective DQN that only maximizes throughput as scalar reward",
+      "source": "Wang et al. [7]"
+    },
+    {
+      "name": "DQN_scalar",
+      "description": "Traditional DQN with a weighted scalar reward combining three objectives",
+      "source": "Wang et al. [7]"
+    }
+  ],
+  "numericalResults": [
+    {
+      "metric": "weighted reward (varying users 40-200)",
+      "proposed": "MODQN consistently highest",
+      "bestBaseline": "DQN_scalar",
+      "improvement": "notable improvement across all user counts",
+      "conditions": "4 satellites, 30 km/h user speed, 7.4 km/s satellite speed, weights [0.5, 0.3, 0.2]"
+    },
+    {
+      "metric": "weighted reward (varying satellites 2-8)",
+      "proposed": "MODQN consistently highest",
+      "bestBaseline": "DQN_scalar",
+      "improvement": "superior across all satellite counts",
+      "conditions": "100 users, 30 km/h user speed, 7.4 km/s satellite speed"
+    },
+    {
+      "metric": "weighted reward (varying user speed 30-150 km/h)",
+      "proposed": "MODQN consistently highest",
+      "bestBaseline": "DQN_scalar",
+      "improvement": "better trade-off; DQN_throughput slightly better on throughput alone but worse on HO cost and load balancing",
+      "conditions": "100 users, 4 satellites, 7.4 km/s satellite speed"
+    }
+  ],
+  "systemModelAssumptions": [
+    "Each user can only access one beam at a time (single connectivity)",
+    "Equal bandwidth sharing among users within the same beam",
+    "Intra-satellite handover cost is lower than inter-satellite handover cost (0 < phi1 < phi2)",
+    "Channel gain composed of FSPL, atmospheric fading, and Rician small-scale fading (no interference)",
+    "Users move with random wandering mobility model",
+    "Satellites run in fixed orbits at constant speed (STK-based)"
+  ],
+  "powerAnalysis": {
+    "transmitPower": "p_{i,l,v} = 2 W (transmit power per beam-user link)",
+    "noisePower": "\\sigma^2 = N_0 \\times B, N_0 = -174 dBm/Hz",
+    "bandwidth_MHz": 500,
+    "powerControl": "No dynamic power control; fixed 2 W per link",
+    "notes": "SNR-based (no interference); power is simple fixed parameter"
+  },
+  "geometryFormulas": {
+    "slantRange": "d_{i,l,v}(t) — distance between user i and beam (l,v); implicit in channel gain formula, no explicit closed-form",
+    "elevationAngle": "Not explicitly modeled; paper does not include elevation angle in formulas",
+    "offAxisAngle": "Not modeled (no antenna beam pattern)",
+    "atmosphericFading": "A(d) = 10^{3 d \\chi / (10 h)}, \\chi = 0.05 dB/km atmospheric attenuation"
+  },
+  "satelliteOrbitModel": {
+    "constellation": "custom LEO (built in STK)",
+    "numSatellites": "2-8 (variable)",
+    "altitude_km": 780,
+    "satelliteSpeed_km_s": 7.4,
+    "propagator": "STK (System Tool Kit)",
+    "coverageArea": "200 km x 90 km centered at (40°N, 116°E)"
+  },
+  "beamModel": {
+    "type": "multi-beam (7 beams per satellite)",
+    "beamsPerSatellite": 7,
+    "beamPattern": "Not specified (no antenna pattern formula)",
+    "bandwidthPerBeam_MHz": "500 / N_{l,v}(t) shared among users in beam",
+    "frequencyReuse": "Not specified",
+    "beamHopping": false,
+    "notes": "Intra-satellite HO (beam switch) costs less than inter-satellite HO"
+  },
+  "linkDirection": "not explicitly stated (SNR formula implies downlink from satellite to user)",
+  "dapsSupport": {
+    "supported": false,
+    "notes": "Single connectivity; user accesses one beam at a time"
+  },
+  "energyEfficiency": {
+    "addressed": false,
+    "notes": "Not an objective; focuses on throughput, HO cost, and load balancing"
+  },
+  "relevanceToResearch": {
+    "direction": "DRL for Energy-Efficient Beam Configuration and DAPS-Assisted Seamless Handover in Multi-Beam LEO Satellite Networks",
+    "relevanceScore": "HIGH",
+    "keyContributions": [
+      "Multi-objective DRL for multi-beam LEO handover — directly applicable framework",
+      "Distinguishes intra-satellite (beam) vs inter-satellite handover costs",
+      "Multi-objective Q-learning with linear scalarization — avoids retraining for different preference weights",
+      "Three parallel DQN networks for three objectives — architectural reference",
+      "7 beams per satellite with equal BW sharing"
+    ],
+    "gaps": [
+      "No interference model (SNR only)",
+      "No beam pattern or off-axis angle modeling",
+      "No energy efficiency objective",
+      "No DAPS/dual-connectivity",
+      "Small constellation (2-8 satellites)"
+    ]
+  },
+  "jsSimulationNotes": {
+    "channelModel": "SNR = p*G/sigma^2; G = (c/(4pi*d*fc))^2 * A(d) * eta. Rician fading eta, atmospheric A(d) = 10^(3d*chi/(10h)). Simple to implement.",
+    "orbitModel": "STK-generated positions for 4 satellites at 780 km; or generate with 7.4 km/s circular orbit",
+    "keyParameters": "20 GHz, 500 MHz BW, 2 W power, N0=-174 dBm/Hz, K=20 dB Rician, 0.05 dB/km atm, 7 beams/sat, 100 users in 200x90 km, 30 km/h user speed",
+    "complexityNotes": "Three separate DQN networks (100-50-50, tanh) per user agent; action = select one beam from all visible beams. 9000 episodes, 10s episodes."
+  },
+  "limitations": [
+    "No interference modeling — uses SNR instead of SINR",
+    "Small constellation (2-8 satellites) — scalability to mega-constellations not validated",
+    "Centralized training assumed — each user has an independent agent but no coordination mechanism",
+    "Only linear scalarization explored for combining objectives — Pareto front not computed"
+  ],
+  "researchChecklist": {
+    "sinrAndSignal": {
+      "signalMetric": "SNR",
+      "hasExplicitSignalFormula": true,
+      "hasExplicitSINRLikeFormula": false,
+      "formula": "\\gamma_{i,l,v}(t) = \\frac{p_{i,l,v} \\cdot G_{i,l,v}(t)}{\\sigma^2}",
+      "notes": "Paper provides a SNR formula rather than an explicit SINR formula."
+    },
+    "power": {
+      "mentioned": true,
+      "appearsInSignalFormula": true,
+      "hasExplicitPowerFormula": true,
+      "notes": "SNR-based (no interference); power is simple fixed parameter"
+    },
+    "parameterTable": {
+      "explicitTableInPaper": true,
+      "catalogHasStructuredParameters": true,
+      "matchedEvidence": "table i 1: initialize three dqn networks and replay memory s imulation parameters m1 m 2 m3",
+      "catalogSections": [
+        "orbital",
+        "RF",
+        "antenna",
+        "user",
+        "network",
+        "DRL"
+      ]
+    },
+    "simulator": {
+      "tool": "Python",
+      "parametersDocumented": true,
+      "parameterSections": [
+        "orbital",
+        "RF",
+        "antenna",
+        "user",
+        "network",
+        "DRL"
+      ],
+      "notes": "STK (System Tool Kit)"
+    },
+    "geometry": {
+      "hasSlantRangeFormula": false,
+      "hasElevationAngleFormulaOrExplicitUsage": true,
+      "hasOffAxisAngleFormulaOrExplicitUsage": false,
+      "hasBoresightAngleFormulaOrExplicitUsage": false,
+      "notes": "Not explicitly modeled; paper does not include elevation angle in formulas"
+    },
+    "satelliteSimulation": {
+      "usesRealTLE": false,
+      "usesRealEphemerisNonTLE": false,
+      "usesSyntheticConstellation": true,
+      "sourceType": "synthetic/custom",
+      "constellation": "custom",
+      "numSatellites": 4,
+      "orbitPropagation": "STK (System Tool Kit)",
+      "orbitPlaneInfo": "custom LEO (built in STK)",
+      "mobilityOrTrajectoryModel": null,
+      "notes": "custom LEO (built in STK) / propagation: STK (System Tool Kit)"
+    },
+    "handover": {
+      "mentioned": true,
+      "type": "joint",
+      "trigger": "RL-decision",
+      "notes": "1) Each user agent observes state (access vector, channel gains, beam locations, beam loads). 2) Agent computes scalarized Q-value ζ = Ω^T · Q(s,a) across three DQN networks. 3) Action selected via ε-greedy: a = argmax …"
+    },
+    "energyEfficiency": {
+      "mentioned": true,
+      "explicitObjective": false,
+      "hasExplicitFormula": false,
+      "notes": "Not an objective; focuses on throughput, HO cost, and load balancing"
+    },
+    "beam": {
+      "mentioned": true,
+      "multiBeam": true,
+      "beamHopping": false,
+      "notes": "Intra-satellite HO (beam switch) costs less than inter-satellite HO"
+    },
+    "dapsLike": {
+      "explicitDAPS": false,
+      "dualConnectivityLike": false,
+      "notes": "Single connectivity; user accesses one beam at a time"
+    },
+    "linkDirection": {
+      "downlink": false,
+      "uplink": false,
+      "notes": "not explicitly stated (SNR formula implies downlink from satellite to user)"
+    },
+    "algorithm": {
+      "type": "DRL",
+      "name": "MODQN (Multi-Objective Deep Q-Learning Network)",
+      "isAI": true,
+      "isMultiAgent": false
+    },
+    "aiMethods": {
+      "used": true,
+      "methods": [
+        "DQN",
+        "Q-Learning",
+        "DRL"
+      ],
+      "notes": "Three parallel DQN networks (one per objective), each with 3 hidden layers (100, 50, 50 neurons), tanh activation"
+    },
+    "topicRelevance": {
+      "targetTopic": "Deep Reinforcement Learning for Energy-Efficient Beam Configuration and DAPS-Assisted Seamless Handover in Multi-Beam LEO Satellite Networks",
+      "score": "HIGH",
+      "relevantAspects": [
+        "Multi-objective DRL for multi-beam LEO handover — directly applicable framework",
+        "Distinguishes intra-satellite (beam) vs inter-satellite handover costs",
+        "Multi-objective Q-learning with linear scalarization — avoids retraining for different preference weights",
+        "Three parallel DQN networks for three objectives — architectural reference",
+        "7 beams per satellite with equal BW sharing"
+      ],
+      "gaps": [
+        "No interference model (SNR only)",
+        "No beam pattern or off-axis angle modeling",
+        "No energy efficiency objective",
+        "No DAPS/dual-connectivity",
+        "Small constellation (2-8 satellites)"
+      ],
+      "notes": null
+    },
+    "jsWebsiteKnowledge": {
+      "usefulForOrbitSimulation": true,
+      "usefulForSinrComputation": true,
+      "usefulForHandoverLogic": true,
+      "usefulForBeamModel": true,
+      "usefulForBeamHoppingScheduler": false,
+      "usefulForEnergyModel": true,
+      "usefulForDapsModel": false,
+      "websiteModules": [
+        "orbit-engine",
+        "signal-engine",
+        "handover-engine",
+        "beam-visualization",
+        "energy-model",
+        "policy-engine"
+      ],
+      "keyModels": [
+        "channelModel: SNR = p*G/sigma^2; G = (c/(4pi*d*fc))^2 * A(d) * eta. Rician fading eta, atmospheric A(d) = 10^(3d*chi/(10h)). Simple to implement.",
+        "orbitModel: STK-generated positions for 4 satellites at 780 km; or generate with 7.4 km/s circular orbit",
+        "complexityNotes: Three separate DQN networks (100-50-50, tanh) per user agent; action = select one beam from all visible beams. 9000 episodes, 10s episodes."
+      ],
+      "keyParameters": {},
+      "notes": "20 GHz, 500 MHz BW, 2 W power, N0=-174 dBm/Hz, K=20 dB Rician, 0.05 dB/km atm, 7 beams/sat, 100 users in 200x90 km, 30 km/h user speed"
+    }
+  },
+  "researchRole": {
+    "primaryCategory": "BACKGROUND",
+    "adoptability": "SUPPORTING",
+    "secondaryCategories": [],
+    "notes": "MODQN multi-obj DRL; SNR FSPL 20GHz 780km; multi-beam — background"
+  }
+}

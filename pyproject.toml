@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "modqn-paper-reproduction"
 version = "0.1.0"
-description = "Standalone Python-first baseline reproduction scaffold for PAP-2024-MORL-MULTIBEAM."
+description = "Standalone Python-first MODQN baseline reproduction and training surface for PAP-2024-MORL-MULTIBEAM."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

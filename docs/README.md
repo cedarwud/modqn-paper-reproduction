@@ -2,6 +2,9 @@
 
 This directory records the implementation plan for the standalone MODQN paper reproduction project.
 
+For standalone use, pair this directory with the repo-local `paper-source/` snapshot and root
+`AGENTS.md`; do not assume the larger `papers/` workspace exists.
+
 ## Read Order
 
 1. `decisions/ADR-001-separate-python-reproduction-project.md`

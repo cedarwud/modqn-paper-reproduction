@@ -49,11 +49,12 @@ The assumption register lifecycle states (`open`, `proposed`, `accepted`, `imple
 
 Use these sources in order:
 
-1. paper PDF and regenerated OCR under `../paper-catalog/`
-2. `../paper-catalog/catalog/PAP-2024-MORL-MULTIBEAM.json`
-3. `docs/assumptions/modqn-reproduction-assumption-register.md`
+1. `../../paper-source/ref/2024_09_Handover_for_Multi-Beam_LEO_Satellite_Networks_A_Multi-Objective_Reinforcement_Learning_Method.pdf`
+2. `../../paper-source/txt_layout/2024_09_Handover_for_Multi-Beam_LEO_Satellite_Networks_A_Multi-Objective_Reinforcement_Learning_Method.layout.txt`
+3. `../../paper-source/catalog/PAP-2024-MORL-MULTIBEAM.json`
+4. `docs/assumptions/modqn-reproduction-assumption-register.md`
 
-`../system-model-refs/` is allowed only as a cross-check to identify where the paper is simplified, not as a silent override of the reproduction model.
+If an external historical workspace exists, it is allowed only as a cross-check. It must not silently override the repo-local `paper-source/` snapshot during standalone reproduction work.
 
 ## 3. Paper Baseline Summary
 
