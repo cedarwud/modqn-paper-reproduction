@@ -28,9 +28,18 @@ pip-wheel-metadata/
 # Local training artifacts
 artifacts/*
 !artifacts/README.md
+!artifacts/*.md
+!artifacts/*/
+artifacts/*/*
+!artifacts/*/review.md
+!artifacts/*/anomaly-review.md
+!artifacts/*/analysis*.md
 
 # OS / editor noise
 .DS_Store
 Thumbs.db
 *.swp
 *.swo
+.idea/
+.vscode/
+.ipynb_checkpoints/

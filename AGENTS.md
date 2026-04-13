@@ -37,3 +37,38 @@ When details conflict, use this order:
 
 1. Prompts for this repo should use repo-relative paths.
 2. Do not reference `/home/u24/papers/...` paths unless the user explicitly provides that workspace.
+
+## Read First
+
+For a quick project-state handoff, read these before proposing new work:
+
+1. `artifacts/public-summary-2026-04-13.md`
+2. `artifacts/reproduction-status-2026-04-12.md`
+3. `artifacts/run-9000/anomaly-review.md`
+4. `artifacts/fig-3-pilot-01/review.md`
+
+## Current State Snapshot
+
+As of `2026-04-13`, the repo is a working standalone baseline reproduction surface,
+but it is not yet a fully established paper-faithful reproduction.
+
+What is already true:
+
+1. repo-only authority is stable
+2. baseline training, resume, best-eval checkpointing, sweeps, export, and tests run in-repo
+3. `Table II` and a first executable `Fig. 3` sweep surface exist with machine-readable outputs
+4. the repo can already serve as a disclosed engineering baseline for downstream comparison
+
+What is not yet established:
+
+1. the paper's intended method separation has not been convincingly reproduced
+2. `run-9000` shows a real late-training collapse and objective drift
+3. `Table II` and `Fig. 3` are still near-tied, with most variation coming from `r2` / handover
+4. the explicit reward-calibration pilot did not improve the raw eval surface
+
+## Current Guardrails
+
+1. Do not start a new `9000`-episode long run by default.
+2. Do not silently replace the baseline with `configs/modqn-paper-baseline.reward-calibration.resolved.yaml`.
+3. Treat the reward-calibration config as an explicit experiment only.
+4. If no new user direction is given, prefer artifact review, disclosure, or clearly labeled experiments over more retraining.
