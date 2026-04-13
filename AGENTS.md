@@ -43,9 +43,13 @@ When details conflict, use this order:
 For a quick project-state handoff, read these before proposing new work:
 
 1. `artifacts/public-summary-2026-04-13.md`
-2. `artifacts/reproduction-status-2026-04-12.md`
+2. `artifacts/reproduction-status-2026-04-13.md`
 3. `artifacts/run-9000/anomaly-review.md`
 4. `artifacts/fig-3-pilot-01/review.md`
+5. `artifacts/fig-4-pilot-01/review.md`
+6. `artifacts/fig-5-pilot-01/review.md`
+7. `artifacts/fig-6-pilot-01/review.md`
+8. `docs/baseline-acceptance-checklist.md`
 
 ## Current State Snapshot
 
@@ -56,8 +60,9 @@ What is already true:
 
 1. repo-only authority is stable
 2. baseline training, resume, best-eval checkpointing, sweeps, export, and tests run in-repo
-3. `Table II` and a first executable `Fig. 3` sweep surface exist with machine-readable outputs
-4. the repo can already serve as a disclosed engineering baseline for downstream comparison
+3. `Table II` and reviewed `Fig. 3` to `Fig. 6` sweep surfaces exist with machine-readable outputs
+4. the comparison-baseline checklist is complete
+5. the repo can now be frozen as a disclosed engineering baseline for downstream comparison
 
 What is not yet established:
 
@@ -71,4 +76,5 @@ What is not yet established:
 1. Do not start a new `9000`-episode long run by default.
 2. Do not silently replace the baseline with `configs/modqn-paper-baseline.reward-calibration.resolved.yaml`.
 3. Treat the reward-calibration config as an explicit experiment only.
-4. If no new user direction is given, prefer artifact review, disclosure, or clearly labeled experiments over more retraining.
+4. Use `docs/baseline-acceptance-checklist.md` as the freeze note for comparison-baseline scope.
+5. If no new user direction is given, prefer freeze/disclosure or clearly labeled experiments over more retraining.

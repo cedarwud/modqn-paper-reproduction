@@ -23,6 +23,12 @@ This project keeps the first implementation focused on:
 Training-ready baseline reproduction surface with a real environment stack, MODQN trainer,
 resolved-run config enforcement, checkpointing, and smoke-tested training entrypoints.
 
+Current closeout target:
+
+1. the comparison-baseline checklist is complete
+2. the repo is ready to freeze as a disclosed comparison baseline
+3. do not over-claim a full paper-faithful reproduction
+
 What exists now:
 
 1. project structure
@@ -37,13 +43,14 @@ What exists now:
 10. analysis outputs for `Table II` winners, spreads, deltas-vs-MODQN, and long-run linkage
 11. explicit experimental `reward-geometry` analysis surface for re-scoring existing artifacts
 12. explicit experimental reward-calibrated training config for sensitivity runs
-13. first executable `Fig. 3` to `Fig. 6` sweep surfaces with figure-style CSV/JSON/PNG outputs
-14. smoke and hardening tests for training flow, sweeps, export, and analysis
+13. reviewed non-smoke pilot artifacts for `Fig. 3` to `Fig. 6`
+14. first executable `Fig. 3` to `Fig. 6` sweep surfaces with figure-style CSV/JSON/PNG outputs
+15. smoke and hardening tests for training flow, sweeps, export, and analysis
 
 What does not exist yet:
 
 1. Phase 2 stable export bundle freeze
-2. full paper-scale comparator runs and figure bundle generation
+2. a complete paper-faithful reproduction claim with convincing method separation
 3. paper-visual parity polish for the original figure layouts
 
 ## Directory Layout
@@ -136,11 +143,12 @@ Training entrypoints now hard-reject the paper-envelope config and require a res
 
 ## Documentation Map
 
-1. `docs/decisions/ADR-001-separate-python-reproduction-project.md`
-2. `docs/phases/phase-01-python-baseline-reproduction-sdd.md`
-3. `docs/phases/phase-02-artifact-bridge-sdd.md`
-4. `docs/phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
-5. `docs/assumptions/modqn-reproduction-assumption-register.md`
+1. `docs/baseline-acceptance-checklist.md`
+2. `docs/decisions/ADR-001-separate-python-reproduction-project.md`
+3. `docs/phases/phase-01-python-baseline-reproduction-sdd.md`
+4. `docs/phases/phase-02-artifact-bridge-sdd.md`
+5. `docs/phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
+6. `docs/assumptions/modqn-reproduction-assumption-register.md`
 
 ## Intended Deliverables
 
