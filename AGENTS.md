@@ -51,6 +51,11 @@ For a quick project-state handoff, read these before proposing new work:
 7. `artifacts/fig-6-pilot-01/review.md`
 8. `docs/baseline-acceptance-checklist.md`
 
+For the planned low-coupling `ntn-sim-core` presentation follow-on, also
+read:
+
+1. `docs/phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
+
 ## Current State Snapshot
 
 As of `2026-04-13`, the repo is a working standalone baseline reproduction surface,

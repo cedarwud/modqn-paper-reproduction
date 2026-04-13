@@ -18,6 +18,7 @@ matching public summary surface.
 4. `assumptions/modqn-reproduction-assumption-register.md`
 5. `phases/phase-02-artifact-bridge-sdd.md`
 6. `phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
+7. `phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
 
 ## Purpose Split
 

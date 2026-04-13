@@ -82,6 +82,7 @@ When details conflict, use this order:
 5. `docs/assumptions/modqn-reproduction-assumption-register.md`
 6. `docs/phases/phase-02-artifact-bridge-sdd.md`
 7. `docs/phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
+8. `docs/phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
 
 If an external historical workspace exists, use it only as a cross-check. The repo-local
 `paper-source/` snapshot is the portable authority surface for standalone work.
@@ -148,7 +149,8 @@ Training entrypoints now hard-reject the paper-envelope config and require a res
 3. `docs/phases/phase-01-python-baseline-reproduction-sdd.md`
 4. `docs/phases/phase-02-artifact-bridge-sdd.md`
 5. `docs/phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
-6. `docs/assumptions/modqn-reproduction-assumption-register.md`
+6. `docs/phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
+7. `docs/assumptions/modqn-reproduction-assumption-register.md`
 
 ## Intended Deliverables
 
