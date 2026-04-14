@@ -222,6 +222,7 @@ def train_main(argv: list[str] | None = None) -> int:
             "package_version": PACKAGE_VERSION,
             "config_path": str(Path(args.config)),
             "config_role": cfg.get("config_role"),
+            "resolved_config_snapshot": cfg,
             "training_experiment": cfg.get("training_experiment"),
             "seeds": seeds,
             "checkpoint_rule": trainer.checkpoint_rule(),

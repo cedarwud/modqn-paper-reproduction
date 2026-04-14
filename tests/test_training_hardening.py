@@ -126,6 +126,8 @@ def test_train_cli_writes_final_checkpoint_and_metadata(tmp_path: Path) -> None:
     assert metadata["checkpoint_rule"]["secondary_implemented"] is True
     assert metadata["checkpoint_files"]["secondary_best_eval"] == str(best_eval_checkpoint_path)
     assert metadata["best_eval_summary"] is not None
+    assert metadata["resolved_config_snapshot"]["config_role"] == "resolved-run-template"
+    assert metadata["resolved_config_snapshot"]["baseline"]["users"] == 100
     assert metadata["runtime_environment"]["r3_gap_scope"] == "all-reachable-beams"
     assert metadata["runtime_environment"]["user_heading_stride_rad"] == 2.3998277
     assert metadata["runtime_environment"]["user_scatter_radius_km"] == 50.0

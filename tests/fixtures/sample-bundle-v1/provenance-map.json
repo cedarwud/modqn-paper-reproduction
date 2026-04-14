@@ -1,0 +1,354 @@
+{
+  "bundleSchemaVersion": "phase-03a-replay-bundle-v1",
+  "classificationLegend": {
+    "paper-backed": "Directly supported by the paper or its authority snapshot.",
+    "recovered-from-paper": "Recovered from paper tables/figures/text but normalized into executable data.",
+    "reproduction-assumption": "Explicit assumption required to make the repo executable and reproducible.",
+    "platform-visualization-only": "Consumer/rendering convenience that must not be treated as training authority.",
+    "artifact-derived": "Computed from the exported checkpoint and run artifact rather than copied from source authority."
+  },
+  "fieldCount": 59,
+  "producerVersion": "0.1.0",
+  "fields": {
+    "configResolved.paper.paper_id": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF",
+      "note": "Portable paper identifier: PAP-2024-MORL-MULTIBEAM."
+    },
+    "configResolved.paper.title": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF",
+      "note": "Portable paper title snapshot."
+    },
+    "manifest.coordinateFrame": {
+      "primaryClassification": "platform-visualization-only",
+      "source": "Phase 03A replay bundle contract",
+      "note": "Consumer-facing rendering coordinate metadata; not a training authority input."
+    },
+    "timeline.stepTrace.userPosition.localTangentKm": {
+      "primaryClassification": "platform-visualization-only",
+      "source": "Phase 03A replay bundle contract",
+      "note": "Derived export convenience for frontend rendering; geodetic user positions remain the underlying truth."
+    },
+    "timeline.stepTrace.rewardVector": {
+      "primaryClassification": "artifact-derived",
+      "source": "checkpoint replay over the resolved config",
+      "note": "Per-slot replay reward components derived from the exported checkpoint and environment semantics.",
+      "sourceChain": [
+        "paper-backed",
+        "reproduction-assumption"
+      ]
+    },
+    "timeline.stepTrace.selectedServing": {
+      "primaryClassification": "artifact-derived",
+      "source": "checkpoint replay over the resolved config",
+      "note": "Serving-beam truth selected by the exported checkpoint during deterministic replay.",
+      "sourceChain": [
+        "paper-backed",
+        "reproduction-assumption"
+      ]
+    },
+    "timeline.stepTrace.satelliteStates": {
+      "primaryClassification": "artifact-derived",
+      "source": "checkpoint replay over the resolved config",
+      "note": "Per-slot satellite geometry derived from the replay timeline.",
+      "sourceChain": [
+        "reproduction-assumption"
+      ]
+    },
+    "timeline.stepTrace.beamStates": {
+      "primaryClassification": "artifact-derived",
+      "source": "checkpoint replay over the resolved config",
+      "note": "Per-slot beam geometry derived from the replay timeline.",
+      "sourceChain": [
+        "reproduction-assumption"
+      ]
+    },
+    "evaluation.summary.training_summary": {
+      "primaryClassification": "artifact-derived",
+      "source": "training_log.json and run_metadata.json",
+      "note": "Aggregated training-run summary exported from the completed artifact.",
+      "sourceChain": [
+        "paper-backed",
+        "reproduction-assumption"
+      ]
+    },
+    "evaluation.summary.best_eval_summary": {
+      "primaryClassification": "artifact-derived",
+      "source": "run_metadata.json",
+      "note": "Evaluation summary captured during checkpoint selection.",
+      "sourceChain": [
+        "paper-backed",
+        "reproduction-assumption"
+      ]
+    },
+    "configResolved.baseline.satellites": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Table I baseline topology count."
+    },
+    "configResolved.baseline.beams_per_satellite": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Table I baseline beam count."
+    },
+    "configResolved.baseline.users": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Baseline user count used by the paper protocol."
+    },
+    "configResolved.baseline.altitude_km": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Table I satellite altitude."
+    },
+    "configResolved.baseline.user_speed_kmh": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Figure sweep baseline user speed."
+    },
+    "configResolved.baseline.satellite_speed_km_s": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Figure sweep baseline satellite speed."
+    },
+    "configResolved.baseline.carrier_frequency_ghz": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Table I carrier frequency."
+    },
+    "configResolved.baseline.bandwidth_mhz": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Table I bandwidth."
+    },
+    "configResolved.baseline.tx_power_w": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Table I transmit power."
+    },
+    "configResolved.baseline.noise_psd_dbm_hz": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Table I thermal-noise PSD."
+    },
+    "configResolved.baseline.rician_k_db": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Table I Rician K factor."
+    },
+    "configResolved.baseline.atmospheric_attenuation_coefficient_db_per_km": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Table I attenuation coefficient."
+    },
+    "configResolved.baseline.slot_duration_s": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Paper slot duration."
+    },
+    "configResolved.baseline.episode_duration_s": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Paper episode duration."
+    },
+    "configResolved.baseline.episodes": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Paper baseline training horizon."
+    },
+    "configResolved.baseline.hidden_layers": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Paper network width/depth."
+    },
+    "configResolved.baseline.activation": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Paper activation surface."
+    },
+    "configResolved.baseline.optimizer": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Paper optimizer family."
+    },
+    "configResolved.baseline.learning_rate": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Paper learning rate."
+    },
+    "configResolved.baseline.discount_factor": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Paper discount factor."
+    },
+    "configResolved.baseline.batch_size": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Paper batch size."
+    },
+    "configResolved.baseline.objective_weights": {
+      "primaryClassification": "paper-backed",
+      "source": "paper-source/ref PDF or paper-backed baseline envelope",
+      "note": "Baseline objective weights used for the primary run."
+    },
+    "configResolved.paper_backed_weight_rows.table_ii": {
+      "primaryClassification": "recovered-from-paper",
+      "source": "paper-source/txt_layout and paper-source/catalog",
+      "note": "Recovered Table II weight rows."
+    },
+    "configResolved.paper_ranges.user_count": {
+      "primaryClassification": "recovered-from-paper",
+      "source": "paper-source/txt_layout and paper-source/catalog",
+      "note": "Recovered user-count figure range."
+    },
+    "configResolved.paper_ranges.satellite_count": {
+      "primaryClassification": "recovered-from-paper",
+      "source": "paper-source/txt_layout and paper-source/catalog",
+      "note": "Recovered satellite-count figure range."
+    },
+    "configResolved.paper_ranges.user_speed_kmh": {
+      "primaryClassification": "recovered-from-paper",
+      "source": "paper-source/txt_layout and paper-source/catalog",
+      "note": "Recovered user-speed figure range."
+    },
+    "configResolved.paper_ranges.satellite_speed_km_s": {
+      "primaryClassification": "recovered-from-paper",
+      "source": "paper-source/txt_layout and paper-source/catalog",
+      "note": "Recovered satellite-speed figure range."
+    },
+    "configResolved.resolved_assumptions.action_masking_semantics": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-012"
+    },
+    "configResolved.resolved_assumptions.atmospheric_formula_sign": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-009"
+    },
+    "configResolved.resolved_assumptions.beam_geometry": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-002"
+    },
+    "configResolved.resolved_assumptions.checkpoint_selection_rule": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-015"
+    },
+    "configResolved.resolved_assumptions.comparator_training_protocol": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-017"
+    },
+    "configResolved.resolved_assumptions.epsilon_schedule": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-004"
+    },
+    "configResolved.resolved_assumptions.evaluation_aggregation": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-010"
+    },
+    "configResolved.resolved_assumptions.figure_discrete_point_set": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-016"
+    },
+    "configResolved.resolved_assumptions.ground_point": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface."
+    },
+    "configResolved.resolved_assumptions.handover_cost_values": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-003"
+    },
+    "configResolved.resolved_assumptions.noise_semantics": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-008"
+    },
+    "configResolved.resolved_assumptions.orbit_layout": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-001"
+    },
+    "configResolved.resolved_assumptions.policy_sharing_mode": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-007"
+    },
+    "configResolved.resolved_assumptions.r3_gap_beam_scope": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-019"
+    },
+    "configResolved.resolved_assumptions.replay_capacity": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-006"
+    },
+    "configResolved.resolved_assumptions.seed_and_rng_policy": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-018"
+    },
+    "configResolved.resolved_assumptions.state_encoding_and_normalization": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-013"
+    },
+    "configResolved.resolved_assumptions.target_update_cadence": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-005"
+    },
+    "configResolved.resolved_assumptions.topology_handling_strategy": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-011"
+    },
+    "configResolved.resolved_assumptions.user_heading_stride": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-020"
+    },
+    "configResolved.resolved_assumptions.user_scatter_radius": {
+      "primaryClassification": "reproduction-assumption",
+      "source": "resolved-run config",
+      "note": "Explicit reproduction assumption promoted into the executable config surface.",
+      "assumptionId": "ASSUME-MODQN-REP-021"
+    },
+    "manifest.replayTruthMode": {
+      "primaryClassification": "artifact-derived",
+      "source": "exporter checkpoint selection",
+      "note": "Replay truth source chosen from the exported run artifact.",
+      "sourceChain": [
+        "artifact-derived"
+      ]
+    }
+  }
+}

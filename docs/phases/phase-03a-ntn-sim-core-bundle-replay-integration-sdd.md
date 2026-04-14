@@ -1,7 +1,12 @@
 # Phase 03A: `ntn-sim-core` Bundle Replay Integration SDD
 
-**Status:** Promoted follow-on SDD  
-**Date:** `2026-04-13`  
+**Status:** Promoted follow-on SDD; Slice A landed.
+**Date:** `2026-04-13`
+**Producer schema:** `phase-03a-replay-bundle-v1`
+**Slice A closeout:**
+[`../../artifacts/reproduction-status-2026-04-13-phase-03a-slice-a.md`](../../artifacts/reproduction-status-2026-04-13-phase-03a-slice-a.md)
+**Canonical sample bundle:** `tests/fixtures/sample-bundle-v1/`
+
 **Depends on:**
 
 1. `docs/baseline-acceptance-checklist.md`

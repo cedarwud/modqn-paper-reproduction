@@ -49,9 +49,15 @@ What exists now:
 
 What does not exist yet:
 
-1. Phase 2 stable export bundle freeze
-2. a complete paper-faithful reproduction claim with convincing method separation
-3. paper-visual parity polish for the original figure layouts
+1. a complete paper-faithful reproduction claim with convincing method separation
+2. paper-visual parity polish for the original figure layouts
+
+The Phase 02 export bundle freeze is now landed as the Phase 03A
+`phase-03a-replay-bundle-v1` surface (see
+`docs/phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md` and
+`artifacts/reproduction-status-2026-04-13-phase-03a-slice-a.md`). The
+checked-in `tests/fixtures/sample-bundle-v1/` is the canonical
+sample export bundle for downstream consumers.
 
 ## Directory Layout
 
@@ -112,6 +118,7 @@ Additional entrypoints:
 ./.venv/bin/python scripts/run_sweeps.py --config configs/modqn-paper-baseline.resolved-template.yaml --suite fig-3 --episodes 1 --max-figure-points 2 --output-dir artifacts/fig-3-smoke --reference-run artifacts/run-9000
 ./.venv/bin/python scripts/run_sweeps.py --config configs/modqn-paper-baseline.resolved-template.yaml --suite reward-geometry --input-table-ii artifacts/table-ii-200ep-01 --reference-run artifacts/run-9000 --output-dir artifacts/reward-geometry-01
 ./.venv/bin/python scripts/export_ntn_sim_core_bundle.py --input artifacts/pilot-02-best-eval --output-dir artifacts/pilot-02-best-eval/export-bundle
+./.venv/bin/python scripts/generate_sample_bundle.py --output tests/fixtures/sample-bundle-v1 --episodes 1 --max-users 1
 ```
 
 `train_modqn.py` is a real training entrypoint and writes both the final checkpoint and
@@ -124,8 +131,14 @@ normalization scales without changing the baseline training rule. The separate
 `modqn-paper-baseline.reward-calibration.resolved.yaml` surface is an opt-in
 training experiment: it calibrates trainer-side rewards by fixed scales while
 keeping evaluation, logged raw objectives, and checkpoint selection on the
-raw paper metric surface. `export_ntn_sim_core_bundle.py`
-now exports a completed training run into CSV/PNG bundle surfaces.
+raw paper metric surface. `export_ntn_sim_core_bundle.py` exports a completed
+training run into the frozen Phase 03A `phase-03a-replay-bundle-v1` bundle
+surface (manifest, config-resolved, assumptions, provenance-map,
+training/evaluation summaries, figures, and a replay-complete
+`timeline/step-trace.jsonl`). `generate_sample_bundle.py` runs that pipeline
+end-to-end on a one-episode smoke training and trims the timeline into a
+small, byte-stable `tests/fixtures/sample-bundle-v1/` fixture that downstream
+consumers (e.g. `ntn-sim-core`) can ingest without re-running training.
 
 ## Config Surfaces
 

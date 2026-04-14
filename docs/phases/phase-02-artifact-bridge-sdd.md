@@ -1,7 +1,12 @@
 # Phase 02: Artifact Bridge SDD
 
-**Status:** Planned SDD  
+**Status:** Landed via Phase 03A Slice A
+**Schema:** `phase-03a-replay-bundle-v1`
 **Depends on:** Phase 01 output contracts
+**See also:**
+- [`phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`](./phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md)
+- [`../../artifacts/reproduction-status-2026-04-13-phase-03a-slice-a.md`](../../artifacts/reproduction-status-2026-04-13-phase-03a-slice-a.md)
+- `tests/fixtures/sample-bundle-v1/` (canonical sample bundle)
 
 ## 1. Purpose
 
@@ -113,3 +118,14 @@ Phase 02 is complete only when:
 4. the bundle declares `bundleSchemaVersion` and `producerVersion`
 5. the bundle includes field-level provenance for UI disclosure
 6. the timeline contract includes geometry, identity, visibility, and event semantics required for future 3D replay
+
+## 8. Phase 03A Slice A landing record
+
+The Phase 02 freeze defined above landed as Phase 03A Slice A. The
+implementation surface lives in
+`src/modqn_paper_reproduction/export/replay_bundle.py` and is wired into
+`export_main` via `src/modqn_paper_reproduction/export/pipeline.py`. The
+schema version is `phase-03a-replay-bundle-v1` and the canonical
+checked-in fixture is `tests/fixtures/sample-bundle-v1/`. See
+[`../../artifacts/reproduction-status-2026-04-13-phase-03a-slice-a.md`](../../artifacts/reproduction-status-2026-04-13-phase-03a-slice-a.md)
+for the closeout note.

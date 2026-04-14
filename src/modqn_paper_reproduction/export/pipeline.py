@@ -19,6 +19,8 @@ import pandas as pd
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+from .replay_bundle import export_replay_bundle, validate_replay_bundle
+
 
 def _write_json(path: Path, payload: dict[str, Any]) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -599,12 +601,14 @@ def export_training_run(input_dir: str | Path, output_dir: str | Path) -> dict[s
 
     training_dir = out_dir / "training"
     evaluation_dir = out_dir / "evaluation"
+    sweeps_dir = evaluation_dir / "sweeps"
     figures_dir = out_dir / "figures"
 
     df = pd.DataFrame(training_log)
     episode_metrics_path = training_dir / "episode_metrics.csv"
     loss_curves_path = training_dir / "loss_curves.csv"
     training_dir.mkdir(parents=True, exist_ok=True)
+    sweeps_dir.mkdir(parents=True, exist_ok=True)
     df.to_csv(episode_metrics_path, index=False)
     df[["episode", "losses"]].assign(
         loss_q1=df["losses"].apply(lambda x: x[0]),
@@ -639,6 +643,15 @@ def export_training_run(input_dir: str | Path, output_dir: str | Path) -> dict[s
     fig.savefig(objectives_plot_path, dpi=150)
     plt.close(fig)
 
+    assumptions_path = _write_json(
+        out_dir / "assumptions.json",
+        metadata.get("resolved_assumptions", {}),
+    )
+    replay_outputs = export_replay_bundle(
+        in_dir,
+        out_dir,
+        metadata=metadata,
+    )
     summary_path = _write_json(
         evaluation_dir / "summary.json",
         {
@@ -648,27 +661,18 @@ def export_training_run(input_dir: str | Path, output_dir: str | Path) -> dict[s
             "checkpoint_files": metadata.get("checkpoint_files"),
             "best_eval_summary": metadata.get("best_eval_summary"),
             "training_summary": metadata.get("training_summary"),
+            "bundle_schema_version": replay_outputs["bundle_schema_version"],
+            "replay_timeline": replay_outputs["replay_summary"],
         },
     )
-    manifest_path = _write_json(
-        out_dir / "manifest.json",
-        {
-            "paperId": metadata.get("paper_id"),
-            "producerVersion": metadata.get("package_version"),
-            "configPath": metadata.get("config_path"),
-            "inputArtifactDir": str(in_dir),
-            "outputDir": str(out_dir),
-            "checkpointRule": metadata.get("checkpoint_rule"),
-        },
-    )
-    assumptions_path = _write_json(
-        out_dir / "assumptions.json",
-        metadata.get("resolved_assumptions", {}),
-    )
+    validate_replay_bundle(out_dir)
 
     return {
-        "manifest": manifest_path,
+        "manifest": replay_outputs["manifest"],
         "assumptions": assumptions_path,
+        "config_resolved_json": replay_outputs["config_resolved"],
+        "provenance_map_json": replay_outputs["provenance_map"],
+        "timeline_step_trace_jsonl": replay_outputs["timeline_step_trace"],
         "episode_metrics_csv": episode_metrics_path,
         "loss_curves_csv": loss_curves_path,
         "summary_json": summary_path,

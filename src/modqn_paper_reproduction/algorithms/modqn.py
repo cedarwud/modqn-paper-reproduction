@@ -545,6 +545,10 @@ class MODQNTrainer:
             dtype=np.float32,
         )
 
+    def encode_states(self, states: list[UserState]) -> np.ndarray:
+        """Public wrapper for the active state-encoding surface."""
+        return self._encode_states(states)
+
     def _evaluate_one_seed(
         self,
         eval_seed: int,

@@ -302,6 +302,26 @@ class StepEnvironment:
     def channel_config(self) -> ChannelConfig:
         return self._channel_cfg
 
+    @property
+    def time_s(self) -> float:
+        return self._t_s
+
+    @property
+    def step_index(self) -> int:
+        return self._step_index
+
+    def current_assignments(self) -> np.ndarray:
+        """Current global beam assignment per user."""
+        return self._assignments.copy()
+
+    def current_user_positions(self) -> list[tuple[float, float]]:
+        """Current user geodetic positions."""
+        return list(self._user_positions)
+
+    def current_satellites(self):
+        """Current satellite snapshots in stable index order."""
+        return self._orbit.all_satellites(self._t_s)
+
     # -- reset ----------------------------------------------------------------
 
     def reset(
@@ -858,6 +878,16 @@ def _local_tangent_offset(
     east_km = dlon * 111.32 * cos_lat
 
     return east_km, north_km
+
+
+def local_tangent_offset_km(
+    user_lat: float,
+    user_lon: float,
+    target_lat: float,
+    target_lon: float,
+) -> tuple[float, float]:
+    """Public local-tangent offset helper for export/replay surfaces."""
+    return _local_tangent_offset(user_lat, user_lon, target_lat, target_lon)
 
 
 def _print_diagnostics(report: DiagnosticsReport) -> None:

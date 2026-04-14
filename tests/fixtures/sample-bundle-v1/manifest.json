@@ -1,0 +1,86 @@
+{
+  "paperId": "PAP-2024-MORL-MULTIBEAM",
+  "runId": "run",
+  "bundleSchemaVersion": "phase-03a-replay-bundle-v1",
+  "producerVersion": "0.1.0",
+  "exportedAt": "FIXTURE-DETERMINISTIC-TIMESTAMP",
+  "sourceArtifactDir": "<fixture-source-artifact-dir>",
+  "inputArtifactDir": "<fixture-input-artifact-dir>",
+  "outputDir": "<fixture-output-dir>",
+  "configPath": "configs/modqn-paper-baseline.resolved-template.yaml",
+  "checkpointRule": {
+    "assumption_id": "ASSUME-MODQN-REP-015",
+    "primary_report": "final-episode-policy",
+    "secondary_report": "best-weighted-reward-on-eval",
+    "secondary_implemented": true,
+    "secondary_status": "best-eval checkpoint captured from mean weighted reward over 5 evaluation seeds; evaluated every 50 episodes and at the final episode"
+  },
+  "replayTruthMode": "selected-checkpoint-greedy-replay",
+  "timelineFormatVersion": "step-trace.jsonl/v1",
+  "coordinateFrame": {
+    "userPosition": "geodetic-deg + local-tangent-east-north-km anchored at ground_point=(0.000000, 0.000000)",
+    "satellitePosition": "eci-km-no-earth-rotation",
+    "beamCenter": "geodetic-deg + local-tangent-east-north-km anchored at ground_point=(0.000000, 0.000000)",
+    "groundPoint": {
+      "latDeg": 0.0,
+      "lonDeg": 0.0
+    }
+  },
+  "slotIndexSemantics": {
+    "firstIndex": 1,
+    "note": "Slot indices start at 1. Index N corresponds to the post-step state at time_s = N * slot_duration_s after the environment reset. Slot 0 is the reset state and has no exported row."
+  },
+  "beamCatalogOrder": "satellite-major-beam-minor",
+  "replaySummary": {
+    "checkpointPath": "<fixture-checkpoint-source>",
+    "checkpointKind": "best-weighted-reward-on-eval",
+    "policyEpisode": 0,
+    "timelineSeed": 100,
+    "replaySeedSource": "checkpoint.evaluation_summary.eval_seeds[0]",
+    "slotIndexOffset": 1,
+    "rowCount": 10,
+    "slotCount": 10,
+    "handoverEventCount": 1,
+    "rewardWeights": [
+      0.5,
+      0.3,
+      0.2
+    ],
+    "diagnostics": {
+      "zenith_snr_db": -56.139675275693,
+      "zenith_throughput_bps": 1754.593384447397,
+      "sample_r1": 491.28614764527117,
+      "sample_r2_beam_change": -0.5,
+      "sample_r2_sat_change": -1.0,
+      "sample_r3": -17.54593384447397,
+      "r1_r2_ratio": 982.5722952905423,
+      "r1_r3_ratio": 28.0,
+      "dominance_warnings": [
+        "DOMINANCE WARNING: reward scale ratio is 982.6x (>100x threshold). r1_abs=4.9129e+02, r2_abs=5.0000e-01, r3_abs=1.7546e+01. Scalarized reward will be dominated by the largest objective. TODO: evaluate whether reward calibration is needed after first training run."
+      ]
+    },
+    "sampleSubset": {
+      "maxUsers": 1,
+      "maxSlots": null,
+      "userIndices": [
+        0
+      ],
+      "slotIndices": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "sourceFullRowCount": 1000,
+      "sourceFullSlotCount": 10,
+      "sourceFullHandoverEventCount": 85
+    }
+  },
+  "sampleNote": "Trimmed for fixture/sample purposes. Timeline reduced to the first 1 user(s) and first 10 slot(s) of the source bundle. All other surfaces are byte-equal to the source."
+}

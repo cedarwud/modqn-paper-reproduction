@@ -344,7 +344,44 @@ def test_export_cli_emits_bundle(tmp_path: Path) -> None:
     assert export_rc == 0
     assert (export_dir / "manifest.json").exists()
     assert (export_dir / "assumptions.json").exists()
+    assert (export_dir / "config-resolved.json").exists()
+    assert (export_dir / "provenance-map.json").exists()
     assert (export_dir / "training" / "episode_metrics.csv").exists()
     assert (export_dir / "training" / "loss_curves.csv").exists()
+    assert (export_dir / "evaluation" / "sweeps").exists()
+    assert (export_dir / "timeline" / "step-trace.jsonl").exists()
     assert (export_dir / "figures" / "training-scalar-reward.png").exists()
     assert (export_dir / "figures" / "training-objectives.png").exists()
+    summary = json.loads((export_dir / "evaluation" / "summary.json").read_text())
+    assert summary["bundle_schema_version"] == "phase-03a-replay-bundle-v1"
+    assert summary["replay_timeline"]["slotCount"] == 10
+    manifest = json.loads((export_dir / "manifest.json").read_text())
+    assert manifest["bundleSchemaVersion"] == "phase-03a-replay-bundle-v1"
+    assert manifest["timelineFormatVersion"] == "step-trace.jsonl/v1"
+    assert manifest["replayTruthMode"] == "selected-checkpoint-greedy-replay"
+
+    first_row = json.loads(
+        (export_dir / "timeline" / "step-trace.jsonl").open().readline()
+    )
+    required_row_fields = {
+        "slotIndex",
+        "timeSec",
+        "userId",
+        "userPosition",
+        "previousServing",
+        "selectedServing",
+        "handoverEvent",
+        "visibilityMask",
+        "actionValidityMask",
+        "beamLoads",
+        "rewardVector",
+        "scalarReward",
+        "satelliteStates",
+        "beamStates",
+        "kpiOverlay",
+    }
+    assert required_row_fields <= set(first_row)
+    assert first_row["beamCatalogOrder"] == "satellite-major-beam-minor"
+    assert len(first_row["satelliteStates"]) == 4
+    assert len(first_row["beamStates"]) == 28
+    assert len(first_row["actionValidityMask"]) == 28

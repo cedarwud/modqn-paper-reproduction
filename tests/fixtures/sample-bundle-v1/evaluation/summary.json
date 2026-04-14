@@ -1,0 +1,95 @@
+{
+  "paper_id": "PAP-2024-MORL-MULTIBEAM",
+  "config_path": "configs/modqn-paper-baseline.resolved-template.yaml",
+  "checkpoint_rule": {
+    "assumption_id": "ASSUME-MODQN-REP-015",
+    "primary_report": "final-episode-policy",
+    "secondary_report": "best-weighted-reward-on-eval",
+    "secondary_implemented": true,
+    "secondary_status": "best-eval checkpoint captured from mean weighted reward over 5 evaluation seeds; evaluated every 50 episodes and at the final episode"
+  },
+  "checkpoint_files": {
+    "primary_final": "<fixture-primary-checkpoint>",
+    "secondary_best_eval": "<fixture-secondary-checkpoint>"
+  },
+  "best_eval_summary": {
+    "episode": 0,
+    "evaluation_every_episodes": 50,
+    "eval_seeds": [
+      100,
+      200,
+      300,
+      400,
+      500
+    ],
+    "mean_scalar_reward": 52.259007530593614,
+    "std_scalar_reward": 0.1661730689626825,
+    "mean_r1": 174.61869176864622,
+    "std_r1": 0.5547623678954213,
+    "mean_r2": -0.422,
+    "std_r2": 0.010770329614269,
+    "mean_r3": -174.61869176864755,
+    "std_r3": 0.5547623678941013,
+    "mean_total_handovers": 84.4,
+    "std_total_handovers": 2.1540659228538015
+  },
+  "training_summary": {
+    "episodes_requested": 1,
+    "episodes_completed": 1,
+    "elapsed_s": 0.0,
+    "final_episode_index": 0,
+    "final_scalar_reward": 599.5993136215209
+  },
+  "bundle_schema_version": "phase-03a-replay-bundle-v1",
+  "replay_timeline": {
+    "checkpointPath": "<fixture-checkpoint-source>",
+    "checkpointKind": "best-weighted-reward-on-eval",
+    "policyEpisode": 0,
+    "timelineSeed": 100,
+    "replaySeedSource": "checkpoint.evaluation_summary.eval_seeds[0]",
+    "slotIndexOffset": 1,
+    "rowCount": 10,
+    "slotCount": 10,
+    "handoverEventCount": 1,
+    "rewardWeights": [
+      0.5,
+      0.3,
+      0.2
+    ],
+    "diagnostics": {
+      "zenith_snr_db": -56.139675275693,
+      "zenith_throughput_bps": 1754.593384447397,
+      "sample_r1": 491.28614764527117,
+      "sample_r2_beam_change": -0.5,
+      "sample_r2_sat_change": -1.0,
+      "sample_r3": -17.54593384447397,
+      "r1_r2_ratio": 982.5722952905423,
+      "r1_r3_ratio": 28.0,
+      "dominance_warnings": [
+        "DOMINANCE WARNING: reward scale ratio is 982.6x (>100x threshold). r1_abs=4.9129e+02, r2_abs=5.0000e-01, r3_abs=1.7546e+01. Scalarized reward will be dominated by the largest objective. TODO: evaluate whether reward calibration is needed after first training run."
+      ]
+    },
+    "sampleSubset": {
+      "maxUsers": 1,
+      "maxSlots": null,
+      "userIndices": [
+        0
+      ],
+      "slotIndices": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "sourceFullRowCount": 1000,
+      "sourceFullSlotCount": 10,
+      "sourceFullHandoverEventCount": 85
+    }
+  }
+}
