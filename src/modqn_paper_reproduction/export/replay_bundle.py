@@ -750,6 +750,20 @@ def export_replay_bundle(
                 "lonDeg": float(ground_lon_deg),
             },
         },
+        "scenarioSurface": {
+            "groundPoint": {
+                "latDeg": float(ground_lat_deg),
+                "lonDeg": float(ground_lon_deg),
+            },
+            "userAreaDistribution": str(trainer.env.config.user_scatter_distribution),
+            "userScatterRadiusKm": float(trainer.env.config.user_scatter_radius_km),
+            "userAreaWidthKm": float(trainer.env.config.user_area_width_km),
+            "userAreaHeightKm": float(trainer.env.config.user_area_height_km),
+            "mobilityModel": str(trainer.env.config.mobility_model),
+            "randomWanderingMaxTurnRad": float(
+                trainer.env.config.random_wandering_max_turn_rad
+            ),
+        },
         "slotIndexSemantics": {
             "firstIndex": 1,
             "note": (

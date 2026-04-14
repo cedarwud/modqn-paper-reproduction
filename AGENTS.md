@@ -42,14 +42,13 @@ When details conflict, use this order:
 
 For a quick project-state handoff, read these before proposing new work:
 
-1. `artifacts/public-summary-2026-04-13.md`
-2. `artifacts/reproduction-status-2026-04-13.md`
-3. `artifacts/run-9000/anomaly-review.md`
-4. `artifacts/fig-3-pilot-01/review.md`
-5. `artifacts/fig-4-pilot-01/review.md`
-6. `artifacts/fig-5-pilot-01/review.md`
-7. `artifacts/fig-6-pilot-01/review.md`
-8. `docs/baseline-acceptance-checklist.md`
+1. `artifacts/public-summary-2026-04-15-phase-01c-closeout.md`
+2. `artifacts/phase-01c-closeout-status-2026-04-15.md`
+3. `artifacts/phase-01b-closeout-status-2026-04-14.md`
+4. `artifacts/reproduction-status-2026-04-13.md`
+5. `artifacts/phase-01c-protocol-bounded-03/review.md`
+6. `artifacts/run-9000/anomaly-review.md`
+7. `docs/baseline-acceptance-checklist.md`
 
 For the planned low-coupling `ntn-sim-core` presentation follow-on, also
 read:
@@ -58,8 +57,12 @@ read:
 
 ## Current State Snapshot
 
-As of `2026-04-13`, the repo is a working standalone baseline reproduction surface,
-but it is not yet a fully established paper-faithful reproduction.
+As of `2026-04-15`, the repo is a working standalone baseline
+reproduction surface.
+The frozen comparison-baseline bundle remains valid, and both the
+paper-faithful scenario-correction follow-on and the comparator-protocol
+follow-on have now been closed as negative results rather than as
+upgrades to a full paper-faithful baseline.
 
 What is already true:
 
@@ -68,6 +71,15 @@ What is already true:
 3. `Table II` and reviewed `Fig. 3` to `Fig. 6` sweep surfaces exist with machine-readable outputs
 4. the comparison-baseline checklist is complete
 5. the repo can now be frozen as a disclosed engineering baseline for downstream comparison
+6. the highest-impact paper-backed scenario mismatch has been exercised on
+   an explicit follow-on track
+7. that follow-on track did not recover convincing paper-like method
+   separation
+8. the comparator-protocol follow-on is also complete
+9. held-out reporting can reshuffle two already near-tied high-load
+   `Fig. 3` points, but only through `r2` / handover
+10. final-vs-best checkpoint reporting is a no-op on the bounded
+    `20`-episode protocol surface
 
 What is not yet established:
 
@@ -75,6 +87,10 @@ What is not yet established:
 2. `run-9000` shows a real late-training collapse and objective drift
 3. `Table II` and `Fig. 3` are still near-tied, with most variation coming from `r2` / handover
 4. the explicit reward-calibration pilot did not improve the raw eval surface
+5. the Phase 01B scenario correction did not overturn the near-tie /
+   dominance diagnosis
+6. the Phase 01C comparator-protocol check did not overturn the same
+   diagnosis
 
 ## Current Guardrails
 
@@ -82,4 +98,7 @@ What is not yet established:
 2. Do not silently replace the baseline with `configs/modqn-paper-baseline.reward-calibration.resolved.yaml`.
 3. Treat the reward-calibration config as an explicit experiment only.
 4. Use `docs/baseline-acceptance-checklist.md` as the freeze note for comparison-baseline scope.
-5. If no new user direction is given, prefer freeze/disclosure or clearly labeled experiments over more retraining.
+5. Treat Phase 01B and Phase 01C as closed unless a new explicitly
+   labeled reopen surface is created.
+6. If no new user direction is given, prefer freeze/disclosure over more
+   retraining.

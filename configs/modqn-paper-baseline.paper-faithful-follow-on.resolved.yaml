@@ -1,0 +1,54 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: phase-01b
+  label: paper-faithful-follow-on
+  status: experimental
+  purpose: >
+    Scenario-corrected follow-on track that preserves the frozen
+    comparison baseline while aligning the user geography and mobility
+    surface more closely with the paper-backed simulation text.
+
+resolved_assumptions:
+  orbit_layout:
+    assumption_id: ASSUME-MODQN-REP-001
+    value:
+      shell_name: walker-like-delta-4-1-0-single-plane-proxy
+      altitude_km: 780
+      orbital_planes: 1
+      satellites_per_plane: 4
+      in_plane_spacing_deg: 90
+      inclination_deg: 90.0
+      raan_deg: 116.0
+      initial_true_anomaly_offset_deg: 40.0
+      note: >
+        The proxy plane is rotated and phase-shifted so the paper-backed
+        Beijing-area ground point is not placed outside the synthetic
+        coverage corridor at reset time.
+  ground_point:
+    value:
+      lat_deg: 40.0
+      lon_deg: 116.0
+      note: "paper-backed user-area center from the simulation section"
+  user_area_geometry:
+    assumption_id: ASSUME-MODQN-REP-022
+    value:
+      distribution: uniform-rectangle
+      width_km: 200.0
+      height_km: 90.0
+      note: >
+        Paper-backed rectangular user area; within-area user sampling is
+        uniform across the rectangle unless a later source gives a more
+        specific placement rule.
+  user_mobility_model:
+    assumption_id: ASSUME-MODQN-REP-023
+    value:
+      model: random-wandering
+      initial_heading: uniform-random
+      turn_rule: bounded-uniform-turn-per-slot
+      max_turn_rad: 0.7853981633974483
+      note: >
+        The paper states random wandering but does not disclose the
+        exact slot-level turn law, so the per-slot bounded turn remains
+        a surfaced reproduction assumption.

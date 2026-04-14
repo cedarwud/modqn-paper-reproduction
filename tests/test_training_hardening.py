@@ -18,6 +18,7 @@ from modqn_paper_reproduction.config_loader import (
 
 
 RESOLVED_CONFIG = "configs/modqn-paper-baseline.resolved-template.yaml"
+FOLLOW_ON_CONFIG = "configs/modqn-paper-baseline.paper-faithful-follow-on.resolved.yaml"
 REWARD_CALIBRATION_CONFIG = "configs/modqn-paper-baseline.reward-calibration.resolved.yaml"
 PAPER_ENVELOPE_CONFIG = "configs/modqn-paper-baseline.yaml"
 
@@ -131,6 +132,55 @@ def test_train_cli_writes_final_checkpoint_and_metadata(tmp_path: Path) -> None:
     assert metadata["runtime_environment"]["r3_gap_scope"] == "all-reachable-beams"
     assert metadata["runtime_environment"]["user_heading_stride_rad"] == 2.3998277
     assert metadata["runtime_environment"]["user_scatter_radius_km"] == 50.0
+    assert metadata["runtime_environment"]["user_scatter_distribution"] == "uniform-circular"
+    assert metadata["runtime_environment"]["mobility_model"] == "deterministic-heading"
+
+
+def test_follow_on_config_drives_rectangle_area_and_random_wandering() -> None:
+    cfg = load_training_yaml(FOLLOW_ON_CONFIG)
+    env = build_environment(cfg)
+
+    assert env.config.user_lat_deg == 40.0
+    assert env.config.user_lon_deg == 116.0
+    assert env.config.user_scatter_distribution == "uniform-rectangle"
+    assert env.config.user_area_width_km == 200.0
+    assert env.config.user_area_height_km == 90.0
+    assert env.config.mobility_model == "random-wandering"
+
+    rng = np.random.default_rng(42)
+    states, masks, _ = env.reset(rng, np.random.default_rng(7))
+    assert min(mask.num_valid for mask in masks) > 0
+    actions = np.array([
+        int(np.where(mask.mask)[0][0]) for mask in masks
+    ], dtype=np.int32)
+    result = env.step(actions, rng)
+    assert any(reward.r1_throughput > 0.0 for reward in result.rewards)
+
+
+def test_follow_on_train_cli_writes_scenario_runtime_metadata(tmp_path: Path) -> None:
+    out_dir = tmp_path / "follow-on-run"
+    rc = train_main([
+        "--config",
+        FOLLOW_ON_CONFIG,
+        "--episodes",
+        "1",
+        "--progress-every",
+        "0",
+        "--output-dir",
+        str(out_dir),
+    ])
+    assert rc == 0
+
+    metadata = json.loads((out_dir / "run_metadata.json").read_text())
+    assert metadata["resolved_config_snapshot"]["config_role"] == "resolved-run-follow-on"
+    runtime = metadata["runtime_environment"]
+    assert runtime["user_lat_deg"] == 40.0
+    assert runtime["user_lon_deg"] == 116.0
+    assert runtime["user_scatter_distribution"] == "uniform-rectangle"
+    assert runtime["user_area_width_km"] == 200.0
+    assert runtime["user_area_height_km"] == 90.0
+    assert runtime["mobility_model"] == "random-wandering"
+    assert runtime["random_wandering_max_turn_rad"] > 0.0
 
 
 def test_reward_calibration_experiment_is_opt_in() -> None:

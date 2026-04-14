@@ -704,8 +704,20 @@ def export_figure_sweep_results(
     parameter_label = str(suite_spec["parameter_label"])
     parameter_unit = str(suite_spec["parameter_unit"])
     point_count = int(df["parameter_value"].nunique()) if not df.empty else 0
+    analysis_context = {
+        "pointSelectionMode": manifest.get("pointSelectionMode"),
+        "configuredSweepPointSet": manifest.get("configuredSweepPointSet"),
+        "requestedSweepPointSet": manifest.get("requestedSweepPointSet"),
+        "effectiveSweepPointSet": manifest.get("sweepPointSet"),
+    }
 
-    full_json_path = _write_json(evaluation_dir / f"{suite}.json", {"rows": rows})
+    full_json_path = _write_json(
+        evaluation_dir / f"{suite}.json",
+        {
+            "rows": rows,
+            "analysisContext": analysis_context,
+        },
+    )
     detail_csv_path = evaluation_dir / f"{suite}-detail.csv"
     weighted_csv_path = evaluation_dir / f"{suite}-weighted-reward.csv"
     winners_csv_path = evaluation_dir / f"{suite}-weighted-winners.csv"
@@ -893,6 +905,10 @@ def export_figure_sweep_results(
         f"- suite: `{suite}`",
         f"- sweep parameter: `{parameter_label}`",
         f"- point count: `{point_count}`",
+        f"- point selection mode: `{analysis_context.get('pointSelectionMode')}`",
+        f"- configured point set: `{analysis_context.get('configuredSweepPointSet')}`",
+        f"- requested point override: `{analysis_context.get('requestedSweepPointSet')}`",
+        f"- effective point set: `{analysis_context.get('effectiveSweepPointSet')}`",
         f"- methods: `{', '.join(df['method'].drop_duplicates())}`",
         f"- baseline weight row: `{manifest.get('baselineWeightRow')}`",
         f"- tie-inclusive weighted-reward wins: `{tie_inclusive_counts}`",

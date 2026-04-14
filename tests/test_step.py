@@ -19,6 +19,7 @@ from modqn_paper_reproduction.env.channel import ChannelConfig, AtmosphericSignM
 from modqn_paper_reproduction.env.step import (
     ActionMask,
     DiagnosticsReport,
+    RANDOM_WANDERING_MAX_TURN_RAD,
     RewardComponents,
     StepConfig,
     StepEnvironment,
@@ -64,6 +65,12 @@ class TestStepConfig(unittest.TestCase):
         self.assertEqual(cfg.r3_gap_scope, "all-reachable-beams")
         self.assertAlmostEqual(cfg.user_heading_stride_rad, USER_HEADING_STRIDE_RAD)
         self.assertAlmostEqual(cfg.user_scatter_radius_km, USER_SCATTER_RADIUS_KM)
+        self.assertEqual(cfg.user_scatter_distribution, "uniform-circular")
+        self.assertEqual(cfg.mobility_model, "deterministic-heading")
+        self.assertAlmostEqual(
+            cfg.random_wandering_max_turn_rad,
+            RANDOM_WANDERING_MAX_TURN_RAD,
+        )
 
     def test_rejects_zero_users(self) -> None:
         with self.assertRaises(ValueError):
@@ -80,6 +87,14 @@ class TestStepConfig(unittest.TestCase):
     def test_steps_per_episode(self) -> None:
         cfg = StepConfig(slot_duration_s=0.5, episode_duration_s=5.0)
         self.assertEqual(cfg.steps_per_episode, 10)
+
+    def test_rejects_rectangle_without_extent(self) -> None:
+        with self.assertRaises(ValueError):
+            StepConfig(user_scatter_distribution="uniform-rectangle")
+
+    def test_rejects_unknown_mobility_model(self) -> None:
+        with self.assertRaises(ValueError):
+            StepConfig(mobility_model="unknown")
 
 
 # ---------------------------------------------------------------------------
@@ -124,6 +139,24 @@ class TestStateAssembly(unittest.TestCase):
         states, _, _ = env.reset(rng)
         for s in states:
             self.assertTrue(np.all(s.channel_quality >= 0))
+
+    def test_rectangle_area_positions_stay_within_bounds(self) -> None:
+        cfg = StepConfig(
+            num_users=20,
+            user_lat_deg=40.0,
+            user_lon_deg=116.0,
+            user_scatter_distribution="uniform-rectangle",
+            user_area_width_km=200.0,
+            user_area_height_km=90.0,
+        )
+        env = StepEnvironment(step_config=cfg, orbit_config=OrbitConfig(num_satellites=2))
+        rng = default_rng(42)
+        env.reset(rng, default_rng(7))
+
+        for lat, lon in env.current_user_positions():
+            east_km, north_km = _local_tangent_offset(40.0, 116.0, lat, lon)
+            self.assertLessEqual(abs(east_km), 100.0 + 1e-6)
+            self.assertLessEqual(abs(north_km), 45.0 + 1e-6)
 
 
 # ---------------------------------------------------------------------------
@@ -256,6 +289,36 @@ class TestRewardComputation(unittest.TestCase):
 
         for r in result.rewards:
             self.assertLessEqual(r.r3_load_balance, 0.0)
+
+    def test_random_wandering_rectangle_motion_stays_in_area(self) -> None:
+        cfg = StepConfig(
+            num_users=3,
+            user_lat_deg=40.0,
+            user_lon_deg=116.0,
+            user_speed_kmh=150.0,
+            user_scatter_distribution="uniform-rectangle",
+            user_area_width_km=20.0,
+            user_area_height_km=10.0,
+            mobility_model="random-wandering",
+            random_wandering_max_turn_rad=math.pi / 6.0,
+        )
+        env = StepEnvironment(step_config=cfg, orbit_config=OrbitConfig(num_satellites=2))
+        rng = default_rng(42)
+        states, _, _ = env.reset(rng, default_rng(7))
+        before = env.current_user_positions()
+        actions = np.array([
+            int(np.argmax(s.access_vector)) for s in states
+        ], dtype=np.int32)
+
+        for _ in range(10):
+            env.step(actions, rng)
+            for lat, lon in env.current_user_positions():
+                east_km, north_km = _local_tangent_offset(40.0, 116.0, lat, lon)
+                self.assertLessEqual(abs(east_km), 10.0 + 1e-6)
+                self.assertLessEqual(abs(north_km), 5.0 + 1e-6)
+
+        after = env.current_user_positions()
+        self.assertNotEqual(before, after)
 
     def test_raw_reward_magnitudes_not_normalized(self) -> None:
         """r1 should be in natural bps units, not silently normalized to [0,1].

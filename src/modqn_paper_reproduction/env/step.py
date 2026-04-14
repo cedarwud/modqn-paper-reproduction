@@ -67,6 +67,11 @@ uniformly scattered around the configured ground point.  Paper does not
 specify user spatial distribution; 50 km is a reasonable urban/suburban
 coverage assumption."""
 
+RANDOM_WANDERING_MAX_TURN_RAD: float = math.pi / 4.0
+"""ASSUME-MODQN-REP-023: per-slot bounded turn magnitude for the
+follow-on `random wandering` mobility rule. The paper names the mobility
+family but does not disclose the exact turn-law details."""
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -103,6 +108,10 @@ class StepConfig:
     user_heading_stride_rad: float = USER_HEADING_STRIDE_RAD
     user_scatter_radius_km: float = USER_SCATTER_RADIUS_KM
     user_scatter_distribution: str = "uniform-circular"
+    user_area_width_km: float = 0.0
+    user_area_height_km: float = 0.0
+    mobility_model: str = "deterministic-heading"
+    random_wandering_max_turn_rad: float = RANDOM_WANDERING_MAX_TURN_RAD
 
     def __post_init__(self) -> None:
         if self.num_users < 1:
@@ -131,10 +140,35 @@ class StepConfig:
                 "user_scatter_radius_km must be >= 0, "
                 f"got {self.user_scatter_radius_km}"
             )
-        if self.user_scatter_distribution != "uniform-circular":
+        if self.user_scatter_distribution not in {
+            "uniform-circular",
+            "uniform-rectangle",
+        }:
             raise ValueError(
-                "user_scatter_distribution must be 'uniform-circular', "
+                "user_scatter_distribution must be one of "
+                "{'uniform-circular', 'uniform-rectangle'}, "
                 f"got {self.user_scatter_distribution!r}"
+            )
+        if self.user_scatter_distribution == "uniform-rectangle":
+            if self.user_area_width_km <= 0 or self.user_area_height_km <= 0:
+                raise ValueError(
+                    "uniform-rectangle requires positive user_area_width_km "
+                    f"and user_area_height_km, got width={self.user_area_width_km}, "
+                    f"height={self.user_area_height_km}"
+                )
+        if self.mobility_model not in {
+            "deterministic-heading",
+            "random-wandering",
+        }:
+            raise ValueError(
+                "mobility_model must be one of "
+                "{'deterministic-heading', 'random-wandering'}, "
+                f"got {self.mobility_model!r}"
+            )
+        if self.random_wandering_max_turn_rad < 0:
+            raise ValueError(
+                "random_wandering_max_turn_rad must be >= 0, "
+                f"got {self.random_wandering_max_turn_rad}"
             )
 
     @property
@@ -277,6 +311,8 @@ class StepEnvironment:
         self._step_index: int = 0
         self._assignments: np.ndarray = np.zeros(0, dtype=np.int32)
         self._user_positions: list[tuple[float, float]] = []
+        self._user_headings: list[float] = []
+        self._mobility_rng: Generator | None = None
         self._diagnostics_emitted: bool = False
         self._last_diagnostics: DiagnosticsReport | None = None
 
@@ -347,6 +383,7 @@ class StepEnvironment:
         # Reproduction-assumption: uniform random in a small area around the
         # configured ground point, radius ~ altitude/10 for reasonable coverage.
         mrng = mobility_rng or rng
+        self._mobility_rng = mrng
         self._user_positions = _generate_user_positions(
             self._step_cfg.num_users,
             self._step_cfg.user_lat_deg,
@@ -354,7 +391,10 @@ class StepEnvironment:
             mrng,
             radius_km=self._step_cfg.user_scatter_radius_km,
             distribution=self._step_cfg.user_scatter_distribution,
+            width_km=self._step_cfg.user_area_width_km,
+            height_km=self._step_cfg.user_area_height_km,
         )
+        self._user_headings = _generate_user_headings(self._step_cfg, mrng)
 
         # Initial assignment: each user to their nearest visible beam.
         self._assignments = self._initial_assignments()
@@ -662,12 +702,11 @@ class StepEnvironment:
     def _move_users(self) -> None:
         """Simple linear user mobility per step.
 
-        Moves users along a deterministic heading at the configured speed.
-        Paper does not specify the mobility model.
+        The resolved config controls the active mobility family:
 
-        ASSUME-MODQN-REP-020: per-user heading is
-        ``(uid * user_heading_stride_rad) mod 2π``. The resolved config owns
-        the stride value; the module-level constant is only the default.
+        - `deterministic-heading` keeps the original Phase 01 proxy
+        - `random-wandering` maintains a per-user heading and applies a
+          bounded random turn each slot
         """
         speed_km_s = self._step_cfg.user_speed_kmh / 3600.0
         dt = self._step_cfg.slot_duration_s
@@ -675,14 +714,63 @@ class StepEnvironment:
 
         for uid in range(len(self._user_positions)):
             lat, lon = self._user_positions[uid]
-            heading_rad = (
-                uid * self._step_cfg.user_heading_stride_rad
-            ) % (2.0 * math.pi)
-            dlat = displacement_km * math.cos(heading_rad) / 111.32
-            dlon = displacement_km * math.sin(heading_rad) / (
-                111.32 * max(math.cos(math.radians(lat)), 0.01)
-            )
-            self._user_positions[uid] = (lat + dlat, lon + dlon)
+            if self._step_cfg.mobility_model == "random-wandering":
+                if self._mobility_rng is None:
+                    raise ValueError("random-wandering mobility requires a mobility RNG")
+                turn_delta = float(
+                    self._mobility_rng.uniform(
+                        -self._step_cfg.random_wandering_max_turn_rad,
+                        self._step_cfg.random_wandering_max_turn_rad,
+                    )
+                )
+                heading_rad = (self._user_headings[uid] + turn_delta) % (2.0 * math.pi)
+            else:
+                heading_rad = (
+                    uid * self._step_cfg.user_heading_stride_rad
+                ) % (2.0 * math.pi)
+
+            east_step_km = displacement_km * math.sin(heading_rad)
+            north_step_km = displacement_km * math.cos(heading_rad)
+
+            if self._step_cfg.user_scatter_distribution == "uniform-rectangle":
+                east_km, north_km = _local_tangent_offset(
+                    self._step_cfg.user_lat_deg,
+                    self._step_cfg.user_lon_deg,
+                    lat,
+                    lon,
+                )
+                half_width = self._step_cfg.user_area_width_km / 2.0
+                half_height = self._step_cfg.user_area_height_km / 2.0
+                next_east_km = east_km + east_step_km
+                next_north_km = north_km + north_step_km
+
+                if next_east_km < -half_width or next_east_km > half_width:
+                    heading_rad = (-heading_rad) % (2.0 * math.pi)
+                    east_step_km = -east_step_km
+                    next_east_km = max(min(east_km + east_step_km, half_width), -half_width)
+
+                if next_north_km < -half_height or next_north_km > half_height:
+                    heading_rad = (math.pi - heading_rad) % (2.0 * math.pi)
+                    north_step_km = -north_step_km
+                    next_north_km = max(
+                        min(north_km + north_step_km, half_height),
+                        -half_height,
+                    )
+
+                self._user_positions[uid] = _offset_from_ground_point(
+                    self._step_cfg.user_lat_deg,
+                    self._step_cfg.user_lon_deg,
+                    next_east_km,
+                    next_north_km,
+                )
+            else:
+                dlat = north_step_km / 111.32
+                dlon = east_step_km / (
+                    111.32 * max(math.cos(math.radians(lat)), 0.01)
+                )
+                self._user_positions[uid] = (lat + dlat, lon + dlon)
+
+            self._user_headings[uid] = heading_rad
 
     # -- diagnostics ----------------------------------------------------------
 
@@ -839,26 +927,50 @@ def _generate_user_positions(
     rng: Generator,
     radius_km: float = USER_SCATTER_RADIUS_KM,
     distribution: str = "uniform-circular",
+    width_km: float = 0.0,
+    height_km: float = 0.0,
 ) -> list[tuple[float, float]]:
     """Generate user ground positions scattered around a center point.
 
     ASSUME-MODQN-REP-021: the resolved config owns the scatter radius and
     distribution. The module-level constant is only the default value.
     """
-    if distribution != "uniform-circular":
+    if distribution not in {"uniform-circular", "uniform-rectangle"}:
         raise ValueError(f"Unsupported user scatter distribution: {distribution!r}")
 
     positions: list[tuple[float, float]] = []
     for _ in range(num_users):
-        # Uniform in circle
-        r = radius_km * math.sqrt(float(rng.random()))
-        theta = float(rng.random()) * 2.0 * math.pi
-        dlat = r * math.cos(theta) / 111.32
-        dlon = r * math.sin(theta) / (
-            111.32 * max(math.cos(math.radians(center_lat)), 0.01)
-        )
-        positions.append((center_lat + dlat, center_lon + dlon))
+        if distribution == "uniform-circular":
+            r = radius_km * math.sqrt(float(rng.random()))
+            theta = float(rng.random()) * 2.0 * math.pi
+            dlat = r * math.cos(theta) / 111.32
+            dlon = r * math.sin(theta) / (
+                111.32 * max(math.cos(math.radians(center_lat)), 0.01)
+            )
+            positions.append((center_lat + dlat, center_lon + dlon))
+        else:
+            east_km = float(rng.uniform(-width_km / 2.0, width_km / 2.0))
+            north_km = float(rng.uniform(-height_km / 2.0, height_km / 2.0))
+            positions.append(
+                _offset_from_ground_point(center_lat, center_lon, east_km, north_km)
+            )
     return positions
+
+
+def _generate_user_headings(
+    config: StepConfig,
+    rng: Generator,
+) -> list[float]:
+    """Generate per-user headings for the active mobility model."""
+    if config.mobility_model == "random-wandering":
+        return [
+            float(rng.uniform(0.0, 2.0 * math.pi))
+            for _ in range(config.num_users)
+        ]
+    return [
+        (uid * config.user_heading_stride_rad) % (2.0 * math.pi)
+        for uid in range(config.num_users)
+    ]
 
 
 def _local_tangent_offset(
@@ -878,6 +990,20 @@ def _local_tangent_offset(
     east_km = dlon * 111.32 * cos_lat
 
     return east_km, north_km
+
+
+def _offset_from_ground_point(
+    center_lat: float,
+    center_lon: float,
+    east_km: float,
+    north_km: float,
+) -> tuple[float, float]:
+    """Convert local-tangent offsets back to geodetic lat/lon."""
+    lat = center_lat + north_km / 111.32
+    lon = center_lon + east_km / (
+        111.32 * max(math.cos(math.radians(center_lat)), 0.01)
+    )
+    return (lat, lon)
 
 
 def local_tangent_offset_km(

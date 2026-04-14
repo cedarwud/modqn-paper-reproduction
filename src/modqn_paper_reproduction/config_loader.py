@@ -9,6 +9,7 @@ cannot silently fall back to module constants.
 from __future__ import annotations
 
 import copy
+import math
 from pathlib import Path
 from typing import Any
 
@@ -187,6 +188,25 @@ def build_step_config(cfg: dict[str, Any]) -> StepConfig:
         raise ConfigValidationError(
             "Resolved assumption 'user_scatter_radius' must be a mapping."
         )
+    area_val = _resolved_assumption_value(cfg, "user_area_geometry")
+    area_val = area_val if isinstance(area_val, dict) else {}
+    mobility_val = _resolved_assumption_value(cfg, "user_mobility_model")
+    mobility_val = mobility_val if isinstance(mobility_val, dict) else {}
+
+    scatter_distribution = str(
+        area_val.get(
+            "distribution",
+            scatter_val.get("distribution", "uniform-circular"),
+        )
+    )
+    area_width_km = float(area_val.get("width_km", 0.0) or 0.0)
+    area_height_km = float(area_val.get("height_km", 0.0) or 0.0)
+    mobility_model = str(
+        mobility_val.get("model", "deterministic-heading")
+    )
+    random_wandering_max_turn_rad = float(
+        mobility_val.get("max_turn_rad", math.pi / 4.0)
+    )
 
     return StepConfig(
         num_users=base.get("users", 100),
@@ -219,9 +239,11 @@ def build_step_config(cfg: dict[str, Any]) -> StepConfig:
                 context="Resolved assumption 'user_scatter_radius'",
             )
         ),
-        user_scatter_distribution=str(
-            scatter_val.get("distribution", "uniform-circular")
-        ),
+        user_scatter_distribution=scatter_distribution,
+        user_area_width_km=area_width_km,
+        user_area_height_km=area_height_km,
+        mobility_model=mobility_model,
+        random_wandering_max_turn_rad=random_wandering_max_turn_rad,
     )
 
 
@@ -238,6 +260,7 @@ def build_orbit_config(cfg: dict[str, Any]) -> OrbitConfig:
         satellite_speed_km_s=base.get("satellite_speed_km_s", 7.4),
         inclination_deg=ol_val.get("inclination_deg", 90.0),
         raan_deg=ol_val.get("raan_deg", 0.0),
+        initial_true_anomaly_offset_deg=ol_val.get("initial_true_anomaly_offset_deg", 0.0),
         min_elevation_deg=0.0,
     )
 

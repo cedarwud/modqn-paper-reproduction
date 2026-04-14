@@ -47,6 +47,7 @@ class OrbitConfig:
     satellite_speed_km_s: float = 7.4
     inclination_deg: float = 90.0
     raan_deg: float = 0.0
+    initial_true_anomaly_offset_deg: float = 0.0
     min_elevation_deg: float = 0.0
 
     def __post_init__(self) -> None:
@@ -162,7 +163,7 @@ class OrbitProxy:
     def satellite_true_anomaly_deg(self, sat_index: int, t_s: float) -> float:
         """True anomaly of *sat_index* at time *t_s* (seconds), in [0, 360)."""
         spacing = self._cfg.in_plane_spacing_deg
-        theta_0 = sat_index * spacing
+        theta_0 = self._cfg.initial_true_anomaly_offset_deg + sat_index * spacing
         omega_deg_s = math.degrees(self._omega)
         return (theta_0 + omega_deg_s * t_s) % 360.0
 

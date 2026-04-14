@@ -58,6 +58,10 @@ FIGURE_SUITES: dict[str, dict[str, Any]] = {
 }
 
 
+class FigurePointSelectionError(ValueError):
+    """User-facing error for invalid explicit figure-point requests."""
+
+
 def table_ii_weight_rows(cfg: dict[str, Any]) -> list[tuple[float, float, float]]:
     """Extract Table II weight rows from the merged config surface."""
     block = cfg.get("paper_backed_weight_rows", {})
@@ -247,6 +251,60 @@ def _figure_cfg_for_point(
     return point_cfg
 
 
+def _resolve_configured_figure_point(
+    configured_points: list[float],
+    requested_point: float,
+) -> float:
+    for point in configured_points:
+        if abs(float(point) - float(requested_point)) <= 1e-9:
+            return float(point)
+    raise FigurePointSelectionError(
+        f"Requested figure point {requested_point} is not present in the configured point set"
+    )
+
+
+def _dedupe_requested_figure_points(points: tuple[float, ...]) -> list[float]:
+    deduped: list[float] = []
+    for point in points:
+        if all(abs(float(point) - existing) > 1e-9 for existing in deduped):
+            deduped.append(float(point))
+    return deduped
+
+
+def _select_figure_points(
+    configured_points: list[float],
+    *,
+    requested_points: tuple[float, ...] | None,
+    max_points: int | None,
+) -> tuple[list[float], dict[str, Any]]:
+    configured = [float(point) for point in configured_points]
+    if requested_points is not None:
+        deduped_requested = _dedupe_requested_figure_points(requested_points)
+        selected = [
+            _resolve_configured_figure_point(configured, point)
+            for point in deduped_requested
+        ]
+        return selected, {
+            "configured": configured,
+            "requested": [float(point) for point in deduped_requested],
+            "mode": "explicit-requested",
+        }
+
+    if max_points is not None:
+        selected = configured[: max(0, int(max_points))]
+        return selected, {
+            "configured": configured,
+            "requested": None,
+            "mode": "configured-prefix",
+        }
+
+    return configured, {
+        "configured": configured,
+        "requested": None,
+        "mode": "configured-default",
+    }
+
+
 def run_table_ii(
     cfg: dict[str, Any],
     *,
@@ -421,6 +479,7 @@ def run_figure_suite(
     episodes: int | None = None,
     progress_every: int = 100,
     max_points: int | None = None,
+    figure_points: tuple[float, ...] | None = None,
     methods: tuple[str, ...] = ("modqn", "dqn_throughput", "dqn_scalar", "rss_max"),
     reference_run_dir: str | Path | None = None,
 ) -> dict[str, Path]:
@@ -434,9 +493,12 @@ def run_figure_suite(
     eval_seeds = tuple(seeds["evaluation_seed_set"])
     weight_row = default_figure_weight_row(cfg)
     point_sets = figure_point_sets(cfg)
-    points = point_sets.get(suite_spec["parameter_name"], [])
-    if max_points is not None:
-        points = points[: max(0, int(max_points))]
+    configured_points = point_sets.get(suite_spec["parameter_name"], [])
+    points, point_selection = _select_figure_points(
+        configured_points,
+        requested_points=figure_points,
+        max_points=max_points,
+    )
     if not points:
         raise ValueError(f"No point set is available for {suite_spec['figure_id']}")
 
@@ -576,6 +638,9 @@ def run_figure_suite(
         "figureId": suite_spec["figure_id"],
         "sweepParameter": suite_spec["parameter_name"],
         "sweepPointSet": points,
+        "configuredSweepPointSet": point_selection["configured"],
+        "requestedSweepPointSet": point_selection["requested"],
+        "pointSelectionMode": point_selection["mode"],
         "baselineWeightRow": list(weight_row),
         "methods": list(dict.fromkeys(row["method"] for row in results)),
         "seeds": seeds,

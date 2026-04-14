@@ -276,9 +276,182 @@ def test_sweep_cli_fig3_outputs(tmp_path: Path) -> None:
     manifest = json.loads(manifest_path.read_text())
     assert manifest["figureId"] == "Fig. 3"
     assert manifest["sweepParameter"] == "user_count"
+    assert manifest["configuredSweepPointSet"] == [
+        40.0,
+        60.0,
+        80.0,
+        100.0,
+        120.0,
+        140.0,
+        160.0,
+        180.0,
+        200.0,
+    ]
+    assert manifest["requestedSweepPointSet"] is None
+    assert manifest["sweepPointSet"] == [40.0, 60.0]
+    assert manifest["pointSelectionMode"] == "configured-prefix"
+
+    json_payload = json.loads(json_path.read_text())
+    assert json_payload["analysisContext"]["requestedSweepPointSet"] is None
+    assert json_payload["analysisContext"]["effectiveSweepPointSet"] == [40.0, 60.0]
 
     analysis_text = analysis_md_path.read_text()
     assert "weighted reward" in analysis_text.lower()
+
+
+def test_sweep_cli_fig3_outputs_with_explicit_figure_points(tmp_path: Path) -> None:
+    out_dir = tmp_path / "fig-3-explicit-points"
+    rc = sweep_main(
+        [
+            "--config",
+            RESOLVED_CONFIG,
+            "--suite",
+            "fig-3",
+            "--methods",
+            "rss_max",
+            "--figure-points",
+            "160,180,200",
+            "--output-dir",
+            str(out_dir),
+        ]
+    )
+    assert rc == 0
+
+    detail_rows = list(csv.DictReader((out_dir / "evaluation" / "fig-3-detail.csv").open()))
+    assert detail_rows
+    assert {160.0, 180.0, 200.0} == {float(row["parameter_value"]) for row in detail_rows}
+    assert {"RSS_max"} == {row["method"] for row in detail_rows}
+
+    manifest = json.loads((out_dir / "manifest.json").read_text())
+    assert manifest["configuredSweepPointSet"] == [
+        40.0,
+        60.0,
+        80.0,
+        100.0,
+        120.0,
+        140.0,
+        160.0,
+        180.0,
+        200.0,
+    ]
+    assert manifest["requestedSweepPointSet"] == [160.0, 180.0, 200.0]
+    assert manifest["sweepPointSet"] == [160.0, 180.0, 200.0]
+    assert manifest["pointSelectionMode"] == "explicit-requested"
+
+    json_payload = json.loads((out_dir / "evaluation" / "fig-3.json").read_text())
+    assert json_payload["analysisContext"]["requestedSweepPointSet"] == [
+        160.0,
+        180.0,
+        200.0,
+    ]
+    assert json_payload["analysisContext"]["effectiveSweepPointSet"] == [
+        160.0,
+        180.0,
+        200.0,
+    ]
+    analysis_text = (out_dir / "analysis" / "fig-3-analysis.md").read_text()
+    assert "requested point override" in analysis_text.lower()
+    assert "[160.0, 180.0, 200.0]" in analysis_text
+
+
+def test_sweep_cli_fig3_without_override_uses_default_point_set(tmp_path: Path) -> None:
+    out_dir = tmp_path / "fig-3-default-points"
+    rc = sweep_main(
+        [
+            "--config",
+            RESOLVED_CONFIG,
+            "--suite",
+            "fig-3",
+            "--methods",
+            "rss_max",
+            "--output-dir",
+            str(out_dir),
+        ]
+    )
+    assert rc == 0
+
+    expected_points = [40.0, 60.0, 80.0, 100.0, 120.0, 140.0, 160.0, 180.0, 200.0]
+    detail_rows = list(csv.DictReader((out_dir / "evaluation" / "fig-3-detail.csv").open()))
+    assert detail_rows
+    assert set(expected_points) == {float(row["parameter_value"]) for row in detail_rows}
+
+    manifest = json.loads((out_dir / "manifest.json").read_text())
+    assert manifest["configuredSweepPointSet"] == expected_points
+    assert manifest["requestedSweepPointSet"] is None
+    assert manifest["sweepPointSet"] == expected_points
+    assert manifest["pointSelectionMode"] == "configured-default"
+
+    json_payload = json.loads((out_dir / "evaluation" / "fig-3.json").read_text())
+    assert json_payload["analysisContext"]["configuredSweepPointSet"] == expected_points
+    assert json_payload["analysisContext"]["requestedSweepPointSet"] is None
+    assert json_payload["analysisContext"]["effectiveSweepPointSet"] == expected_points
+
+
+def test_sweep_cli_rejects_figure_points_for_non_figure_suite(
+    tmp_path: Path, capsys
+) -> None:
+    out_dir = tmp_path / "table-ii-invalid-figure-points"
+    rc = sweep_main(
+        [
+            "--config",
+            RESOLVED_CONFIG,
+            "--suite",
+            "table-ii",
+            "--figure-points",
+            "160,180,200",
+            "--output-dir",
+            str(out_dir),
+        ]
+    )
+    assert rc == 2
+    captured = capsys.readouterr()
+    assert "--figure-points is only supported for fig-3 to fig-6" in captured.err
+
+
+def test_sweep_cli_rejects_conflicting_figure_point_selection_flags(
+    tmp_path: Path, capsys
+) -> None:
+    out_dir = tmp_path / "fig-3-conflicting-point-selection"
+    rc = sweep_main(
+        [
+            "--config",
+            RESOLVED_CONFIG,
+            "--suite",
+            "fig-3",
+            "--figure-points",
+            "160,180,200",
+            "--max-figure-points",
+            "2",
+            "--output-dir",
+            str(out_dir),
+        ]
+    )
+    assert rc == 2
+    captured = capsys.readouterr()
+    assert "--figure-points cannot be combined with --max-figure-points" in captured.err
+
+
+def test_sweep_cli_rejects_figure_points_not_in_configured_set(
+    tmp_path: Path, capsys
+) -> None:
+    out_dir = tmp_path / "fig-3-invalid-point"
+    rc = sweep_main(
+        [
+            "--config",
+            RESOLVED_CONFIG,
+            "--suite",
+            "fig-3",
+            "--methods",
+            "rss_max",
+            "--figure-points",
+            "999",
+            "--output-dir",
+            str(out_dir),
+        ]
+    )
+    assert rc == 2
+    captured = capsys.readouterr()
+    assert "Requested figure point 999.0 is not present in the configured point set" in captured.err
 
 
 def test_sweep_cli_fig4_outputs(tmp_path: Path) -> None:

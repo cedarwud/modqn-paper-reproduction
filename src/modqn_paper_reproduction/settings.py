@@ -28,6 +28,8 @@ class ReproductionAssumptions:
     r3_gap_beam_scope: str = "ASSUME-MODQN-REP-019"
     user_heading_stride: str = "ASSUME-MODQN-REP-020"
     user_scatter_radius: str = "ASSUME-MODQN-REP-021"
+    user_area_geometry: str = "ASSUME-MODQN-REP-022"
+    user_mobility_model: str = "ASSUME-MODQN-REP-023"
 
 
 DEFAULT_PAPER_PARAMETERS = PaperBaselineParameters()

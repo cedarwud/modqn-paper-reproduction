@@ -23,11 +23,14 @@ This project keeps the first implementation focused on:
 Training-ready baseline reproduction surface with a real environment stack, MODQN trainer,
 resolved-run config enforcement, checkpointing, and smoke-tested training entrypoints.
 
-Current closeout target:
+Current status:
 
 1. the comparison-baseline checklist is complete
-2. the repo is ready to freeze as a disclosed comparison baseline
-3. do not over-claim a full paper-faithful reproduction
+2. the repo is frozen as a disclosed comparison baseline
+3. the Phase 01B scenario-correction follow-on is also complete
+4. the Phase 01C comparator-protocol follow-on is also complete
+5. both follow-ons ended as negative results rather than as full
+   paper-faithful upgrades
 
 What exists now:
 
@@ -46,11 +49,23 @@ What exists now:
 13. reviewed non-smoke pilot artifacts for `Fig. 3` to `Fig. 6`
 14. first executable `Fig. 3` to `Fig. 6` sweep surfaces with figure-style CSV/JSON/PNG outputs
 15. smoke and hardening tests for training flow, sweeps, export, and analysis
+16. explicit Phase 01B follow-on artifacts for scenario-corrected pilot,
+    bounded follow-up evidence, high-load `Fig. 3`, and reward-geometry
+    decision gating
+17. explicit Phase 01C artifacts for protocol inventory, bounded
+    comparator-protocol probing, and final stop disclosure
 
 What does not exist yet:
 
 1. a complete paper-faithful reproduction claim with convincing method separation
 2. paper-visual parity polish for the original figure layouts
+3. evidence that scenario correction or comparator-protocol changes are
+   sufficient to recover the paper's claimed comparative behavior
+
+The latest repo-level status authority is now
+`artifacts/phase-01c-closeout-status-2026-04-15.md`, with matching
+summary surface at
+`artifacts/public-summary-2026-04-15-phase-01c-closeout.md`.
 
 The Phase 02 export bundle freeze is now landed as the Phase 03A
 `phase-03a-replay-bundle-v1` surface (see
@@ -160,10 +175,12 @@ Training entrypoints now hard-reject the paper-envelope config and require a res
 1. `docs/baseline-acceptance-checklist.md`
 2. `docs/decisions/ADR-001-separate-python-reproduction-project.md`
 3. `docs/phases/phase-01-python-baseline-reproduction-sdd.md`
-4. `docs/phases/phase-02-artifact-bridge-sdd.md`
-5. `docs/phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
-6. `docs/phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
-7. `docs/assumptions/modqn-reproduction-assumption-register.md`
+4. `docs/phases/phase-01b-paper-faithful-follow-on-sdd.md`
+5. `docs/phases/phase-01b-slice-c-targeted-high-load-follow-on-sdd.md`
+6. `docs/phases/phase-02-artifact-bridge-sdd.md`
+7. `docs/phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
+8. `docs/phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
+9. `docs/assumptions/modqn-reproduction-assumption-register.md`
 
 ## Intended Deliverables
 

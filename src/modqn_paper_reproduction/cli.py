@@ -27,6 +27,19 @@ def _build_parser(command_name: str) -> argparse.ArgumentParser:
     return parser
 
 
+def _parse_figure_points_arg(raw: str) -> tuple[float, ...]:
+    """Parse a comma-separated explicit figure point list."""
+    parts = [part.strip() for part in raw.split(",")]
+    if not parts or any(not part for part in parts):
+        raise ValueError("figure point override must be a comma-separated numeric list")
+    try:
+        return tuple(float(part) for part in parts)
+    except ValueError as exc:
+        raise ValueError(
+            "figure point override must contain only numeric values"
+        ) from exc
+
+
 def train_main(argv: list[str] | None = None) -> int:
     """Train MODQN on the paper baseline scenario."""
     parser = _build_parser("modqn-train")
@@ -249,11 +262,17 @@ def train_main(argv: list[str] | None = None) -> int:
                 "num_users": env.config.num_users,
                 "num_satellites": env.orbit.num_satellites,
                 "beams_per_satellite": env.beam_pattern.num_beams,
+                "user_lat_deg": env.config.user_lat_deg,
+                "user_lon_deg": env.config.user_lon_deg,
                 "r3_gap_scope": env.config.r3_gap_scope,
                 "r3_empty_beam_throughput": env.config.r3_empty_beam_throughput,
                 "user_heading_stride_rad": env.config.user_heading_stride_rad,
                 "user_scatter_radius_km": env.config.user_scatter_radius_km,
                 "user_scatter_distribution": env.config.user_scatter_distribution,
+                "user_area_width_km": env.config.user_area_width_km,
+                "user_area_height_km": env.config.user_area_height_km,
+                "mobility_model": env.config.mobility_model,
+                "random_wandering_max_turn_rad": env.config.random_wandering_max_turn_rad,
             },
             "trainer_config": asdict(trainer_cfg),
             "best_eval_summary": best_eval_summary,
@@ -312,6 +331,11 @@ def sweep_main(argv: list[str] | None = None) -> int:
         help="Optional limit on Fig. 3-6 point counts for quick runs.",
     )
     parser.add_argument(
+        "--figure-points",
+        default=None,
+        help="Optional explicit comma-separated Fig. 3-6 point override, for example 160,180,200.",
+    )
+    parser.add_argument(
         "--methods",
         default="modqn,dqn_throughput,dqn_scalar,rss_max",
         help="Comma-separated method list.",
@@ -337,7 +361,12 @@ def sweep_main(argv: list[str] | None = None) -> int:
         load_training_yaml,
     )
     from .export.pipeline import export_reward_geometry_analysis
-    from .sweeps import FIGURE_SUITES, run_figure_suite, run_table_ii
+    from .sweeps import (
+        FIGURE_SUITES,
+        FigurePointSelectionError,
+        run_figure_suite,
+        run_table_ii,
+    )
 
     try:
         cfg = load_training_yaml(args.config)
@@ -348,6 +377,25 @@ def sweep_main(argv: list[str] | None = None) -> int:
     methods = tuple(
         part.strip().lower() for part in args.methods.split(",") if part.strip()
     )
+    figure_points = None
+    if args.figure_points is not None:
+        if args.suite not in FIGURE_SUITES:
+            print(
+                "[modqn-sweeps] ERROR: --figure-points is only supported for fig-3 to fig-6",
+                file=sys.stderr,
+            )
+            return 2
+        if args.max_figure_points is not None:
+            print(
+                "[modqn-sweeps] ERROR: --figure-points cannot be combined with --max-figure-points",
+                file=sys.stderr,
+            )
+            return 2
+        try:
+            figure_points = _parse_figure_points_arg(args.figure_points)
+        except ValueError as exc:
+            print(f"[modqn-sweeps] ERROR: {exc}", file=sys.stderr)
+            return 2
 
     if args.suite == "table-ii":
         outputs = run_table_ii(
@@ -373,16 +421,21 @@ def sweep_main(argv: list[str] | None = None) -> int:
             reference_run_dir=args.reference_run,
         )
     elif args.suite in FIGURE_SUITES:
-        outputs = run_figure_suite(
-            cfg,
-            suite=args.suite,
-            output_dir=args.output_dir,
-            episodes=args.episodes,
-            progress_every=args.progress_every,
-            max_points=args.max_figure_points,
-            methods=methods,
-            reference_run_dir=args.reference_run,
-        )
+        try:
+            outputs = run_figure_suite(
+                cfg,
+                suite=args.suite,
+                output_dir=args.output_dir,
+                episodes=args.episodes,
+                progress_every=args.progress_every,
+                max_points=args.max_figure_points,
+                figure_points=figure_points,
+                methods=methods,
+                reference_run_dir=args.reference_run,
+            )
+        except FigurePointSelectionError as exc:
+            print(f"[modqn-sweeps] ERROR: {exc}", file=sys.stderr)
+            return 2
     else:
         print(f"[modqn-sweeps] ERROR: unsupported suite {args.suite!r}", file=sys.stderr)
         return 2
