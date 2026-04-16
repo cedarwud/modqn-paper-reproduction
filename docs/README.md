@@ -18,10 +18,12 @@ matching public summary surface.
 3. `phases/phase-01-python-baseline-reproduction-sdd.md`
 4. `phases/phase-01b-paper-faithful-follow-on-sdd.md`
 5. `phases/phase-01b-slice-c-targeted-high-load-follow-on-sdd.md`
-6. `assumptions/modqn-reproduction-assumption-register.md`
-7. `phases/phase-02-artifact-bridge-sdd.md`
-8. `phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
-9. `phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
+6. `phases/phase-01c-comparator-protocol-experiment-sdd.md`
+7. `phases/phase-01d-reproduction-reopen-gate-sdd.md`
+8. `assumptions/modqn-reproduction-assumption-register.md`
+9. `phases/phase-02-artifact-bridge-sdd.md`
+10. `phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
+11. `phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
 
 ## Purpose Split
 
@@ -30,6 +32,6 @@ matching public summary surface.
 2. `decisions/`
    Records architectural decisions and rationale.
 3. `phases/`
-   Records phase-by-phase SDDs, including the explicit paper-faithful follow-on track.
+   Records phase-by-phase SDDs, including the explicit follow-on tracks and the standby reopen gate.
 4. `assumptions/`
    Tracks reproduction assumptions that are not fully fixed by the paper.

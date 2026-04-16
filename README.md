@@ -177,10 +177,12 @@ Training entrypoints now hard-reject the paper-envelope config and require a res
 3. `docs/phases/phase-01-python-baseline-reproduction-sdd.md`
 4. `docs/phases/phase-01b-paper-faithful-follow-on-sdd.md`
 5. `docs/phases/phase-01b-slice-c-targeted-high-load-follow-on-sdd.md`
-6. `docs/phases/phase-02-artifact-bridge-sdd.md`
-7. `docs/phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
-8. `docs/phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
-9. `docs/assumptions/modqn-reproduction-assumption-register.md`
+6. `docs/phases/phase-01c-comparator-protocol-experiment-sdd.md`
+7. `docs/phases/phase-01d-reproduction-reopen-gate-sdd.md`
+8. `docs/phases/phase-02-artifact-bridge-sdd.md`
+9. `docs/phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
+10. `docs/phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
+11. `docs/assumptions/modqn-reproduction-assumption-register.md`
 
 ## Intended Deliverables
 

@@ -55,6 +55,12 @@ read:
 
 1. `docs/phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
 
+If the user explicitly asks whether reproduction work may reopen, also
+read:
+
+1. `docs/phases/phase-01d-reproduction-reopen-gate-sdd.md`
+2. `artifacts/phase-01d-reopen-trigger-check-2026-04-15.md`
+
 ## Current State Snapshot
 
 As of `2026-04-15`, the repo is a working standalone baseline
@@ -102,3 +108,6 @@ What is not yet established:
    labeled reopen surface is created.
 6. If no new user direction is given, prefer freeze/disclosure over more
    retraining.
+7. `docs/phases/phase-01d-reproduction-reopen-gate-sdd.md` is only a
+   standby gate; it does not by itself authorize renewed reproduction
+   implementation.

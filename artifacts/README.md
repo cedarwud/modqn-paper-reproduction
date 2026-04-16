@@ -14,6 +14,9 @@ For current repo-level interpretation, use:
    status
 5. `phase-01b-slice-b-bounded-status-2026-04-14.md` for the intermediate
    bounded follow-on note
+6. `phase-01d-reopen-trigger-check-2026-04-15.md` for the latest
+   trigger-by-trigger assessment of whether reproduction work should
+   reopen
 
 Older dated status notes should be treated as historical snapshots rather
 than the latest conclusion.
