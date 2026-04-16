@@ -1,6 +1,6 @@
 # Phase 03B: `ntn-sim-core` Producer Diagnostics Export SDD
 
-**Status:** Working-tree validated bounded reopen slice — pending repo landing  
+**Status:** Landed bounded reopen slice
 **Date:** `2026-04-16`  
 **Base producer schema:** `phase-03a-replay-bundle-v1`  
 **Depends on:**
@@ -181,7 +181,7 @@ Preferred `policyDiagnostics` contents:
 6. `availableActionCount`
 7. `topCandidates`
 
-The current working-tree export keeps `objectiveWeights` as a named
+The landed export keeps `objectiveWeights` as a named
 object keyed by
 `r1Throughput`, `r2Handover`, and `r3LoadBalance` so downstream
 consumers do not need to guess positional ordering.
@@ -197,14 +197,14 @@ Each `topCandidates` entry should keep stable exported identity:
 7. `objectiveQ`
 8. `scalarizedQ`
 
-The current working-tree export keeps `objectiveQ` as the same named
+The landed export keeps `objectiveQ` as the same named
 `r1Throughput` / `r2Handover` / `r3LoadBalance` object rather than as a
 positional array.
 
 Manifest disclosure should also advertise that the bundle contains
 optional policy diagnostics.
 
-The current working-tree manifest disclosure is
+The landed manifest disclosure is
 `manifest.optionalPolicyDiagnostics` with:
 
 1. `present`
@@ -238,7 +238,7 @@ Minimum required outputs:
 4. one short status/review note saying whether downstream consumer
    promotion is justified.
 
-The current working-tree validation surface also extends
+The landed validation surface also extends
 `validate_replay_bundle()` so that optional `policyDiagnostics` rows are
 checked for:
 
@@ -262,13 +262,12 @@ If any of these fail, do not promote.
 
 Current interpretation:
 
-1. the implementation and tests described by this SDD exist in the
-   current working tree,
-2. the validated slice is a repo-local landing candidate,
-3. downstream consumer promotion still depends on repo landing plus
-   separate consumer-side adoption,
-4. shared repo authority still depends on landing these changes in repo
-   history.
+1. the implementation and tests described by this SDD are now landed in
+   repo history,
+2. the slice is the current producer-side authority for optional policy
+   diagnostics export,
+3. downstream consumer promotion is now justified from the producer side,
+4. downstream consumer adoption still remains separate follow-on work.
 
 ## 10. Negative-Result Rule
 
@@ -293,9 +292,9 @@ This execution SDD is complete when the repo contains:
 3. one bounded validation surface,
 4. one reviewed status note that says either `promote` or `stop`.
 
-## 12. Working-Tree Outcome
+## 12. Landed Outcome
 
-The current working-tree slice now contains:
+The landed slice now contains:
 
 1. `MODQNTrainer.select_actions_with_diagnostics()` as the separate
    greedy exporter helper,

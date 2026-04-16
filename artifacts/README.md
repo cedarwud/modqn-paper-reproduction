@@ -18,10 +18,8 @@ For current repo-level interpretation, use:
    for the latest trigger-by-trigger assessment of whether one bounded
    reopen slice is justified
 7. `phase-03b-producer-diagnostics-export-status-2026-04-16.md` for the
-   current working-tree implementation judgment on the bounded reopen
-   slice as a validated landing candidate; downstream consumer
-   promotion still depends on repo landing plus separate consumer-side
-   adoption
+   landed producer-side status note for the bounded reopen slice, which
+   now serves as the prerequisite for downstream consumer promotion
 8. `phase-01d-reopen-trigger-check-2026-04-15.md` for the prior
    no-trigger assessment before the producer-diagnostics request
 

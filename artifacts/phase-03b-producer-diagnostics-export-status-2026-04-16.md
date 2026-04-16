@@ -4,15 +4,11 @@ Date: `2026-04-16`
 
 ## Decision
 
-`promote-on-landing`
+`promote`
 
-Here, `promote-on-landing` means promote this bounded slice into
-repo-local authority once it lands in repo history.
-
-This bounded reopen slice is implemented and validated in the current
-working tree and is suitable for repo landing as the producer-side
-optional diagnostics export surface. Downstream `ntn-sim-core`
-consumer promotion remains a separate post-landing step that still
+This bounded reopen slice landed successfully and now establishes the
+producer-side optional diagnostics export surface. Downstream
+`ntn-sim-core` consumer promotion remains a separate step that still
 depends on consumer-side adoption.
 
 ## Scope Completed
@@ -79,7 +75,7 @@ What those checks prove:
 
 ## Landing Judgment
 
-Repo landing is justified because:
+This landed producer-side authority is justified because:
 
 1. the surface is additive only
 2. Phase 03A required field meaning is unchanged

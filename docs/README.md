@@ -12,9 +12,10 @@ repo-local closeout authority,
 matching public summary surface, and
 `artifacts/phase-01d-reopen-trigger-check-2026-04-16-producer-diagnostics.md`
 as the latest reopen assessment note.
-For the current working-tree implementation judgment, also read
+For the landed bounded reopen execution status, also read
 `artifacts/phase-03b-producer-diagnostics-export-status-2026-04-16.md`,
-which records a validated landing candidate pending repo landing.
+which records the producer-side prerequisite now established for
+downstream consumer promotion.
 
 ## Read Order
 

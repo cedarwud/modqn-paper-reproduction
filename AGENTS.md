@@ -88,11 +88,8 @@ What is already true:
     `20`-episode protocol surface
 11. the Phase 01D external-comparison reopen trigger was satisfied only
     for additive producer diagnostics export
-12. the Phase 03B producer-owned policy diagnostics slice is now
-    implemented and validated in the current working tree as an
-    exporter-only additive surface over the frozen replay bundle, but it
-    is still pending repo landing before it can be treated as shared
-    authority
+12. the Phase 03B producer-owned policy diagnostics slice is now landed
+    as an exporter-only additive surface over the frozen replay bundle
 
 What is not yet established:
 
@@ -104,8 +101,8 @@ What is not yet established:
    dominance diagnosis
 6. the Phase 01C comparator-protocol check did not overturn the same
    diagnosis
-7. downstream consumer promotion still depends on consumer-side adoption
-   of the exported optional diagnostics surface
+7. downstream consumer adoption of the exported optional diagnostics
+   surface is still separate follow-on work
 
 ## Current Guardrails
 

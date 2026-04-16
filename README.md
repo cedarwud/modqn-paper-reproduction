@@ -31,10 +31,9 @@ Current status:
 4. the Phase 01C comparator-protocol follow-on is also complete
 5. both follow-ons ended as negative results rather than as full
    paper-faithful upgrades
-6. one bounded reopen slice has now been implemented and validated in
-   the current working tree as additive producer-diagnostics export
-   only; this is not a broad reproduction restart, and shared authority
-   still depends on repo landing
+6. one bounded reopen slice has now landed as additive
+   producer-diagnostics export only; this is not a broad reproduction
+   restart
 
 What exists now:
 
@@ -63,8 +62,7 @@ What exists now:
     explainability needs
 19. additive producer-owned `policyDiagnostics` rows plus
     `manifest.optionalPolicyDiagnostics` disclosure in exported replay
-    bundles, with refreshed sample fixture and validation coverage in
-    the current working tree pending repo landing
+    bundles, with refreshed sample fixture and validation coverage
 
 What does not exist yet:
 
@@ -86,12 +84,12 @@ which allows one bounded export-oriented reopen slice only.
 
 That reopen slice is now recorded in
 `artifacts/phase-03b-producer-diagnostics-export-status-2026-04-16.md`
-as the working-tree status note for this bounded producer-diagnostics
-slice. It records a validated landing candidate for repo authority,
-while downstream consumer promotion still depends on repo landing plus
-separate consumer-side adoption. The current working tree
-`tests/fixtures/sample-bundle-v1/` fixture includes the optional
-`policyDiagnostics` row object and matching manifest disclosure.
+as the landed status note for this bounded producer-diagnostics slice.
+It establishes the producer-side prerequisite for downstream consumer
+promotion, while consumer-side adoption remains separate work. The
+checked-in `tests/fixtures/sample-bundle-v1/` fixture includes the
+optional `policyDiagnostics` row object and matching manifest
+disclosure.
 
 The Phase 02 export bundle freeze is now landed as the Phase 03A
 `phase-03a-replay-bundle-v1` surface (see
@@ -100,11 +98,11 @@ The Phase 02 export bundle freeze is now landed as the Phase 03A
 checked-in `tests/fixtures/sample-bundle-v1/` is the canonical
 sample export bundle for downstream consumers.
 
-If work continues beyond that frozen bundle, the currently allowed
-bounded reopen surface remains
-`docs/phases/phase-03b-ntn-sim-core-producer-diagnostics-export-sdd.md`,
-with promotion beyond planning gated on repo landing of the current
-working-tree implementation.
+If work continues beyond that frozen bundle, the producer-side bounded
+reopen surface is now the landed
+`docs/phases/phase-03b-ntn-sim-core-producer-diagnostics-export-sdd.md`.
+Further work should treat that additive diagnostics shape as the current
+producer authority.
 
 ## Directory Layout
 
