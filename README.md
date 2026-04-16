@@ -31,6 +31,10 @@ Current status:
 4. the Phase 01C comparator-protocol follow-on is also complete
 5. both follow-ons ended as negative results rather than as full
    paper-faithful upgrades
+6. one bounded reopen slice has now been implemented and validated in
+   the current working tree as additive producer-diagnostics export
+   only; this is not a broad reproduction restart, and shared authority
+   still depends on repo landing
 
 What exists now:
 
@@ -54,6 +58,13 @@ What exists now:
     decision gating
 17. explicit Phase 01C artifacts for protocol inventory, bounded
     comparator-protocol probing, and final stop disclosure
+18. one explicit Phase 01D trigger reassessment plus a bounded Phase 03B
+    producer-diagnostics export execution SDD for downstream
+    explainability needs
+19. additive producer-owned `policyDiagnostics` rows plus
+    `manifest.optionalPolicyDiagnostics` disclosure in exported replay
+    bundles, with refreshed sample fixture and validation coverage in
+    the current working tree pending repo landing
 
 What does not exist yet:
 
@@ -61,11 +72,26 @@ What does not exist yet:
 2. paper-visual parity polish for the original figure layouts
 3. evidence that scenario correction or comparator-protocol changes are
    sufficient to recover the paper's claimed comparative behavior
+4. consumer-side adoption of the exported optional diagnostics surface
+   inside `ntn-sim-core`
 
-The latest repo-level status authority is now
+The latest repo-level closeout authority remains
 `artifacts/phase-01c-closeout-status-2026-04-15.md`, with matching
 summary surface at
 `artifacts/public-summary-2026-04-15-phase-01c-closeout.md`.
+
+The latest reopen assessment is now
+`artifacts/phase-01d-reopen-trigger-check-2026-04-16-producer-diagnostics.md`,
+which allows one bounded export-oriented reopen slice only.
+
+That reopen slice is now recorded in
+`artifacts/phase-03b-producer-diagnostics-export-status-2026-04-16.md`
+as the working-tree status note for this bounded producer-diagnostics
+slice. It records a validated landing candidate for repo authority,
+while downstream consumer promotion still depends on repo landing plus
+separate consumer-side adoption. The current working tree
+`tests/fixtures/sample-bundle-v1/` fixture includes the optional
+`policyDiagnostics` row object and matching manifest disclosure.
 
 The Phase 02 export bundle freeze is now landed as the Phase 03A
 `phase-03a-replay-bundle-v1` surface (see
@@ -73,6 +99,12 @@ The Phase 02 export bundle freeze is now landed as the Phase 03A
 `artifacts/reproduction-status-2026-04-13-phase-03a-slice-a.md`). The
 checked-in `tests/fixtures/sample-bundle-v1/` is the canonical
 sample export bundle for downstream consumers.
+
+If work continues beyond that frozen bundle, the currently allowed
+bounded reopen surface remains
+`docs/phases/phase-03b-ntn-sim-core-producer-diagnostics-export-sdd.md`,
+with promotion beyond planning gated on repo landing of the current
+working-tree implementation.
 
 ## Directory Layout
 
@@ -104,6 +136,7 @@ When details conflict, use this order:
 6. `docs/phases/phase-02-artifact-bridge-sdd.md`
 7. `docs/phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
 8. `docs/phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
+9. `docs/phases/phase-03b-ntn-sim-core-producer-diagnostics-export-sdd.md`
 
 If an external historical workspace exists, use it only as a cross-check. The repo-local
 `paper-source/` snapshot is the portable authority surface for standalone work.
@@ -150,7 +183,11 @@ raw paper metric surface. `export_ntn_sim_core_bundle.py` exports a completed
 training run into the frozen Phase 03A `phase-03a-replay-bundle-v1` bundle
 surface (manifest, config-resolved, assumptions, provenance-map,
 training/evaluation summaries, figures, and a replay-complete
-`timeline/step-trace.jsonl`). `generate_sample_bundle.py` runs that pipeline
+`timeline/step-trace.jsonl`). The Phase 03B additive follow-on extends
+that same timeline with optional producer-owned `policyDiagnostics`
+objects plus `manifest.optionalPolicyDiagnostics` disclosure whenever
+the exporter can stably compute them from the selected replay
+checkpoint. `generate_sample_bundle.py` runs that pipeline
 end-to-end on a one-episode smoke training and trims the timeline into a
 small, byte-stable `tests/fixtures/sample-bundle-v1/` fixture that downstream
 consumers (e.g. `ntn-sim-core`) can ingest without re-running training.
@@ -182,7 +219,8 @@ Training entrypoints now hard-reject the paper-envelope config and require a res
 8. `docs/phases/phase-02-artifact-bridge-sdd.md`
 9. `docs/phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
 10. `docs/phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
-11. `docs/assumptions/modqn-reproduction-assumption-register.md`
+11. `docs/phases/phase-03b-ntn-sim-core-producer-diagnostics-export-sdd.md`
+12. `docs/assumptions/modqn-reproduction-assumption-register.md`
 
 ## Intended Deliverables
 

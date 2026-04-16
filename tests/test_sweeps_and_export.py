@@ -532,6 +532,11 @@ def test_export_cli_emits_bundle(tmp_path: Path) -> None:
     assert manifest["bundleSchemaVersion"] == "phase-03a-replay-bundle-v1"
     assert manifest["timelineFormatVersion"] == "step-trace.jsonl/v1"
     assert manifest["replayTruthMode"] == "selected-checkpoint-greedy-replay"
+    optional_diagnostics = manifest["optionalPolicyDiagnostics"]
+    assert optional_diagnostics["present"] is True
+    assert optional_diagnostics["timelineField"] == "policyDiagnostics"
+    assert optional_diagnostics["rowsWithDiagnostics"] == manifest["replaySummary"]["rowCount"]
+    assert optional_diagnostics["rowsWithoutDiagnostics"] == 0
 
     first_row = json.loads(
         (export_dir / "timeline" / "step-trace.jsonl").open().readline()
@@ -558,3 +563,10 @@ def test_export_cli_emits_bundle(tmp_path: Path) -> None:
     assert len(first_row["satelliteStates"]) == 4
     assert len(first_row["beamStates"]) == 28
     assert len(first_row["actionValidityMask"]) == 28
+    diagnostics = first_row["policyDiagnostics"]
+    assert diagnostics["diagnosticsVersion"] == "phase-03b-policy-diagnostics-v1"
+    assert diagnostics["topCandidates"][0]["beamIndex"] == first_row["selectedServing"]["beamIndex"]
+    assert diagnostics["availableActionCount"] == sum(
+        1 for value in first_row["decisionActionValidityMask"] if value
+    )
+    assert diagnostics["scalarizedMarginToRunnerUp"] >= 0.0

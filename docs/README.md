@@ -7,9 +7,14 @@ For standalone use, pair this directory with the repo-local `paper-source/` snap
 
 For current project-state interpretation, treat
 `artifacts/phase-01c-closeout-status-2026-04-15.md` as the latest
-repo-local status authority and
+repo-local closeout authority,
 `artifacts/public-summary-2026-04-15-phase-01c-closeout.md` as the
-matching public summary surface.
+matching public summary surface, and
+`artifacts/phase-01d-reopen-trigger-check-2026-04-16-producer-diagnostics.md`
+as the latest reopen assessment note.
+For the current working-tree implementation judgment, also read
+`artifacts/phase-03b-producer-diagnostics-export-status-2026-04-16.md`,
+which records a validated landing candidate pending repo landing.
 
 ## Read Order
 
@@ -24,6 +29,7 @@ matching public summary surface.
 9. `phases/phase-02-artifact-bridge-sdd.md`
 10. `phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
 11. `phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
+12. `phases/phase-03b-ntn-sim-core-producer-diagnostics-export-sdd.md`
 
 ## Purpose Split
 
@@ -32,6 +38,6 @@ matching public summary surface.
 2. `decisions/`
    Records architectural decisions and rationale.
 3. `phases/`
-   Records phase-by-phase SDDs, including the explicit follow-on tracks and the standby reopen gate.
+   Records phase-by-phase SDDs, including the explicit follow-on tracks, the standby reopen gate, and any later bounded reopen execution surfaces.
 4. `assumptions/`
    Tracks reproduction assumptions that are not fully fixed by the paper.

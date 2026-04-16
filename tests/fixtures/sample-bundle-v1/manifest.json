@@ -26,6 +26,18 @@
       "lonDeg": 0.0
     }
   },
+  "scenarioSurface": {
+    "groundPoint": {
+      "latDeg": 0.0,
+      "lonDeg": 0.0
+    },
+    "userAreaDistribution": "uniform-circular",
+    "userScatterRadiusKm": 50.0,
+    "userAreaWidthKm": 0.0,
+    "userAreaHeightKm": 0.0,
+    "mobilityModel": "deterministic-heading",
+    "randomWanderingMaxTurnRad": 0.7853981633974483
+  },
   "slotIndexSemantics": {
     "firstIndex": 1,
     "note": "Slot indices start at 1. Index N corresponds to the post-step state at time_s = N * slot_duration_s after the environment reset. Slot 0 is the reset state and has no exported row."
@@ -81,6 +93,18 @@
       "sourceFullSlotCount": 10,
       "sourceFullHandoverEventCount": 85
     }
+  },
+  "optionalPolicyDiagnostics": {
+    "present": true,
+    "timelineField": "policyDiagnostics",
+    "diagnosticsVersion": "phase-03b-policy-diagnostics-v1",
+    "requiredByBundleSchema": false,
+    "producerOwned": true,
+    "selectedActionSource": "selectedServing.beamIndex",
+    "topCandidateLimit": 3,
+    "rowsWithDiagnostics": 10,
+    "rowsWithoutDiagnostics": 0,
+    "note": "Rows include policyDiagnostics only when the exporter can derive stable greedy masked candidate scores from the replay checkpoint without changing Phase 03A required field semantics."
   },
   "sampleNote": "Trimmed for fixture/sample purposes. Timeline reduced to the first 1 user(s) and first 10 slot(s) of the source bundle. All other surfaces are byte-equal to the source."
 }

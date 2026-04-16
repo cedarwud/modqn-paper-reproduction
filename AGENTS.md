@@ -59,11 +59,11 @@ If the user explicitly asks whether reproduction work may reopen, also
 read:
 
 1. `docs/phases/phase-01d-reproduction-reopen-gate-sdd.md`
-2. `artifacts/phase-01d-reopen-trigger-check-2026-04-15.md`
+2. `artifacts/phase-01d-reopen-trigger-check-2026-04-16-producer-diagnostics.md`
 
 ## Current State Snapshot
 
-As of `2026-04-15`, the repo is a working standalone baseline
+As of `2026-04-16`, the repo is a working standalone baseline
 reproduction surface.
 The frozen comparison-baseline bundle remains valid, and both the
 paper-faithful scenario-correction follow-on and the comparator-protocol
@@ -86,6 +86,13 @@ What is already true:
    `Fig. 3` points, but only through `r2` / handover
 10. final-vs-best checkpoint reporting is a no-op on the bounded
     `20`-episode protocol surface
+11. the Phase 01D external-comparison reopen trigger was satisfied only
+    for additive producer diagnostics export
+12. the Phase 03B producer-owned policy diagnostics slice is now
+    implemented and validated in the current working tree as an
+    exporter-only additive surface over the frozen replay bundle, but it
+    is still pending repo landing before it can be treated as shared
+    authority
 
 What is not yet established:
 
@@ -97,6 +104,8 @@ What is not yet established:
    dominance diagnosis
 6. the Phase 01C comparator-protocol check did not overturn the same
    diagnosis
+7. downstream consumer promotion still depends on consumer-side adoption
+   of the exported optional diagnostics surface
 
 ## Current Guardrails
 

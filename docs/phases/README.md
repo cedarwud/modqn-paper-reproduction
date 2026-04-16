@@ -16,3 +16,7 @@
    3D visualization and UI consumption in `ntn-sim-core`.
 8. `phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
    Promoted follow-on for low-coupling bundle replay integration into `ntn-sim-core`.
+9. `phase-03b-ntn-sim-core-producer-diagnostics-export-sdd.md`
+   Current working-tree implementation SDD for the additive
+   producer-owned policy diagnostics export slice; shared authority is
+   still pending repo landing.

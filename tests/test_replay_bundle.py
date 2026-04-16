@@ -10,6 +10,7 @@ import pytest
 from modqn_paper_reproduction.cli import export_main, train_main
 from modqn_paper_reproduction.export.replay_bundle import (
     BUNDLE_SCHEMA_VERSION,
+    POLICY_DIAGNOSTICS_VERSION,
     TIMELINE_FORMAT_VERSION,
     trim_replay_bundle_for_sample,
     validate_replay_bundle,
@@ -125,6 +126,11 @@ def test_sample_bundle_manifest_fields(sample_bundle_dir: Path) -> None:
     sample = summary["sampleSubset"]
     assert sample["maxUsers"] >= 1
     assert sample["sourceFullRowCount"] >= summary["rowCount"]
+    optional_diagnostics = manifest["optionalPolicyDiagnostics"]
+    assert optional_diagnostics["present"] is True
+    assert optional_diagnostics["timelineField"] == "policyDiagnostics"
+    assert optional_diagnostics["rowsWithDiagnostics"] == summary["rowCount"]
+    assert optional_diagnostics["rowsWithoutDiagnostics"] == 0
     # Slot indices in the timeline must start at the declared offset,
     # not at 0.
     with (sample_bundle_dir / "timeline" / "step-trace.jsonl").open() as handle:
@@ -159,6 +165,23 @@ def test_sample_bundle_timeline_rows(sample_bundle_dir: Path) -> None:
             assert {"satId", "beamId", "satIndex", "beamIndex", "localBeamIndex"} <= set(beam)
         reward = row["rewardVector"]
         assert {"r1Throughput", "r2Handover", "r3LoadBalance"} == set(reward)
+        diagnostics = row["policyDiagnostics"]
+        assert diagnostics["diagnosticsVersion"] == POLICY_DIAGNOSTICS_VERSION
+        assert diagnostics["availableActionCount"] == sum(
+            1 for value in row["decisionActionValidityMask"] if value
+        )
+        assert diagnostics["topCandidates"][0]["beamIndex"] == cur["beamIndex"]
+        if len(diagnostics["topCandidates"]) > 1:
+            assert diagnostics["runnerUpScalarizedQ"] == pytest.approx(
+                diagnostics["topCandidates"][1]["scalarizedQ"]
+            )
+            expected_margin = (
+                diagnostics["selectedScalarizedQ"]
+                - diagnostics["runnerUpScalarizedQ"]
+            )
+            assert diagnostics["scalarizedMarginToRunnerUp"] == pytest.approx(
+                expected_margin
+            )
 
 
 def test_sample_bundle_provenance_map(sample_bundle_dir: Path) -> None:
@@ -318,6 +341,99 @@ def test_validate_replay_bundle_rejects_empty_paper_id(tmp_path: Path) -> None:
         json.dumps(good_row) + "\n"
     )
     with pytest.raises(ValueError, match="empty identity fields"):
+        validate_replay_bundle(bundle)
+
+
+def test_validate_replay_bundle_rejects_misaligned_policy_diagnostics(
+    tmp_path: Path,
+) -> None:
+    bundle = tmp_path / "bundle"
+    _prepare_incomplete_bundle(bundle)
+    manifest = json.loads((bundle / "manifest.json").read_text())
+    manifest["optionalPolicyDiagnostics"] = {
+        "present": True,
+        "timelineField": "policyDiagnostics",
+        "diagnosticsVersion": POLICY_DIAGNOSTICS_VERSION,
+        "requiredByBundleSchema": False,
+        "producerOwned": True,
+        "selectedActionSource": "selectedServing.beamIndex",
+        "topCandidateLimit": 3,
+        "rowsWithDiagnostics": 1,
+        "rowsWithoutDiagnostics": 0,
+        "note": "test payload",
+    }
+    (bundle / "manifest.json").write_text(json.dumps(manifest))
+
+    row = {field: None for field in _REQUIRED_TIMELINE_ROW_FIELDS}
+    row.update(
+        {
+            "slotIndex": 1,
+            "timeSec": 1.0,
+            "userId": "user-0",
+            "userPosition": {},
+            "previousServing": {"beamIndex": 0},
+            "selectedServing": {"beamIndex": 2},
+            "handoverEvent": {"kind": "none", "eventId": None},
+            "visibilityMask": [True, True, False],
+            "actionValidityMask": [True, True, False],
+            "beamLoads": [0, 1, 0],
+            "rewardVector": {
+                "r1Throughput": 1.0,
+                "r2Handover": 0.0,
+                "r3LoadBalance": -1.0,
+            },
+            "scalarReward": 0.5,
+            "satelliteStates": [],
+            "beamStates": [],
+            "kpiOverlay": {},
+            "decisionActionValidityMask": [True, True, False],
+            "policyDiagnostics": {
+                "diagnosticsVersion": POLICY_DIAGNOSTICS_VERSION,
+                "objectiveWeights": {
+                    "r1Throughput": 0.5,
+                    "r2Handover": 0.3,
+                    "r3LoadBalance": 0.2,
+                },
+                "selectedScalarizedQ": 1.0,
+                "runnerUpScalarizedQ": 0.8,
+                "scalarizedMarginToRunnerUp": 0.2,
+                "availableActionCount": 2,
+                "topCandidates": [
+                    {
+                        "beamId": "sat-0-beam-0",
+                        "beamIndex": 0,
+                        "satId": "sat-0",
+                        "satIndex": 0,
+                        "localBeamIndex": 0,
+                        "validUnderDecisionMask": True,
+                        "objectiveQ": {
+                            "r1Throughput": 1.0,
+                            "r2Handover": 0.0,
+                            "r3LoadBalance": -1.0,
+                        },
+                        "scalarizedQ": 1.0,
+                    },
+                    {
+                        "beamId": "sat-0-beam-1",
+                        "beamIndex": 1,
+                        "satId": "sat-0",
+                        "satIndex": 0,
+                        "localBeamIndex": 1,
+                        "validUnderDecisionMask": True,
+                        "objectiveQ": {
+                            "r1Throughput": 0.8,
+                            "r2Handover": 0.0,
+                            "r3LoadBalance": -0.5,
+                        },
+                        "scalarizedQ": 0.8,
+                    },
+                ],
+            },
+        }
+    )
+    (bundle / "timeline" / "step-trace.jsonl").write_text(json.dumps(row) + "\n")
+
+    with pytest.raises(ValueError, match="align topCandidates\\[0\\] with selectedServing"):
         validate_replay_bundle(bundle)
 
 

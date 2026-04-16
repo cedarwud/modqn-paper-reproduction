@@ -7,7 +7,7 @@
     "platform-visualization-only": "Consumer/rendering convenience that must not be treated as training authority.",
     "artifact-derived": "Computed from the exported checkpoint and run artifact rather than copied from source authority."
   },
-  "fieldCount": 59,
+  "fieldCount": 61,
   "producerVersion": "0.1.0",
   "fields": {
     "configResolved.paper.paper_id": {
@@ -62,6 +62,14 @@
       "note": "Per-slot beam geometry derived from the replay timeline.",
       "sourceChain": [
         "reproduction-assumption"
+      ]
+    },
+    "timeline.stepTrace.policyDiagnostics": {
+      "primaryClassification": "artifact-derived",
+      "source": "checkpoint replay over the selected checkpoint",
+      "note": "Optional producer-owned greedy policy diagnostics derived from the same masked decision surface as the exported selected serving action.",
+      "sourceChain": [
+        "artifact-derived"
       ]
     },
     "evaluation.summary.training_summary": {
@@ -346,6 +354,14 @@
       "primaryClassification": "artifact-derived",
       "source": "exporter checkpoint selection",
       "note": "Replay truth source chosen from the exported run artifact.",
+      "sourceChain": [
+        "artifact-derived"
+      ]
+    },
+    "manifest.optionalPolicyDiagnostics": {
+      "primaryClassification": "artifact-derived",
+      "source": "Phase 03B additive producer diagnostics export",
+      "note": "Manifest disclosure for the optional policyDiagnostics row surface.",
       "sourceChain": [
         "artifact-derived"
       ]

@@ -436,6 +436,54 @@ class MODQNTrainer:
 
     # -- action selection ---------------------------------------------------
 
+    def _predict_objective_q_values(
+        self,
+        states_encoded: np.ndarray,
+    ) -> list[np.ndarray]:
+        """Run the three objective networks on a batch of encoded states."""
+        with torch.no_grad():
+            st = torch.tensor(
+                states_encoded, dtype=torch.float32, device=self.device
+            )
+            return [self.q_nets[i](st).cpu().numpy() for i in range(3)]
+
+    def _scalarize_q_values(
+        self,
+        q_values: list[np.ndarray],
+        objective_weights: tuple[float, float, float],
+    ) -> np.ndarray:
+        """Scalarize the three objective-Q tables with one weight row."""
+        return (
+            objective_weights[0] * q_values[0]
+            + objective_weights[1] * q_values[1]
+            + objective_weights[2] * q_values[2]
+        )
+
+    def _select_masked_greedy_action(
+        self,
+        scalarized_row: np.ndarray,
+        mask: np.ndarray,
+    ) -> int | None:
+        """Return the greedy masked action or ``None`` when no action is valid."""
+        valid = np.flatnonzero(mask)
+        if valid.size == 0:
+            return None
+        q_row = scalarized_row.copy()
+        q_row[~mask] = -np.inf
+        return int(np.argmax(q_row))
+
+    def _rank_masked_actions(
+        self,
+        scalarized_row: np.ndarray,
+        mask: np.ndarray,
+    ) -> list[int]:
+        """Return valid actions sorted by scalarized-Q then beam index."""
+        valid = np.flatnonzero(mask)
+        return sorted(
+            (int(action) for action in valid.tolist()),
+            key=lambda action: (-float(scalarized_row[action]), int(action)),
+        )
+
     def select_actions(
         self,
         states_encoded: np.ndarray,
@@ -457,15 +505,8 @@ class MODQNTrainer:
         U = len(masks)
         actions = np.zeros(U, dtype=np.int32)
         w = objective_weights or self.config.objective_weights
-
-        with torch.no_grad():
-            st = torch.tensor(
-                states_encoded, dtype=torch.float32, device=self.device
-            )
-            q_values = [self.q_nets[i](st).cpu().numpy() for i in range(3)]
-            scalarized = (
-                w[0] * q_values[0] + w[1] * q_values[1] + w[2] * q_values[2]
-            )
+        q_values = self._predict_objective_q_values(states_encoded)
+        scalarized = self._scalarize_q_values(q_values, w)
 
         for uid in range(U):
             valid = np.where(masks[uid].mask)[0]
@@ -476,11 +517,118 @@ class MODQNTrainer:
             if self._train_rng.random() < eps:
                 actions[uid] = self._train_rng.choice(valid)
             else:
-                q_row = scalarized[uid].copy()
-                q_row[~masks[uid].mask] = -np.inf
-                actions[uid] = int(np.argmax(q_row))
+                selected_action = self._select_masked_greedy_action(
+                    scalarized[uid],
+                    masks[uid].mask,
+                )
+                actions[uid] = 0 if selected_action is None else selected_action
 
         return actions
+
+    def select_actions_with_diagnostics(
+        self,
+        states_encoded: np.ndarray,
+        masks: list[ActionMask],
+        *,
+        objective_weights: tuple[float, float, float] | None = None,
+        top_k: int = 3,
+    ) -> tuple[np.ndarray, list[dict[str, Any] | None]]:
+        """Greedy masked action selection plus exporter-owned diagnostics.
+
+        This helper is intentionally separate from ``select_actions()`` so
+        training/evaluation call sites keep their existing API and epsilon
+        semantics. It is meant for exporter-time replay of an already selected
+        checkpoint only.
+        """
+        if top_k < 1:
+            raise ValueError(f"top_k must be >= 1, got {top_k}")
+
+        U = len(masks)
+        actions = np.zeros(U, dtype=np.int32)
+        diagnostics: list[dict[str, Any] | None] = []
+        w = objective_weights or self.config.objective_weights
+        q_values = self._predict_objective_q_values(states_encoded)
+        scalarized = self._scalarize_q_values(q_values, w)
+
+        for uid in range(U):
+            mask = masks[uid].mask
+            selected_action = self._select_masked_greedy_action(
+                scalarized[uid],
+                mask,
+            )
+            if selected_action is None:
+                actions[uid] = 0
+                diagnostics.append(None)
+                continue
+
+            ordered_actions = self._rank_masked_actions(scalarized[uid], mask)
+            if not ordered_actions or ordered_actions[0] != selected_action:
+                raise ValueError(
+                    "Policy diagnostics could not align the greedy selected action "
+                    f"for user {uid}: selected={selected_action}, ordered={ordered_actions[:1]}."
+                )
+
+            valid_scalarized = scalarized[uid, mask]
+            if not np.all(np.isfinite(valid_scalarized)):
+                raise ValueError(
+                    "Policy diagnostics require finite scalarized-Q values on the "
+                    f"decision mask for user {uid}."
+                )
+
+            objective_q_values: list[np.ndarray] = []
+            for obj_idx, q_table in enumerate(q_values):
+                valid_objective_q = q_table[uid, mask]
+                if not np.all(np.isfinite(valid_objective_q)):
+                    raise ValueError(
+                        "Policy diagnostics require finite objective-Q values on "
+                        f"the decision mask for user {uid}, objective {obj_idx}."
+                    )
+                objective_q_values.append(q_table[uid])
+
+            actions[uid] = selected_action
+            runner_up_action = ordered_actions[1] if len(ordered_actions) > 1 else None
+            selected_scalarized_q = float(scalarized[uid][selected_action])
+            runner_up_scalarized_q = (
+                float(scalarized[uid][runner_up_action])
+                if runner_up_action is not None
+                else None
+            )
+            scalarized_margin = (
+                float(selected_scalarized_q - runner_up_scalarized_q)
+                if runner_up_scalarized_q is not None
+                else None
+            )
+            top_candidates = []
+            for action in ordered_actions[:top_k]:
+                top_candidates.append(
+                    {
+                        "action": int(action),
+                        "validUnderDecisionMask": bool(mask[action]),
+                        "objectiveQ": [
+                            float(objective_q_values[0][action]),
+                            float(objective_q_values[1][action]),
+                            float(objective_q_values[2][action]),
+                        ],
+                        "scalarizedQ": float(scalarized[uid][action]),
+                    }
+                )
+
+            diagnostics.append(
+                {
+                    "objectiveWeights": [float(value) for value in w],
+                    "availableActionCount": int(np.sum(mask)),
+                    "selectedAction": int(selected_action),
+                    "selectedScalarizedQ": selected_scalarized_q,
+                    "runnerUpAction": (
+                        None if runner_up_action is None else int(runner_up_action)
+                    ),
+                    "runnerUpScalarizedQ": runner_up_scalarized_q,
+                    "scalarizedMarginToRunnerUp": scalarized_margin,
+                    "topCandidates": top_candidates,
+                }
+            )
+
+        return actions, diagnostics
 
     # -- network update -----------------------------------------------------
 

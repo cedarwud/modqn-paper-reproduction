@@ -19,6 +19,7 @@ It validates that the pipeline is wired end-to-end and does not crash.
 from __future__ import annotations
 
 import numpy as np
+import pytest
 import torch
 import tempfile
 from pathlib import Path
@@ -45,6 +46,25 @@ from modqn_paper_reproduction.algorithms.modqn import (
     encode_state,
     state_dim_for,
 )
+
+
+class _FixedQNet(torch.nn.Module):
+    """Deterministic Q-table stub for bounded policy-diagnostics tests."""
+
+    def __init__(self, q_rows: np.ndarray) -> None:
+        super().__init__()
+        self.register_buffer(
+            "_q_rows",
+            torch.tensor(q_rows, dtype=torch.float32),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        batch = x.shape[0]
+        if batch != self._q_rows.shape[0]:
+            raise ValueError(
+                f"FixedQNet expected batch {self._q_rows.shape[0]}, got {batch}"
+            )
+        return self._q_rows.clone()
 
 
 # ---------------------------------------------------------------------------
@@ -268,6 +288,73 @@ def test_target_sync():
             trainer.target_nets[i].parameters(),
         ):
             assert torch.allclose(p_on.data, p_tgt.data)
+
+
+def test_select_actions_with_diagnostics_respects_mask_and_ordering() -> None:
+    """Exporter diagnostics must follow the masked greedy decision surface."""
+    env = StepEnvironment(StepConfig(num_users=1))
+    tc = TrainerConfig(episodes=1, replay_capacity=32)
+    trainer = MODQNTrainer(env, tc, train_seed=42, env_seed=1, mobility_seed=2)
+
+    q1 = np.zeros((1, trainer.action_dim), dtype=np.float32)
+    q2 = np.zeros((1, trainer.action_dim), dtype=np.float32)
+    q3 = np.zeros((1, trainer.action_dim), dtype=np.float32)
+    q1[0, 1] = 2.0
+    q1[0, 4] = 1.5
+    q1[0, 7] = 1.5
+    q1[0, 2] = 100.0  # invalid action must never appear in diagnostics
+    q2[0, 1] = 1.0
+    q2[0, 4] = 1.0
+    q2[0, 7] = 1.0
+    q2[0, 2] = 100.0
+    trainer.q_nets = torch.nn.ModuleList(
+        [_FixedQNet(q1), _FixedQNet(q2), _FixedQNet(q3)]
+    )
+
+    encoded = np.zeros((1, trainer.state_dim), dtype=np.float32)
+    mask = np.zeros(trainer.action_dim, dtype=bool)
+    mask[[1, 4, 7]] = True
+
+    actions, diagnostics = trainer.select_actions_with_diagnostics(
+        encoded,
+        [ActionMask(mask=mask)],
+        objective_weights=(0.5, 0.3, 0.2),
+        top_k=3,
+    )
+
+    assert actions.tolist() == [1]
+    diagnostic = diagnostics[0]
+    assert diagnostic is not None
+    assert diagnostic["availableActionCount"] == 3
+    assert diagnostic["selectedAction"] == 1
+    assert diagnostic["runnerUpAction"] == 4
+    assert diagnostic["selectedScalarizedQ"] == pytest.approx(1.3)
+    assert diagnostic["runnerUpScalarizedQ"] == pytest.approx(1.05)
+    assert diagnostic["scalarizedMarginToRunnerUp"] == pytest.approx(0.25)
+    assert [candidate["action"] for candidate in diagnostic["topCandidates"]] == [
+        1,
+        4,
+        7,
+    ]
+    assert 2 not in {candidate["action"] for candidate in diagnostic["topCandidates"]}
+
+
+def test_select_actions_with_diagnostics_only_emits_when_available() -> None:
+    """Rows with no valid action keep diagnostics absent instead of fabricated."""
+    env = StepEnvironment(StepConfig(num_users=1))
+    tc = TrainerConfig(episodes=1, replay_capacity=32)
+    trainer = MODQNTrainer(env, tc, train_seed=42, env_seed=1, mobility_seed=2)
+
+    encoded = np.zeros((1, trainer.state_dim), dtype=np.float32)
+    empty_mask = np.zeros(trainer.action_dim, dtype=bool)
+
+    actions, diagnostics = trainer.select_actions_with_diagnostics(
+        encoded,
+        [ActionMask(mask=empty_mask)],
+    )
+
+    assert actions.tolist() == [0]
+    assert diagnostics == [None]
 
 
 # ---------------------------------------------------------------------------
