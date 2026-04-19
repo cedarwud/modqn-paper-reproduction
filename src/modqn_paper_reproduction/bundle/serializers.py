@@ -8,8 +8,8 @@ from typing import Any
 
 import numpy as np
 
-from ..algorithms.modqn import scalarize_objectives
 from ..env.step import local_tangent_offset_km
+from ..runtime.objective_math import scalarize_objectives
 from .models import ReplaySummary
 from .schema import (
     BEAM_CATALOG_ORDER,

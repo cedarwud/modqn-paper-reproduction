@@ -19,7 +19,7 @@ from .env.orbit import OrbitConfig
 from .env.beam import BeamConfig
 from .env.channel import AtmosphericSignMode, ChannelConfig
 from .env.step import StepConfig, StepEnvironment
-from .algorithms.modqn import TrainerConfig
+from .runtime.trainer_spec import TrainerConfig
 
 
 class ConfigValidationError(ValueError):

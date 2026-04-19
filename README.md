@@ -98,7 +98,7 @@ disclosure.
 For current interpretation of the newer Phase 04 materials, also read
 `artifacts/phase-04-current-state-2026-04-19.md`. That note treats the
 Phase 04 kickoff / slice docs as approved **internal hardening
-direction**, records Slices A / B / C as landed internal guardrail
+direction**, records Slices A / B / C / D as landed internal guardrail
 slices, and does not treat any of that as a landed change to the
 producer's frozen external contract.
 
@@ -127,11 +127,11 @@ Before any further refactor starts, use this repo boundary:
    - `tests/fixtures/sample-bundle-v1/`,
    - baseline / closeout claim boundary,
    - strict resolved-run config guardrails.
-3. Phase 04A / 04B / 04C are now landed as internal semantic-golden,
-   artifact-model, and bundle-layer guardrails. Later Phase 04 work
-   beyond Slice C remains internal hardening follow-on work and does
-   **not** replace the Phase 03A / 03B contract as the downstream
-   consumer authority.
+3. Phase 04A / 04B / 04C / 04D are now landed as internal
+   semantic-golden, artifact-model, bundle-layer, and runtime-spine
+   guardrails. Later Phase 04 work beyond Slice D remains internal
+   hardening follow-on work and does **not** replace the Phase 03A /
+   03B contract as the downstream consumer authority.
 4. Future globe-centric or `ntn-sim-core` consumer work should continue
    integrating against exported artifacts, not trainer internals.
 

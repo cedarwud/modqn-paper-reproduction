@@ -2,9 +2,9 @@
 
 Current landed producer authority stops at the Phase 03A replay bundle
 contract plus the Phase 03B additive diagnostics export. Under Phase 04,
-Slice A semantic-golden tests are now landed as an internal guardrail
-slice, while the broader cleanup track still does not revise the frozen
-external contract.
+Slices A / B / C / D are now landed as internal guardrail slices, while
+the broader cleanup track still does not revise the frozen external
+contract.
 
 Short read before the detailed Phase 04 docs:
 
@@ -56,7 +56,7 @@ Short read before the detailed Phase 04 docs:
     `ReplaySummary` across `manifest.replaySummary` and
     `evaluation.summary.replay_timeline`.
 15. `phase-04d-refactor-runtime-spine-split-sdd.md`
-    Draft execution SDD for Phase 04 Slice D. Plans the `runtime/`
-    package split for `TrainerConfig`, state encoding, objective math,
-    replay buffer, Q-network, checkpoint payload, evaluation, and replay
-    runner while preserving `algorithms/modqn.py` as a façade.
+    Landed execution slice for Phase 04 Slice D. Introduces the
+    `runtime/` package for trainer spec, state encoding, objective
+    math, replay buffer, and Q-network seams while preserving
+    `algorithms/modqn.py` as a façade.

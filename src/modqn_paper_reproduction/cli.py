@@ -106,7 +106,7 @@ def train_main(argv: list[str] | None = None) -> int:
 
     # Build trainer config (with optional episode override)
     from dataclasses import fields as dc_fields
-    from .algorithms.modqn import TrainerConfig
+    from .runtime.trainer_spec import TrainerConfig
 
     if args.episodes is not None:
         kwargs = {f.name: getattr(trainer_cfg, f.name) for f in dc_fields(trainer_cfg)}

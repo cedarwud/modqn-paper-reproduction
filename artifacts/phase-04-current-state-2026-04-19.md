@@ -7,9 +7,11 @@
 2. [`../docs/phases/phase-04a-refactor-semantic-golden-sdd.md`](../docs/phases/phase-04a-refactor-semantic-golden-sdd.md)
 3. [`../docs/phases/phase-04b-refactor-training-artifact-model-sdd.md`](../docs/phases/phase-04b-refactor-training-artifact-model-sdd.md)
 4. [`../docs/phases/phase-04c-refactor-bundle-layer-split-sdd.md`](../docs/phases/phase-04c-refactor-bundle-layer-split-sdd.md)
-5. [`./phase-04a-semantic-golden-status-2026-04-17.md`](./phase-04a-semantic-golden-status-2026-04-17.md)
-6. [`./phase-04b-training-artifact-model-status-2026-04-19.md`](./phase-04b-training-artifact-model-status-2026-04-19.md)
-7. [`./phase-04c-bundle-layer-split-status-2026-04-19.md`](./phase-04c-bundle-layer-split-status-2026-04-19.md)
+5. [`../docs/phases/phase-04d-refactor-runtime-spine-split-sdd.md`](../docs/phases/phase-04d-refactor-runtime-spine-split-sdd.md)
+6. [`./phase-04a-semantic-golden-status-2026-04-17.md`](./phase-04a-semantic-golden-status-2026-04-17.md)
+7. [`./phase-04b-training-artifact-model-status-2026-04-19.md`](./phase-04b-training-artifact-model-status-2026-04-19.md)
+8. [`./phase-04c-bundle-layer-split-status-2026-04-19.md`](./phase-04c-bundle-layer-split-status-2026-04-19.md)
+9. [`./phase-04d-runtime-spine-split-status-2026-04-19.md`](./phase-04d-runtime-spine-split-status-2026-04-19.md)
 
 ## 1. Summary
 
@@ -23,7 +25,8 @@ As of `2026-04-19`:
 4. Phase 04A semantic golden tests are now landed as the first internal guardrail slice,
 5. Phase 04B training-artifact model and serialization seam is now landed as the second internal guardrail slice,
 6. Phase 04C bundle-layer split is now landed as the third internal guardrail slice,
-7. later Phase 04 slices beyond Slice C remain planning / in-flight follow-on work.
+7. Phase 04D runtime-spine split is now landed as the fourth internal guardrail slice,
+8. later Phase 04 slices beyond Slice D remain planning / in-flight follow-on work.
 
 ## 2. What Is Already Landed
 
@@ -87,13 +90,31 @@ slice under Phase 04:
 13. [`../scripts/generate_sample_bundle.py`](../scripts/generate_sample_bundle.py),
 14. [`../tests/test_replay_bundle.py`](../tests/test_replay_bundle.py).
 
+The following surfaces are now landed as the fourth internal hardening
+slice under Phase 04:
+
+1. [`../docs/phases/phase-04d-refactor-runtime-spine-split-sdd.md`](../docs/phases/phase-04d-refactor-runtime-spine-split-sdd.md),
+2. [`./phase-04d-runtime-spine-split-status-2026-04-19.md`](./phase-04d-runtime-spine-split-status-2026-04-19.md),
+3. [`../src/modqn_paper_reproduction/runtime/__init__.py`](../src/modqn_paper_reproduction/runtime/__init__.py),
+4. [`../src/modqn_paper_reproduction/runtime/trainer_spec.py`](../src/modqn_paper_reproduction/runtime/trainer_spec.py),
+5. [`../src/modqn_paper_reproduction/runtime/state_encoding.py`](../src/modqn_paper_reproduction/runtime/state_encoding.py),
+6. [`../src/modqn_paper_reproduction/runtime/objective_math.py`](../src/modqn_paper_reproduction/runtime/objective_math.py),
+7. [`../src/modqn_paper_reproduction/runtime/replay_buffer.py`](../src/modqn_paper_reproduction/runtime/replay_buffer.py),
+8. [`../src/modqn_paper_reproduction/runtime/q_network.py`](../src/modqn_paper_reproduction/runtime/q_network.py),
+9. [`../src/modqn_paper_reproduction/algorithms/modqn.py`](../src/modqn_paper_reproduction/algorithms/modqn.py),
+10. [`../src/modqn_paper_reproduction/config_loader.py`](../src/modqn_paper_reproduction/config_loader.py),
+11. [`../src/modqn_paper_reproduction/sweeps.py`](../src/modqn_paper_reproduction/sweeps.py),
+12. [`../src/modqn_paper_reproduction/bundle/serializers.py`](../src/modqn_paper_reproduction/bundle/serializers.py),
+13. [`../src/modqn_paper_reproduction/cli.py`](../src/modqn_paper_reproduction/cli.py).
+
 The practical interpretation is:
 
 1. Slice A's semantic-golden guardrail is now landed as the first internal hardening seam,
 2. Slice B's artifact-model seam is now landed as the second internal hardening seam,
 3. Slice C's bundle-layer split is now landed as the third internal hardening seam,
-4. no landed Phase 04 slice should be presented as a producer-contract change or as a reason to treat Phase 03A / Phase 03B as superseded,
-5. the repo now has a semantic regression gate, a typed training-artifact seam, and a split bundle-contract layer for later follow-on work.
+4. Slice D's runtime-spine split is now landed as the fourth internal hardening seam,
+5. no landed Phase 04 slice should be presented as a producer-contract change or as a reason to treat Phase 03A / Phase 03B as superseded,
+6. the repo now has a semantic regression gate, a typed training-artifact seam, a split bundle-contract layer, and a separated runtime seam for later follow-on work.
 
 ## 4. Interpretation Rules
 
@@ -101,7 +122,7 @@ When Phase 04 materials are read together, use these rules:
 
 1. Phase 03A / 03B remain the frozen external producer contract.
 2. Phase 04 kickoff / slice docs are internal refactor-planning surfaces only unless a later landed slice status note says otherwise.
-3. The Phase 04A, Phase 04B, and Phase 04C status notes record landed internal guardrail slices, not a new repo-landed closeout for the external producer contract.
+3. The Phase 04A, Phase 04B, Phase 04C, and Phase 04D status notes record landed internal guardrail slices, not a new repo-landed closeout for the external producer contract.
 4. Any future claim that Phase 04 as a whole is landed should be paired with:
    - committed test or code surfaces,
    - synchronized README / docs indexes,
@@ -118,5 +139,5 @@ following documentation state clear:
 
 1. the standalone producer / exporter / truth-source role is still the primary architectural decision,
 2. the frozen external surfaces are the replay bundle, additive diagnostics, sample fixture, and resolved-run guardrails,
-3. Phase 04A, Phase 04B, and Phase 04C are now landed internal guardrail slices,
-4. later Phase 04 cleanup beyond Slice C remains in-flight and should not be mistaken for a completed refactor program.
+3. Phase 04A, Phase 04B, Phase 04C, and Phase 04D are now landed internal guardrail slices,
+4. later Phase 04 cleanup beyond Slice D remains in-flight and should not be mistaken for a completed refactor program.

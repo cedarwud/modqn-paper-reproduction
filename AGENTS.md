@@ -109,7 +109,9 @@ What is already true:
     second internal hardening step
 15. the Phase 04C bundle-layer split is now landed as the third
     internal hardening step
-16. later Phase 04 slices remain internal hardening direction only and
+16. the Phase 04D runtime-spine split is now landed as the fourth
+    internal hardening step
+17. later Phase 04 slices remain internal hardening direction only and
     do not supersede the landed Phase 03A / 03B producer authority
 
 What is not yet established:
@@ -124,7 +126,7 @@ What is not yet established:
    diagnosis
 7. downstream consumer adoption of the exported optional diagnostics
    surface is still separate follow-on work
-8. any landed Phase 04 internal hardening slice beyond Slice C
+8. any landed Phase 04 internal hardening slice beyond Slice D
 
 ## Current Guardrails
 
@@ -141,7 +143,8 @@ What is not yet established:
    implementation.
 8. Treat `artifacts/phase-04-current-state-2026-04-19.md` as the
    interpretation note for Phase 04. Slice A semantic-golden tests,
-   Slice B's training-artifact model seam, and Slice C's bundle-layer
-   split are now landed internal guardrails, but the kickoff and later
-   slices are not landed producer-contract changes unless a later
-   explicit status note says so.
+   Slice B's training-artifact model seam, Slice C's bundle-layer
+   split, and Slice D's runtime-spine split are now landed internal
+   guardrails, but the kickoff and later slices are not landed
+   producer-contract changes unless a later explicit status note says
+   so.

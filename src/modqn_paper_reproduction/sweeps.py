@@ -9,7 +9,7 @@ from typing import Any
 
 from . import PACKAGE_VERSION, PAPER_ID
 from .algorithms.dqn_scalar import ScalarDQNPolicyConfig, ScalarDQNTrainer
-from .algorithms.modqn import MODQNTrainer, TrainerConfig
+from .algorithms.modqn import MODQNTrainer
 from .baselines.rss_max import evaluate_rss_max
 from .config_loader import (
     build_environment,
@@ -20,6 +20,7 @@ from .export.pipeline import (
     export_figure_sweep_results,
     export_table_ii_results,
 )
+from .runtime.trainer_spec import TrainerConfig
 
 
 FIGURE_SUITES: dict[str, dict[str, Any]] = {
