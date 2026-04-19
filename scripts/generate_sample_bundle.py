@@ -29,6 +29,10 @@ import sys
 import tempfile
 from pathlib import Path
 
+from modqn_paper_reproduction.bundle.fixture_tools import (
+    sync_replay_summary_in_evaluation_summary,
+)
+from modqn_paper_reproduction.bundle.models import ReplaySummary
 from modqn_paper_reproduction.cli import export_main, train_main
 from modqn_paper_reproduction.export.replay_bundle import (
     BUNDLE_SCHEMA_VERSION,
@@ -47,12 +51,11 @@ _FIXTURE_EXPORTED_AT = "FIXTURE-DETERMINISTIC-TIMESTAMP"
 _FIXTURE_ELAPSED_S = 0.0
 
 
-def _normalize_fixture_manifest(target_dir: Path) -> dict:
+def _normalize_fixture_manifest(target_dir: Path) -> ReplaySummary | None:
     """Replace machine-specific paths/timestamps with stable placeholders.
 
-    Returns the normalized manifest so the caller can mirror the same
-    `replaySummary` aggregate counts into other surfaces (e.g.
-    ``evaluation/summary.json``).
+    Returns the normalized replay summary model so the caller can mirror
+    the same source object into ``evaluation/summary.json``.
     """
     manifest_path = target_dir / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
@@ -61,17 +64,25 @@ def _normalize_fixture_manifest(target_dir: Path) -> dict:
     manifest["outputDir"] = _FIXTURE_OUTPUT_PLACEHOLDER
     manifest["exportedAt"] = _FIXTURE_EXPORTED_AT
     replay_summary = manifest.get("replaySummary")
+    replay_summary_model = None
     if isinstance(replay_summary, dict):
-        replay_summary["checkpointPath"] = _FIXTURE_CHECKPOINT_PLACEHOLDER
+        replay_summary_model = ReplaySummary.from_dict(replay_summary)
+        replay_summary_model = replay_summary_model.with_checkpoint_path(
+            _FIXTURE_CHECKPOINT_PLACEHOLDER
+        )
+        manifest["replaySummary"] = replay_summary_model.to_dict()
     manifest_path.write_text(json.dumps(manifest, indent=2))
-    return manifest
+    return replay_summary_model
 
 
-def _normalize_fixture_summary(target_dir: Path, manifest: dict) -> None:
+def _normalize_fixture_summary(
+    target_dir: Path,
+    replay_summary: ReplaySummary | None,
+) -> None:
     """Replace machine-specific or wall-clock fields in evaluation/summary.json.
 
-    Also re-sync the embedded ``replay_timeline`` block to the trimmed
-    manifest counts so consumers see one consistent set of numbers.
+    Also re-sync the embedded ``replay_timeline`` block from the same
+    ReplaySummary source object used by ``manifest.json``.
     """
     summary_path = target_dir / "evaluation" / "summary.json"
     if not summary_path.exists():
@@ -83,19 +94,14 @@ def _normalize_fixture_summary(target_dir: Path, manifest: dict) -> None:
             checkpoint_files["primary_final"] = _FIXTURE_PRIMARY_CHECKPOINT_PLACEHOLDER
         if "secondary_best_eval" in checkpoint_files:
             checkpoint_files["secondary_best_eval"] = (
-                _FIXTURE_SECONDARY_CHECKPOINT_PLACEHOLDER
-            )
+            _FIXTURE_SECONDARY_CHECKPOINT_PLACEHOLDER
+        )
     training_summary = summary.get("training_summary")
     if isinstance(training_summary, dict) and "elapsed_s" in training_summary:
         training_summary["elapsed_s"] = _FIXTURE_ELAPSED_S
-    replay_summary = manifest.get("replaySummary")
-    if isinstance(summary.get("replay_timeline"), dict) and isinstance(
-        replay_summary, dict
-    ):
-        # Mirror the trimmed manifest counts so the summary stays consistent
-        # with the trimmed timeline file. We deep-copy via JSON round trip.
-        summary["replay_timeline"] = json.loads(json.dumps(replay_summary))
     summary_path.write_text(json.dumps(summary, indent=2))
+    if replay_summary is not None:
+        sync_replay_summary_in_evaluation_summary(target_dir, replay_summary)
 
 
 _DEFAULT_OUTPUT = "tests/fixtures/sample-bundle-v1"
@@ -190,8 +196,8 @@ def main(argv: list[str] | None = None) -> int:
             max_slots=args.max_slots,
         )
 
-    normalized_manifest = _normalize_fixture_manifest(output_dir)
-    _normalize_fixture_summary(output_dir, normalized_manifest)
+    normalized_replay_summary = _normalize_fixture_manifest(output_dir)
+    _normalize_fixture_summary(output_dir, normalized_replay_summary)
     validate_replay_bundle(output_dir)
 
     print(

@@ -63,9 +63,10 @@ What exists now:
 19. additive producer-owned `policyDiagnostics` rows plus
     `manifest.optionalPolicyDiagnostics` disclosure in exported replay
     bundles, with refreshed sample fixture and validation coverage
-20. landed Phase 04A semantic-golden regression tests that lock the
-    current producer artifact contract before later internal refactor
-    slices
+20. landed Phase 04A / 04B / 04C internal hardening slices that lock
+    semantic-golden regression tests, typed training artifacts, and the
+    split bundle-contract layer without changing the external producer
+    contract
 
 What does not exist yet:
 
@@ -97,9 +98,9 @@ disclosure.
 For current interpretation of the newer Phase 04 materials, also read
 `artifacts/phase-04-current-state-2026-04-19.md`. That note treats the
 Phase 04 kickoff / slice docs as approved **internal hardening
-direction**, records Slice A semantic-golden tests as the landed first
-internal guardrail slice, and does not treat any of that as a landed
-change to the producer's frozen external contract.
+direction**, records Slices A / B / C as landed internal guardrail
+slices, and does not treat any of that as a landed change to the
+producer's frozen external contract.
 
 The Phase 02 export bundle freeze is now landed as the Phase 03A
 `phase-03a-replay-bundle-v1` surface (see
@@ -126,9 +127,10 @@ Before any further refactor starts, use this repo boundary:
    - `tests/fixtures/sample-bundle-v1/`,
    - baseline / closeout claim boundary,
    - strict resolved-run config guardrails.
-3. Phase 04A is now landed as an internal semantic-golden guardrail.
-   Later Phase 04 work remains internal hardening follow-on work and
-   does **not** replace the Phase 03A / 03B contract as the downstream
+3. Phase 04A / 04B / 04C are now landed as internal semantic-golden,
+   artifact-model, and bundle-layer guardrails. Later Phase 04 work
+   beyond Slice C remains internal hardening follow-on work and does
+   **not** replace the Phase 03A / 03B contract as the downstream
    consumer authority.
 4. Future globe-centric or `ntn-sim-core` consumer work should continue
    integrating against exported artifacts, not trainer internals.
@@ -252,7 +254,8 @@ Training entrypoints now hard-reject the paper-envelope config and require a res
 14. `docs/phases/phase-04-refactor-contract-spine-sdd.md`
 15. `docs/phases/phase-04a-refactor-semantic-golden-sdd.md`
 16. `docs/phases/phase-04b-refactor-training-artifact-model-sdd.md`
-17. `docs/assumptions/modqn-reproduction-assumption-register.md`
+17. `docs/phases/phase-04c-refactor-bundle-layer-split-sdd.md`
+18. `docs/assumptions/modqn-reproduction-assumption-register.md`
 
 ## Intended Deliverables
 

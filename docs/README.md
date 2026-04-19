@@ -42,6 +42,7 @@ follow-on work.
 15. `phases/phase-04-refactor-contract-spine-sdd.md`
 16. `phases/phase-04a-refactor-semantic-golden-sdd.md`
 17. `phases/phase-04b-refactor-training-artifact-model-sdd.md`
+18. `phases/phase-04c-refactor-bundle-layer-split-sdd.md`
 
 ## Purpose Split
 

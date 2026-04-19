@@ -492,8 +492,10 @@ def test_trim_replay_bundle_round_trip(tmp_path: Path) -> None:
 
     validate_replay_bundle(trimmed_bundle)
     manifest = json.loads((trimmed_bundle / "manifest.json").read_text())
+    summary = json.loads((trimmed_bundle / "evaluation" / "summary.json").read_text())
     assert manifest["replaySummary"]["rowCount"] == 2
     assert manifest["replaySummary"]["slotCount"] == 2
+    assert summary["replay_timeline"] == manifest["replaySummary"]
     sample_subset = manifest["replaySummary"]["sampleSubset"]
     assert sample_subset["maxUsers"] == 1
     assert sample_subset["maxSlots"] == 2

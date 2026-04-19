@@ -70,6 +70,8 @@ also read:
 4. `docs/phases/phase-04a-refactor-semantic-golden-sdd.md`
 5. `docs/phases/phase-04b-refactor-training-artifact-model-sdd.md`
 6. `artifacts/phase-04b-training-artifact-model-status-2026-04-19.md`
+7. `docs/phases/phase-04c-refactor-bundle-layer-split-sdd.md`
+8. `artifacts/phase-04c-bundle-layer-split-status-2026-04-19.md`
 
 ## Current State Snapshot
 
@@ -104,7 +106,9 @@ What is already true:
     first internal hardening step
 14. the Phase 04B training-artifact model seam is now landed as the
     second internal hardening step
-15. later Phase 04 slices remain internal hardening direction only and
+15. the Phase 04C bundle-layer split is now landed as the third
+    internal hardening step
+16. later Phase 04 slices remain internal hardening direction only and
     do not supersede the landed Phase 03A / 03B producer authority
 
 What is not yet established:
@@ -119,7 +123,7 @@ What is not yet established:
    diagnosis
 7. downstream consumer adoption of the exported optional diagnostics
    surface is still separate follow-on work
-8. any landed Phase 04 internal hardening slice beyond Slice B
+8. any landed Phase 04 internal hardening slice beyond Slice C
 
 ## Current Guardrails
 
@@ -135,8 +139,8 @@ What is not yet established:
    standby gate; it does not by itself authorize renewed reproduction
    implementation.
 8. Treat `artifacts/phase-04-current-state-2026-04-19.md` as the
-   interpretation note for Phase 04. Slice A semantic-golden tests and
-   Slice B's training-artifact model seam are now landed internal
-   guardrails, but the kickoff and later slices are not landed
-   producer-contract changes unless a later explicit status note says
-   so.
+   interpretation note for Phase 04. Slice A semantic-golden tests,
+   Slice B's training-artifact model seam, and Slice C's bundle-layer
+   split are now landed internal guardrails, but the kickoff and later
+   slices are not landed producer-contract changes unless a later
+   explicit status note says so.

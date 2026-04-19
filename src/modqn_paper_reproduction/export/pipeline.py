@@ -669,7 +669,7 @@ def export_training_run(input_dir: str | Path, output_dir: str | Path) -> dict[s
             "best_eval_summary": metadata.best_eval_summary,
             "training_summary": metadata.training_summary.to_dict(),
             "bundle_schema_version": replay_outputs["bundle_schema_version"],
-            "replay_timeline": replay_outputs["replay_summary"],
+            "replay_timeline": replay_outputs["replay_summary_model"].to_dict(),
         },
     )
     validate_replay_bundle(out_dir)

@@ -49,3 +49,9 @@ Short read before the detailed Phase 04 docs:
     `CheckpointCatalog`, `RunArtifactPaths` under a new `artifacts/`
     package, rewires `cli.py` / exporter / trainer to write and read
     through those models, keeps output byte-stable.
+14. `phase-04c-refactor-bundle-layer-split-sdd.md`
+    Landed execution slice for Phase 04 Slice C. Splits the replay-bundle
+    monolith into schema / serializers / provenance / validator /
+    fixture-tools modules, adds `artifacts/compat.py`, and single-sources
+    `ReplaySummary` across `manifest.replaySummary` and
+    `evaluation.summary.replay_timeline`.
