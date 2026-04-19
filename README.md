@@ -75,8 +75,8 @@ What does not exist yet:
 2. paper-visual parity polish for the original figure layouts
 3. evidence that scenario correction or comparator-protocol changes are
    sufficient to recover the paper's claimed comparative behavior
-4. consumer-side adoption of the exported optional diagnostics surface
-   inside `ntn-sim-core`
+4. a globe-centric or same-page consumer follow-on beyond the currently
+   landed `ntn-sim-core` bundle / diagnostics consumption path
 
 The latest repo-level closeout authority remains
 `artifacts/phase-01c-closeout-status-2026-04-15.md`, with matching
@@ -90,11 +90,12 @@ which allows one bounded export-oriented reopen slice only.
 That reopen slice is now recorded in
 `artifacts/phase-03b-producer-diagnostics-export-status-2026-04-16.md`
 as the landed status note for this bounded producer-diagnostics slice.
-It establishes the producer-side prerequisite for downstream consumer
-promotion, while consumer-side adoption remains separate work. The
-checked-in `tests/fixtures/sample-bundle-v1/` fixture includes the
-optional `policyDiagnostics` row object and matching manifest
-disclosure.
+It established the producer-side prerequisite for downstream consumer
+promotion. The `ntn-sim-core` consumer-side diagnostics adoption is now
+landed in its shipped SDD set, while any broader globe-centric or
+same-page consumer follow-on remains separate work. The checked-in
+`tests/fixtures/sample-bundle-v1/` fixture includes the optional
+`policyDiagnostics` row object and matching manifest disclosure.
 
 For current interpretation of the newer Phase 04 materials, also read
 `artifacts/phase-04-current-state-2026-04-19.md`. That note treats the

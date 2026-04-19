@@ -27,7 +27,8 @@ As of this check:
 This note means the repo is ready for the next kind of work:
 
 1. downstream integration planning against exported artifacts,
-2. consumer-side adoption work in other repos,
+2. consumer-side follow-on planning beyond the already-landed
+   `ntn-sim-core` bundle / diagnostics consumption path,
 3. boundary/freeze checks before globe-centric or `ntn-sim-core`
    follow-on integration.
 
@@ -57,7 +58,7 @@ The preferred next step is:
 
 1. treat the current producer boundary as frozen for integration
    planning,
-2. perform consumer-side or cross-repo integration work against the
-   exported artifact surfaces,
+2. perform globe-centric or other cross-repo integration planning
+   against the exported artifact surfaces,
 3. reopen internal refactor only if integration discovers a specific new
    blocker that cannot be handled at the boundary.
