@@ -43,6 +43,7 @@ treats later Phase 04 planning as internal hardening follow-on work.
 17. `phases/phase-04b-refactor-training-artifact-model-sdd.md`
 18. `phases/phase-04c-refactor-bundle-layer-split-sdd.md`
 19. `phases/phase-04d-refactor-runtime-spine-split-sdd.md`
+20. `phases/phase-04e-refactor-sweep-analysis-plotting-split-sdd.md`
 
 ## Purpose Split
 

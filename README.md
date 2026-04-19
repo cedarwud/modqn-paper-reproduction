@@ -63,10 +63,10 @@ What exists now:
 19. additive producer-owned `policyDiagnostics` rows plus
     `manifest.optionalPolicyDiagnostics` disclosure in exported replay
     bundles, with refreshed sample fixture and validation coverage
-20. landed Phase 04A / 04B / 04C internal hardening slices that lock
-    semantic-golden regression tests, typed training artifacts, and the
-    split bundle-contract layer without changing the external producer
-    contract
+20. landed Phase 04A / 04B / 04C / 04D internal hardening slices that
+    lock semantic-golden regression tests, typed training artifacts,
+    the split bundle-contract layer, and the runtime spine without
+    changing the external producer contract
 
 What does not exist yet:
 
@@ -256,7 +256,8 @@ Training entrypoints now hard-reject the paper-envelope config and require a res
 16. `docs/phases/phase-04b-refactor-training-artifact-model-sdd.md`
 17. `docs/phases/phase-04c-refactor-bundle-layer-split-sdd.md`
 18. `docs/phases/phase-04d-refactor-runtime-spine-split-sdd.md`
-19. `docs/assumptions/modqn-reproduction-assumption-register.md`
+19. `docs/phases/phase-04e-refactor-sweep-analysis-plotting-split-sdd.md`
+20. `docs/assumptions/modqn-reproduction-assumption-register.md`
 
 ## Intended Deliverables
 
