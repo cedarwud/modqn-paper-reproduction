@@ -19,7 +19,7 @@ downstream consumer promotion.
 For current interpretation of the newer Phase 04 materials, also read
 `artifacts/phase-04-current-state-2026-04-19.md`. That note keeps
 Phase 03A / 03B as the landed external producer authority, records
-Phase 04A / 04B / 04C / 04D as landed internal guardrail slices, and
+Phase 04A / 04B / 04C / 04D / 04E as landed internal guardrail slices, and
 treats later Phase 04 planning as internal hardening follow-on work.
 
 ## Read Order

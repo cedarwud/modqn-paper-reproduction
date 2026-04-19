@@ -16,7 +16,7 @@ from .config_loader import (
     build_trainer_config,
     get_seeds,
 )
-from .export.pipeline import (
+from .analysis import (
     export_figure_sweep_results,
     export_table_ii_results,
 )

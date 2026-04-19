@@ -1,11 +1,13 @@
 # Phase 04E: Refactor Slice E — Sweep / Analysis / Plotting Split SDD
 
-**Status:** Drafted execution SDD; current repo-state interpretation remains in-flight.
+**Status:** Landed execution slice; promoted via `../../artifacts/phase-04e-sweep-analysis-plotting-split-status-2026-04-19.md`.
 **Date:** `2026-04-19`
 **Parent kickoff:**
 [`phase-04-refactor-contract-spine-sdd.md`](./phase-04-refactor-contract-spine-sdd.md)
 **Slice D status:**
 [`../../artifacts/phase-04d-runtime-spine-split-status-2026-04-19.md`](../../artifacts/phase-04d-runtime-spine-split-status-2026-04-19.md)
+**Slice E status:**
+[`../../artifacts/phase-04e-sweep-analysis-plotting-split-status-2026-04-19.md`](../../artifacts/phase-04e-sweep-analysis-plotting-split-status-2026-04-19.md)
 **Current interpretation:**
 [`../../artifacts/phase-04-current-state-2026-04-19.md`](../../artifacts/phase-04-current-state-2026-04-19.md)
 

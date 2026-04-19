@@ -63,10 +63,11 @@ What exists now:
 19. additive producer-owned `policyDiagnostics` rows plus
     `manifest.optionalPolicyDiagnostics` disclosure in exported replay
     bundles, with refreshed sample fixture and validation coverage
-20. landed Phase 04A / 04B / 04C / 04D internal hardening slices that
-    lock semantic-golden regression tests, typed training artifacts,
-    the split bundle-contract layer, and the runtime spine without
-    changing the external producer contract
+20. landed Phase 04A / 04B / 04C / 04D / 04E internal hardening slices
+    that lock semantic-golden regression tests, typed training
+    artifacts, the split bundle-contract layer, the runtime spine, and
+    the sweep/analysis/plotting seam without changing the external
+    producer contract
 
 What does not exist yet:
 
@@ -98,8 +99,8 @@ disclosure.
 For current interpretation of the newer Phase 04 materials, also read
 `artifacts/phase-04-current-state-2026-04-19.md`. That note treats the
 Phase 04 kickoff / slice docs as approved **internal hardening
-direction**, records Slices A / B / C / D as landed internal guardrail
-slices, and does not treat any of that as a landed change to the
+direction**, records Slices A / B / C / D / E as landed internal
+guardrail slices, and does not treat any of that as a landed change to the
 producer's frozen external contract.
 
 The Phase 02 export bundle freeze is now landed as the Phase 03A
@@ -127,10 +128,10 @@ Before any further refactor starts, use this repo boundary:
    - `tests/fixtures/sample-bundle-v1/`,
    - baseline / closeout claim boundary,
    - strict resolved-run config guardrails.
-3. Phase 04A / 04B / 04C / 04D are now landed as internal
-   semantic-golden, artifact-model, bundle-layer, and runtime-spine
-   guardrails. Later Phase 04 work beyond Slice D remains internal
-   hardening follow-on work and does **not** replace the Phase 03A /
+3. Phase 04A / 04B / 04C / 04D / 04E are now landed as internal
+   semantic-golden, artifact-model, bundle-layer, runtime-spine, and
+   sweep/analysis/plotting guardrails. Later Phase 04 work beyond Slice
+   E remains internal hardening follow-on work and does **not** replace the Phase 03A /
    03B contract as the downstream consumer authority.
 4. Future globe-centric or `ntn-sim-core` consumer work should continue
    integrating against exported artifacts, not trainer internals.
@@ -257,7 +258,8 @@ Training entrypoints now hard-reject the paper-envelope config and require a res
 17. `docs/phases/phase-04c-refactor-bundle-layer-split-sdd.md`
 18. `docs/phases/phase-04d-refactor-runtime-spine-split-sdd.md`
 19. `docs/phases/phase-04e-refactor-sweep-analysis-plotting-split-sdd.md`
-20. `docs/assumptions/modqn-reproduction-assumption-register.md`
+20. `artifacts/phase-04e-sweep-analysis-plotting-split-status-2026-04-19.md`
+21. `docs/assumptions/modqn-reproduction-assumption-register.md`
 
 ## Intended Deliverables
 

@@ -61,7 +61,7 @@ Short read before the detailed Phase 04 docs:
     math, replay buffer, and Q-network seams while preserving
     `algorithms/modqn.py` as a façade.
 16. `phase-04e-refactor-sweep-analysis-plotting-split-sdd.md`
-    Draft execution SDD for Phase 04 Slice E. Plans the split between
-    experiment execution, analysis/plotting generation, and
-    train/sweep/export orchestration while preserving landed artifact
-    semantics and entrypoint behavior.
+    Landed execution slice for Phase 04 Slice E. Splits experiment
+    execution from analysis/plotting generation, adds minimal
+    train/sweep/export orchestration seams, and preserves landed
+    artifact semantics plus entrypoint behavior.
