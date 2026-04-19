@@ -42,17 +42,18 @@ It is also not:
 As of `2026-04-19`, read Phase 04 this way:
 
 1. the kickoff and slice docs are real and relevant,
-2. they describe the preferred next cleanup path,
-3. they are still in-flight planning / hardening surfaces,
-4. they should not be presented as already-landed repo-wide promotion.
+2. Phase 04A semantic-golden guardrail is now landed as an internal test gate,
+3. later Phase 04 slices remain planning / in-flight follow-on work,
+4. none of this should be presented as a landed rewrite of the external producer authority.
 
 For the authoritative interpretation, read
 [`../../artifacts/phase-04-current-state-2026-04-19.md`](../../artifacts/phase-04-current-state-2026-04-19.md).
 
 ## When Phase 04 Can Be Treated As Landed
 
-Phase 04 should only be described as landed when all of the following
-are true together:
+Phase 04A may now be described as landed as an internal guardrail
+slice. The broader Phase 04 cleanup program should only be described as
+landed when all of the following are true together:
 
 1. the relevant docs / tests / status surfaces are committed and
    synchronized,
@@ -63,4 +64,4 @@ are true together:
 
 Until then, the safe wording is:
 
-`Phase 04 is the current internal hardening direction, but the landed external producer authority remains Phase 03A / 03B plus the closeout/freeze surfaces.`
+`Phase 04A is landed as an internal semantic-golden guardrail, but the landed external producer authority remains Phase 03A / 03B plus the closeout/freeze surfaces.`

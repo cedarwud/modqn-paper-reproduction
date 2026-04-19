@@ -36,9 +36,9 @@ using the Slice A status note as a planning gate.
 
 ## 2. Why Slice B Goes Second
 
-The local Slice A promotion-candidate run suggests that the contract is
-real enough to enforce with cross-file tests. Slice B upgrades the
-contract from "test-enforced" to "type-enforced". Without Slice B:
+The landed Slice A guardrail confirms that the contract is real enough
+to enforce with cross-file tests. Slice B upgrades the contract from
+"test-enforced" to "type-enforced". Without Slice B:
 
 1. Slice C (bundle-layer split) has to keep indexing raw dicts from
    training output, multiplying the number of files that encode the

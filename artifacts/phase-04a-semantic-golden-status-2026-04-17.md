@@ -1,14 +1,15 @@
 # Phase 04A Slice A — Artifact-Level Semantic Golden Status
 
 **Date:** `2026-04-17`
+**Landed interpretation updated:** `2026-04-19`
 **SDD:** [`../docs/phases/phase-04a-refactor-semantic-golden-sdd.md`](../docs/phases/phase-04a-refactor-semantic-golden-sdd.md)
 **Parent kickoff:** [`../docs/phases/phase-04-refactor-contract-spine-sdd.md`](../docs/phases/phase-04-refactor-contract-spine-sdd.md)
 **Current interpretation:** [`./phase-04-current-state-2026-04-19.md`](./phase-04-current-state-2026-04-19.md)
-**Result:** `LOCAL-PROMOTION-CANDIDATE` — this note records a green local Slice A validation run, but should not by itself be read as the landed repo-wide promotion note for Phase 04.
+**Result:** `PROMOTE` — Slice A is now landed as the first internal semantic-golden guardrail slice under Phase 04. This does not change the external producer contract.
 
 ## 1. Summary
 
-This note records a local Slice A promotion-candidate run. Six test
+This note records the landed Slice A validation result. Six test
 families (F1 – F6) enforce the implicit producer contract as explicit,
 cross-file semantic invariants. The observed slice shape is still the
 same one described by the original draft: no file under `src/`,
@@ -17,11 +18,10 @@ implementation itself, and the work remains rollback-safe because it
 adds only test code and one helper package.
 
 Use `phase-04-current-state-2026-04-19.md` for the current repo-state
-interpretation: this note is evidence that Slice A looks ready, not a
-claim that the full repo authority chain has already promoted Phase 04
-to landed status.
+interpretation: Slice A is now landed as an internal test gate, while
+the broader Phase 04 cleanup track remains in-flight.
 
-## 2. Test Families Observed In The Local Candidate Run
+## 2. Test Families Landed
 
 | Family | File / Test | Result |
 | --- | --- | --- |
@@ -37,21 +37,18 @@ to landed status.
 | F5  | `test_f5_slot_duration_config_matches_expectation` | PASS |
 | F6  | `test_f6_sample_bundle_regeneration_is_deterministic` | PASS |
 
-Total: `11 passed in 22.48s`.
+Targeted Slice A suite:
+`11 passed in 29.16s`.
 
 Full-suite re-run (`pytest`) confirms no regression:
-`215 passed in 250.80s`.
+`215 passed in 263.87s (0:04:23)`.
 
-## 3. Local Candidate Files Expected For Slice A
+## 3. Files Added
 
-1. `tests/test_refactor_golden.py`
-2. `tests/refactor_golden/__init__.py`
-3. `tests/refactor_golden/helpers.py`
-
-In current interpretation, treat these as the files associated with the
-local candidate Slice A result. They should not be described as landed
-repo surfaces unless they are committed together with a later explicit
-landed promotion note.
+1. `tests/__init__.py`
+2. `tests/test_refactor_golden.py`
+3. `tests/refactor_golden/__init__.py`
+4. `tests/refactor_golden/helpers.py`
 
 No existing file was modified by the Slice A implementation itself.
 
@@ -148,10 +145,10 @@ Specifically:
 
 ## 7. Slice B Readiness
 
-Slice B (`Training Artifact Model`) is now locally justified by this
-status note per kickoff SDD section 6.1 and 10, but that should still
-be read through the current-state interpretation note rather than as an
-already-landed repo closeout.
+Slice B (`Training Artifact Model`) is now unblocked by this landed
+Slice A status note per kickoff SDD section 6.1 and 10, but that should
+still be read through the current-state interpretation note rather than
+as an already-landed repo closeout.
 
 Before starting Slice B implementation, the next required action is to
 use the existing
@@ -173,11 +170,11 @@ Slice B planning should also cite section 4.2 of this status note
 
 ## 8. Promotion Decision
 
-**LOCAL-PROMOTION-CANDIDATE**. Slice A appears clean and useful: all 11
-tests are green, there is no reported regression in the existing suite,
-and section 4.2 surfaces one real design input for Slice B.
+**PROMOTE**. Slice A is now landed: all 11 Slice A tests are green, the
+full `pytest` suite is green, and section 4.2 surfaces one real design
+input for Slice B.
 
-Slice B authoring may begin as planning work, but future repo-level
-documentation should continue to describe Phase 04 as in-flight until
-the docs/tests/status surfaces are fully reconciled into the landed
-authority chain.
+Slice B authoring and later implementation may begin, but repo-level
+documentation should continue to describe Phase 04 as an internal
+hardening track rather than as a landed external producer-contract
+rewrite.

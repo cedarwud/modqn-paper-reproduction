@@ -99,9 +99,10 @@ What is already true:
     for additive producer diagnostics export
 12. the Phase 03B producer-owned policy diagnostics slice is now landed
     as an exporter-only additive surface over the frozen replay bundle
-13. the newer Phase 04 materials describe internal hardening direction
-    only and do not yet supersede the landed Phase 03A / 03B producer
-    authority
+13. the Phase 04A semantic-golden guardrail slice is now landed as the
+    first internal hardening step
+14. later Phase 04 slices remain internal hardening direction only and
+    do not supersede the landed Phase 03A / 03B producer authority
 
 What is not yet established:
 
@@ -115,8 +116,7 @@ What is not yet established:
    diagnosis
 7. downstream consumer adoption of the exported optional diagnostics
    surface is still separate follow-on work
-8. any repo-wide landed promotion of the Phase 04 internal hardening
-   slices
+8. any landed Phase 04 internal hardening slice beyond Slice A
 
 ## Current Guardrails
 
@@ -132,6 +132,7 @@ What is not yet established:
    standby gate; it does not by itself authorize renewed reproduction
    implementation.
 8. Treat `artifacts/phase-04-current-state-2026-04-19.md` as the
-   interpretation note for Phase 04. Do not present Phase 04 kickoff,
-   Slice A, or Slice B documents as landed producer-contract changes
-   unless a later explicit landed status note says so.
+   interpretation note for Phase 04. Slice A semantic-golden tests are
+   now a landed internal guardrail, but Phase 04 kickoff, Slice B, and
+   later materials are not landed producer-contract changes unless a
+   later explicit status note says so.

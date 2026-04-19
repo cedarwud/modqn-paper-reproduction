@@ -18,9 +18,10 @@ which records the producer-side prerequisite now established for
 downstream consumer promotion.
 For current interpretation of the newer Phase 04 materials, also read
 `artifacts/phase-04-current-state-2026-04-19.md`. That note keeps
-Phase 03A / 03B as the landed external producer authority and treats
-Phase 04 kickoff / slice documents as in-flight internal hardening
-surfaces until a later landed status note explicitly promotes them.
+Phase 03A / 03B as the landed external producer authority, records
+Phase 04A semantic golden tests as the landed first internal guardrail
+slice, and treats later Phase 04 planning as internal hardening
+follow-on work.
 
 ## Read Order
 

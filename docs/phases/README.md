@@ -1,9 +1,10 @@
 # Phase SDD Index
 
 Current landed producer authority stops at the Phase 03A replay bundle
-contract plus the Phase 03B additive diagnostics export. The Phase 04
-entries below are draft internal-hardening surfaces; they do not revise
-the frozen external contract unless a later landed status note says so.
+contract plus the Phase 03B additive diagnostics export. Under Phase 04,
+Slice A semantic-golden tests are now landed as an internal guardrail
+slice, while the broader cleanup track still does not revise the frozen
+external contract.
 
 Short read before the detailed Phase 04 docs:
 
@@ -38,11 +39,10 @@ Short read before the detailed Phase 04 docs:
     layer. It freezes Phase 03A/03B external surfaces, fixes slice
     ordering, and defers per-slice design to later execution SDDs.
 12. `phase-04a-refactor-semantic-golden-sdd.md`
-    Draft execution SDD for Phase 04 Slice A. Adds artifact-level
+    Landed execution slice for Phase 04 Slice A. Adds artifact-level
     semantic golden tests (`run_metadata`, `training_log`, checkpoint
     payload, manifest↔summary cross-file consistency, timeline
-    geometry, fixture regeneration determinism) without touching
-    `src/`.
+    geometry, fixture regeneration determinism) without touching `src/`.
 13. `phase-04b-refactor-training-artifact-model-sdd.md`
     Draft execution SDD for Phase 04 Slice B. Introduces
     `RunMetadataV1`, `TrainingLogRow`, `CheckpointPayloadV1`,

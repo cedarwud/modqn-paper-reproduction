@@ -1,6 +1,6 @@
 # Phase 04A: Refactor Slice A — Artifact-Level Semantic Golden SDD
 
-**Status:** Drafted execution SDD; current repo-state interpretation remains in-flight.
+**Status:** Execution SDD; Slice A is now landed via the linked status note.
 **Date:** `2026-04-17`
 **Parent kickoff:**
 [`phase-04-refactor-contract-spine-sdd.md`](./phase-04-refactor-contract-spine-sdd.md)
@@ -23,10 +23,9 @@ changed. No module is split.
 Slice A is deliberately the smallest possible slice: it only adds test
 code and one small test-helper module.
 
-This SDD defines Slice A's intended acceptance rules. It does not by
-itself claim that Slice A is already landed. For current repo-state
-interpretation, read the current-state note above together with any
-local status note.
+This SDD defines Slice A's acceptance rules. Slice A is now landed via
+the linked status note. For current repo-state interpretation, read the
+current-state note above together with that landed status note.
 
 ## 2. Why Slice A Goes First
 
