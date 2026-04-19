@@ -1,6 +1,6 @@
 # Phase 04B: Refactor Slice B — Training Artifact Model SDD
 
-**Status:** Drafted execution SDD; current repo-state interpretation remains in-flight.
+**Status:** Landed execution slice; promoted via `phase-04b-training-artifact-model-status-2026-04-19.md`.
 **Date:** `2026-04-17`
 **Parent kickoff:**
 [`phase-04-refactor-contract-spine-sdd.md`](./phase-04-refactor-contract-spine-sdd.md)
@@ -29,10 +29,11 @@ The goal is **typed boundary, unchanged output**:
    instead of indexing raw dicts,
 3. Slice A's golden tests remain green without modification.
 
-This SDD is a draft plan for the next internal hardening slice. It does
-not by itself imply that Slice A has already been promoted as landed
-repo authority; read the linked current-state interpretation note before
-using the Slice A status note as a planning gate.
+This SDD now records the landed internal hardening slice for the
+training-artifact model seam. It does not promote Phase 04 as a whole
+to landed repo authority; read the linked current-state interpretation
+note before using this slice as evidence of any external producer-contract
+change.
 
 ## 2. Why Slice B Goes Second
 

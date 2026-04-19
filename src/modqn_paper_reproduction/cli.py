@@ -8,7 +8,6 @@ builds the env and trainer, and runs.
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 import time
 from dataclasses import asdict
@@ -69,6 +68,19 @@ def train_main(argv: list[str] | None = None) -> int:
         load_training_yaml,
     )
     from .algorithms.modqn import MODQNTrainer
+    from .artifacts import (
+        CheckpointCatalog,
+        ResumeFromV1,
+        RewardCalibrationV1,
+        RunArtifactPaths,
+        RunMetadataV1,
+        RuntimeEnvironmentV1,
+        SeedsBlock,
+        TrainingLogRow,
+        TrainingSummaryV1,
+        write_run_metadata,
+        write_training_log,
+    )
 
     print(f"[modqn-train] paper={PAPER_ID} version={PACKAGE_VERSION}")
     print(f"[modqn-train] config={args.config}")
@@ -177,36 +189,34 @@ def train_main(argv: list[str] | None = None) -> int:
     if args.output_dir:
         out_dir = Path(args.output_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
+        artifact_paths = RunArtifactPaths(out_dir)
 
-        log_path = out_dir / "training_log.json"
-        with open(log_path, "w") as f:
-            json.dump(
-                [
-                    {
-                        "episode": l.episode,
-                        "epsilon": l.epsilon,
-                        "r1_mean": l.r1_mean,
-                        "r2_mean": l.r2_mean,
-                        "r3_mean": l.r3_mean,
-                        "scalar_reward": l.scalar_reward,
-                        "total_handovers": l.total_handovers,
-                        "replay_size": l.replay_size,
-                        "losses": list(l.losses),
-                    }
-                    for l in logs
-                ],
-                f,
-                indent=2,
-            )
+        log_path = write_training_log(
+            artifact_paths.training_log_json,
+            [
+                TrainingLogRow(
+                    episode=l.episode,
+                    epsilon=l.epsilon,
+                    r1_mean=l.r1_mean,
+                    r2_mean=l.r2_mean,
+                    r3_mean=l.r3_mean,
+                    scalar_reward=l.scalar_reward,
+                    total_handovers=l.total_handovers,
+                    replay_size=l.replay_size,
+                    losses=l.losses,
+                )
+                for l in logs
+            ],
+        )
         print(f"[modqn-train] logs saved to {log_path}")
 
         final_episode = logs[-1].episode if logs else (
             resumed_from["episode"] if resumed_from else -1
         )
-        checkpoint_dir = out_dir / "checkpoints"
+        checkpoint_rule = trainer.checkpoint_rule()
         best_eval_summary = None
         final_checkpoint_path = trainer.save_checkpoint(
-            checkpoint_dir / f"{trainer_cfg.checkpoint_primary_report}.pt",
+            artifact_paths.primary_checkpoint(checkpoint_rule),
             episode=final_episode,
             checkpoint_kind=trainer_cfg.checkpoint_primary_report,
             logs=logs,
@@ -223,71 +233,79 @@ def train_main(argv: list[str] | None = None) -> int:
                 else None
             )
             secondary_checkpoint_path = trainer.save_best_eval_checkpoint(
-                checkpoint_dir / f"{trainer_cfg.checkpoint_secondary_report}.pt"
+                artifact_paths.secondary_checkpoint(checkpoint_rule)
             )
             print(
                 "[modqn-train] best-eval checkpoint saved to "
                 f"{secondary_checkpoint_path}"
             )
 
-        metadata = {
-            "paper_id": PAPER_ID,
-            "package_version": PACKAGE_VERSION,
-            "config_path": str(Path(args.config)),
-            "config_role": cfg.get("config_role"),
-            "resolved_config_snapshot": cfg,
-            "training_experiment": cfg.get("training_experiment"),
-            "seeds": seeds,
-            "checkpoint_rule": trainer.checkpoint_rule(),
-            "reward_calibration": {
-                "enabled": trainer_cfg.reward_calibration_enabled,
-                "mode": trainer_cfg.reward_calibration_mode,
-                "source": trainer_cfg.reward_calibration_source,
-                "scales": list(trainer_cfg.reward_calibration_scales),
-                "training_experiment_kind": trainer_cfg.training_experiment_kind,
-                "training_experiment_id": trainer_cfg.training_experiment_id,
-                "evaluation_metrics": "raw-paper-metrics",
-                "checkpoint_selection_metric": "raw-weighted-eval",
-            },
-            "checkpoint_files": {
-                "primary_final": str(final_checkpoint_path),
-                "secondary_best_eval": (
-                    str(secondary_checkpoint_path)
-                    if secondary_checkpoint_path is not None
-                    else None
-                ),
-            },
-            "resolved_assumptions": cfg.get("resolved_assumptions", {}),
-            "runtime_environment": {
-                "num_users": env.config.num_users,
-                "num_satellites": env.orbit.num_satellites,
-                "beams_per_satellite": env.beam_pattern.num_beams,
-                "user_lat_deg": env.config.user_lat_deg,
-                "user_lon_deg": env.config.user_lon_deg,
-                "r3_gap_scope": env.config.r3_gap_scope,
-                "r3_empty_beam_throughput": env.config.r3_empty_beam_throughput,
-                "user_heading_stride_rad": env.config.user_heading_stride_rad,
-                "user_scatter_radius_km": env.config.user_scatter_radius_km,
-                "user_scatter_distribution": env.config.user_scatter_distribution,
-                "user_area_width_km": env.config.user_area_width_km,
-                "user_area_height_km": env.config.user_area_height_km,
-                "mobility_model": env.config.mobility_model,
-                "random_wandering_max_turn_rad": env.config.random_wandering_max_turn_rad,
-            },
-            "trainer_config": asdict(trainer_cfg),
-            "best_eval_summary": best_eval_summary,
-            "resume_from": resumed_from,
-            "training_summary": {
-                "episodes_requested": trainer_cfg.episodes,
-                "episodes_completed": len(logs),
-                "elapsed_s": elapsed,
-                "final_episode_index": final_episode,
-                "final_scalar_reward": logs[-1].scalar_reward if logs else None,
-            },
-        }
-        metadata_path = out_dir / "run_metadata.json"
-        with open(metadata_path, "w") as f:
-            json.dump(metadata, f, indent=2)
+        checkpoint_catalog = CheckpointCatalog(
+            primary_final=final_checkpoint_path,
+            secondary_best_eval=secondary_checkpoint_path,
+        )
+        metadata = RunMetadataV1(
+            paper_id=PAPER_ID,
+            package_version=PACKAGE_VERSION,
+            config_path=str(Path(args.config)),
+            config_role=cfg.get("config_role"),
+            resolved_config_snapshot=cfg,
+            training_experiment=cfg.get("training_experiment"),
+            seeds=SeedsBlock(
+                train_seed=seeds["train_seed"],
+                environment_seed=seeds["environment_seed"],
+                mobility_seed=seeds["mobility_seed"],
+                evaluation_seed_set=tuple(seeds.get("evaluation_seed_set", ())),
+            ),
+            checkpoint_rule=checkpoint_rule,
+            reward_calibration=RewardCalibrationV1(
+                enabled=trainer_cfg.reward_calibration_enabled,
+                mode=trainer_cfg.reward_calibration_mode,
+                source=trainer_cfg.reward_calibration_source,
+                scales=tuple(trainer_cfg.reward_calibration_scales),
+                training_experiment_kind=trainer_cfg.training_experiment_kind,
+                training_experiment_id=trainer_cfg.training_experiment_id,
+                evaluation_metrics="raw-paper-metrics",
+                checkpoint_selection_metric="raw-weighted-eval",
+            ),
+            checkpoint_files=checkpoint_catalog.to_v1(),
+            resolved_assumptions=cfg.get("resolved_assumptions", {}),
+            runtime_environment=RuntimeEnvironmentV1(
+                num_users=env.config.num_users,
+                num_satellites=env.orbit.num_satellites,
+                beams_per_satellite=env.beam_pattern.num_beams,
+                user_lat_deg=env.config.user_lat_deg,
+                user_lon_deg=env.config.user_lon_deg,
+                r3_gap_scope=env.config.r3_gap_scope,
+                r3_empty_beam_throughput=env.config.r3_empty_beam_throughput,
+                user_heading_stride_rad=env.config.user_heading_stride_rad,
+                user_scatter_radius_km=env.config.user_scatter_radius_km,
+                user_scatter_distribution=env.config.user_scatter_distribution,
+                user_area_width_km=env.config.user_area_width_km,
+                user_area_height_km=env.config.user_area_height_km,
+                mobility_model=env.config.mobility_model,
+                random_wandering_max_turn_rad=env.config.random_wandering_max_turn_rad,
+            ),
+            trainer_config=asdict(trainer_cfg),
+            best_eval_summary=best_eval_summary,
+            resume_from=(
+                None
+                if resumed_from is None
+                else ResumeFromV1(
+                    path=resumed_from["path"],
+                    checkpoint_kind=resumed_from["checkpoint_kind"],
+                    episode=resumed_from["episode"],
+                )
+            ),
+            training_summary=TrainingSummaryV1(
+                episodes_requested=trainer_cfg.episodes,
+                episodes_completed=len(logs),
+                elapsed_s=elapsed,
+                final_episode_index=final_episode,
+                final_scalar_reward=logs[-1].scalar_reward if logs else None,
+            ),
+        )
+        metadata_path = write_run_metadata(artifact_paths.run_metadata_json, metadata)
         print(f"[modqn-train] metadata saved to {metadata_path}")
 
     return 0

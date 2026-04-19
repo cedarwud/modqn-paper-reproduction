@@ -15,10 +15,10 @@ import numpy as np
 
 from .. import PACKAGE_VERSION
 from ..algorithms.modqn import MODQNTrainer, scalarize_objectives
+from ..artifacts import RunMetadataV1
 from ..config_loader import (
     build_environment,
     build_trainer_config,
-    get_seeds,
     load_training_yaml,
     require_training_config,
 )
@@ -112,16 +112,16 @@ def _resolve_existing_path(
 
 
 def resolve_training_config_snapshot(
-    metadata: dict[str, Any],
+    metadata: RunMetadataV1,
     *,
     artifact_dir: Path,
 ) -> dict[str, Any]:
-    snapshot = metadata.get("resolved_config_snapshot")
-    if isinstance(snapshot, dict) and snapshot:
+    snapshot = metadata.resolved_config_snapshot
+    if snapshot:
         require_training_config(snapshot, config_path="<run_metadata.resolved_config_snapshot>")
         return copy.deepcopy(snapshot)
 
-    config_path = metadata.get("config_path")
+    config_path = metadata.config_path
     if not config_path:
         raise FileNotFoundError(
             "Run artifact is missing both resolved_config_snapshot and config_path."
@@ -131,15 +131,11 @@ def resolve_training_config_snapshot(
 
 
 def select_replay_checkpoint(
-    metadata: dict[str, Any],
+    metadata: RunMetadataV1,
     *,
     artifact_dir: Path,
 ) -> tuple[Path, str]:
-    checkpoint_files = metadata.get("checkpoint_files", {})
-    if not isinstance(checkpoint_files, dict):
-        checkpoint_files = {}
-
-    secondary = checkpoint_files.get("secondary_best_eval")
+    secondary = metadata.checkpoint_files.secondary_best_eval
     if secondary:
         return (
             _resolve_existing_path(
@@ -150,7 +146,7 @@ def select_replay_checkpoint(
             "best-weighted-reward-on-eval",
         )
 
-    primary = checkpoint_files.get("primary_final")
+    primary = metadata.checkpoint_files.primary_final
     if primary:
         return (
             _resolve_existing_path(
@@ -167,7 +163,7 @@ def select_replay_checkpoint(
 
 
 def _select_timeline_seed(
-    metadata: dict[str, Any],
+    metadata: RunMetadataV1,
     checkpoint_payload: dict[str, Any],
     *,
     cfg: dict[str, Any],
@@ -188,7 +184,7 @@ def _select_timeline_seed(
                 "checkpoint.evaluation_summary.eval_seeds[0]",
             )
 
-    best_eval_summary = metadata.get("best_eval_summary", {})
+    best_eval_summary = metadata.best_eval_summary
     if isinstance(best_eval_summary, dict):
         eval_seeds = best_eval_summary.get("eval_seeds", [])
         if eval_seeds:
@@ -197,11 +193,8 @@ def _select_timeline_seed(
                 "run_metadata.best_eval_summary.eval_seeds[0]",
             )
 
-    seeds = metadata.get("seeds")
+    seeds = metadata.seeds.to_dict()
     seed_source = "run_metadata.seeds.evaluation_seed_set[0]"
-    if not isinstance(seeds, dict):
-        seeds = get_seeds(cfg)
-        seed_source = "resolved_config.seeds.evaluation_seed_set[0]"
     evaluation_seed_set = seeds.get("evaluation_seed_set", [])
     if evaluation_seed_set:
         return (int(evaluation_seed_set[0]), seed_source)
@@ -445,7 +438,7 @@ def _build_provenance_entry(
 
 def build_provenance_map(
     cfg: dict[str, Any],
-    metadata: dict[str, Any],
+    metadata: RunMetadataV1,
 ) -> dict[str, Any]:
     paper = cfg.get("paper", {})
     baseline = cfg.get("baseline", {})
@@ -579,7 +572,7 @@ def build_provenance_map(
             "artifact-derived": "Computed from the exported checkpoint and run artifact rather than copied from source authority.",
         },
         "fieldCount": len(fields),
-        "producerVersion": str(metadata.get("package_version", PACKAGE_VERSION)),
+        "producerVersion": str(metadata.package_version or PACKAGE_VERSION),
         "fields": fields,
     }
 
@@ -608,16 +601,14 @@ def export_replay_bundle(
     input_dir: str | Path,
     output_dir: str | Path,
     *,
-    metadata: dict[str, Any],
+    metadata: RunMetadataV1,
 ) -> dict[str, Any]:
     """Export the replay-complete Phase 03A producer bundle surfaces."""
     in_dir = Path(input_dir)
     out_dir = Path(output_dir)
     cfg = resolve_training_config_snapshot(metadata, artifact_dir=in_dir)
     trainer_cfg = build_trainer_config(cfg)
-    seeds = metadata.get("seeds")
-    if not isinstance(seeds, dict):
-        seeds = get_seeds(cfg)
+    seeds = metadata.seeds.to_dict()
 
     env = build_environment(copy.deepcopy(cfg))
     trainer = MODQNTrainer(
@@ -838,16 +829,16 @@ def export_replay_bundle(
     }
 
     manifest = {
-        "paperId": metadata.get("paper_id"),
+        "paperId": metadata.paper_id,
         "runId": in_dir.name,
         "bundleSchemaVersion": BUNDLE_SCHEMA_VERSION,
-        "producerVersion": metadata.get("package_version", PACKAGE_VERSION),
+        "producerVersion": metadata.package_version or PACKAGE_VERSION,
         "exportedAt": datetime.now(timezone.utc).isoformat(),
         "sourceArtifactDir": str(in_dir),
         "inputArtifactDir": str(in_dir),
         "outputDir": str(out_dir),
-        "configPath": metadata.get("config_path"),
-        "checkpointRule": metadata.get("checkpoint_rule"),
+        "configPath": metadata.config_path,
+        "checkpointRule": metadata.checkpoint_rule.to_dict(),
         "replayTruthMode": "selected-checkpoint-greedy-replay",
         "timelineFormatVersion": TIMELINE_FORMAT_VERSION,
         "coordinateFrame": {

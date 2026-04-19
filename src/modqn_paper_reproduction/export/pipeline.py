@@ -19,6 +19,7 @@ import pandas as pd
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+from ..artifacts import RunArtifactPaths, read_run_metadata, read_training_log
 from .replay_bundle import export_replay_bundle, validate_replay_bundle
 
 
@@ -84,6 +85,11 @@ def _summarize_training_log(
         "final_episode": int(final["episode"]),
         "final_scalar_reward": float(final["scalar_reward"]),
     }
+
+
+def _load_training_log_dicts(run_dir: str | Path) -> list[dict[str, Any]]:
+    paths = RunArtifactPaths(Path(run_dir))
+    return [row.to_dict() for row in read_training_log(paths.training_log_json)]
 
 
 def _build_table_ii_analysis_frames(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -475,10 +481,10 @@ def export_reward_geometry_analysis(
     reference_summary = None
     if reference_run_dir is not None:
         ref_dir = Path(reference_run_dir)
-        training_log_path = ref_dir / "training_log.json"
+        training_log_path = RunArtifactPaths(ref_dir).training_log_json
         if training_log_path.exists():
             reference_summary = _summarize_training_log(
-                json.loads(training_log_path.read_text())
+                _load_training_log_dicts(ref_dir)
             )
             reference_summary["reference_run_dir"] = str(ref_dir)
 
@@ -596,8 +602,9 @@ def export_training_run(input_dir: str | Path, output_dir: str | Path) -> dict[s
     """Export a completed run artifact into CSV/PNG bundle surfaces."""
     in_dir = Path(input_dir)
     out_dir = Path(output_dir)
-    metadata = json.loads((in_dir / "run_metadata.json").read_text())
-    training_log = json.loads((in_dir / "training_log.json").read_text())
+    artifact_paths = RunArtifactPaths(in_dir)
+    metadata = read_run_metadata(artifact_paths.run_metadata_json)
+    training_log = [row.to_dict() for row in read_training_log(artifact_paths.training_log_json)]
 
     training_dir = out_dir / "training"
     evaluation_dir = out_dir / "evaluation"
@@ -645,7 +652,7 @@ def export_training_run(input_dir: str | Path, output_dir: str | Path) -> dict[s
 
     assumptions_path = _write_json(
         out_dir / "assumptions.json",
-        metadata.get("resolved_assumptions", {}),
+        metadata.resolved_assumptions,
     )
     replay_outputs = export_replay_bundle(
         in_dir,
@@ -655,12 +662,12 @@ def export_training_run(input_dir: str | Path, output_dir: str | Path) -> dict[s
     summary_path = _write_json(
         evaluation_dir / "summary.json",
         {
-            "paper_id": metadata.get("paper_id"),
-            "config_path": metadata.get("config_path"),
-            "checkpoint_rule": metadata.get("checkpoint_rule"),
-            "checkpoint_files": metadata.get("checkpoint_files"),
-            "best_eval_summary": metadata.get("best_eval_summary"),
-            "training_summary": metadata.get("training_summary"),
+            "paper_id": metadata.paper_id,
+            "config_path": metadata.config_path,
+            "checkpoint_rule": metadata.checkpoint_rule.to_dict(),
+            "checkpoint_files": metadata.checkpoint_files.to_dict(),
+            "best_eval_summary": metadata.best_eval_summary,
+            "training_summary": metadata.training_summary.to_dict(),
             "bundle_schema_version": replay_outputs["bundle_schema_version"],
             "replay_timeline": replay_outputs["replay_summary"],
         },
@@ -870,10 +877,10 @@ def export_figure_sweep_results(
     reference_summary = None
     if reference_run_dir is not None:
         ref_dir = Path(reference_run_dir)
-        training_log_path = ref_dir / "training_log.json"
+        training_log_path = RunArtifactPaths(ref_dir).training_log_json
         if training_log_path.exists():
             reference_summary = _summarize_training_log(
-                json.loads(training_log_path.read_text())
+                _load_training_log_dicts(ref_dir)
             )
             reference_summary["reference_run_dir"] = str(ref_dir)
             reference_summary_path = evaluation_dir / f"{suite}-long-run-reference-summary.json"
@@ -995,9 +1002,9 @@ def export_table_ii_results(
     reference_summary = None
     if reference_run_dir is not None:
         ref_dir = Path(reference_run_dir)
-        training_log_path = ref_dir / "training_log.json"
+        training_log_path = RunArtifactPaths(ref_dir).training_log_json
         if training_log_path.exists():
-            reference_training_log = json.loads(training_log_path.read_text())
+            reference_training_log = _load_training_log_dicts(ref_dir)
             reference_summary = _summarize_training_log(reference_training_log)
             reference_summary["reference_run_dir"] = str(ref_dir)
             reference_summary_path = evaluation_dir / "long-run-reference-summary.json"

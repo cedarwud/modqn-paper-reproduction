@@ -44,7 +44,7 @@ Short read before the detailed Phase 04 docs:
     payload, manifest↔summary cross-file consistency, timeline
     geometry, fixture regeneration determinism) without touching `src/`.
 13. `phase-04b-refactor-training-artifact-model-sdd.md`
-    Draft execution SDD for Phase 04 Slice B. Introduces
+    Landed execution slice for Phase 04 Slice B. Introduces
     `RunMetadataV1`, `TrainingLogRow`, `CheckpointPayloadV1`,
     `CheckpointCatalog`, `RunArtifactPaths` under a new `artifacts/`
     package, rewires `cli.py` / exporter / trainer to write and read

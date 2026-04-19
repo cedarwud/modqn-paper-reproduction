@@ -34,6 +34,12 @@ import torch.nn as nn
 import torch.optim as optim
 from numpy.random import Generator
 
+from ..artifacts import (
+    CheckpointPayloadV1,
+    CheckpointRuleV1,
+    read_checkpoint,
+    write_checkpoint,
+)
 from ..env.step import (
     ActionMask,
     StepEnvironment,
@@ -422,7 +428,7 @@ class MODQNTrainer:
         self._evaluation_every_episodes: int | None = None
         self._evaluation_seed_set: tuple[int, ...] = ()
         self._best_eval_summary: EvalSummary | None = None
-        self._best_eval_payload: dict[str, Any] | None = None
+        self._best_eval_payload: CheckpointPayloadV1 | None = None
 
     # -- epsilon schedule (ASSUME-MODQN-REP-004) ----------------------------
 
@@ -795,15 +801,15 @@ class MODQNTrainer:
 
     # -- checkpointing (ASSUME-MODQN-REP-015) ------------------------------
 
-    def checkpoint_rule(self) -> dict[str, Any]:
+    def checkpoint_rule(self) -> CheckpointRuleV1:
         """Return the active checkpoint-selection rule for metadata/logging."""
-        return {
-            "assumption_id": self.config.checkpoint_assumption_id,
-            "primary_report": self.config.checkpoint_primary_report,
-            "secondary_report": self.config.checkpoint_secondary_report,
-            "secondary_implemented": self._secondary_checkpoint_enabled,
-            "secondary_status": self._secondary_checkpoint_status,
-        }
+        return CheckpointRuleV1(
+            assumption_id=self.config.checkpoint_assumption_id,
+            primary_report=self.config.checkpoint_primary_report,
+            secondary_report=self.config.checkpoint_secondary_report,
+            secondary_implemented=self._secondary_checkpoint_enabled,
+            secondary_status=self._secondary_checkpoint_status,
+        )
 
     def build_checkpoint_payload(
         self,
@@ -813,73 +819,71 @@ class MODQNTrainer:
         logs: list[EpisodeLog] | None = None,
         include_optimizers: bool = True,
         evaluation_summary: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
+    ) -> CheckpointPayloadV1:
         """Build a serializable checkpoint payload."""
-        payload: dict[str, Any] = {
-            "format_version": 1,
-            "checkpoint_kind": checkpoint_kind,
-            "episode": episode,
-            "train_seed": self.train_seed,
-            "env_seed": self.env_seed,
-            "mobility_seed": self.mobility_seed,
-            "state_dim": self.state_dim,
-            "action_dim": self.action_dim,
-            "trainer_config": asdict(self.config),
-            "checkpoint_rule": self.checkpoint_rule(),
-            "q_networks": [net.state_dict() for net in self.q_nets],
-            "target_networks": [net.state_dict() for net in self.target_nets],
-        }
-        if include_optimizers:
-            payload["optimizers"] = [
-                optimizer.state_dict() for optimizer in self.optimizers
-            ]
-        if logs:
-            payload["last_episode_log"] = asdict(logs[-1])
+        summary = None
         if evaluation_summary is not None:
             summary = copy.deepcopy(evaluation_summary)
             if "eval_seeds" in summary:
                 summary["eval_seeds"] = [int(seed) for seed in summary["eval_seeds"]]
-            payload["evaluation_summary"] = summary
-        return payload
+
+        return CheckpointPayloadV1(
+            format_version=1,
+            checkpoint_kind=checkpoint_kind,
+            episode=episode,
+            train_seed=self.train_seed,
+            env_seed=self.env_seed,
+            mobility_seed=self.mobility_seed,
+            state_dim=self.state_dim,
+            action_dim=self.action_dim,
+            trainer_config=asdict(self.config),
+            checkpoint_rule=self.checkpoint_rule(),
+            q_networks=[net.state_dict() for net in self.q_nets],
+            target_networks=[net.state_dict() for net in self.target_nets],
+            optimizers=(
+                [optimizer.state_dict() for optimizer in self.optimizers]
+                if include_optimizers
+                else None
+            ),
+            last_episode_log=asdict(logs[-1]) if logs else None,
+            evaluation_summary=summary,
+        )
 
     def _write_checkpoint_payload(
         self,
         path: str | Path,
-        payload: dict[str, Any],
+        payload: CheckpointPayloadV1,
     ) -> Path:
         """Write a pre-built checkpoint payload to disk."""
-        checkpoint_path = Path(path)
-        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
-        torch.save(payload, checkpoint_path)
-        return checkpoint_path
+        return write_checkpoint(Path(path), payload)
 
     def _load_checkpoint_payload(
         self,
-        payload: dict[str, Any],
+        payload: CheckpointPayloadV1,
         *,
         checkpoint_path: str | Path | None = None,
         load_optimizers: bool = True,
-    ) -> dict[str, Any]:
+    ) -> CheckpointPayloadV1:
         """Load trainer weights/state from a checkpoint payload."""
-        for net, state in zip(self.q_nets, payload["q_networks"]):
+        for net, state in zip(self.q_nets, payload.q_networks):
             net.load_state_dict(state)
-        for net, state in zip(self.target_nets, payload["target_networks"]):
+        for net, state in zip(self.target_nets, payload.target_networks):
             net.load_state_dict(state)
             net.eval()
 
         optimizer_loaded = False
-        if load_optimizers and "optimizers" in payload:
-            for optimizer, state in zip(self.optimizers, payload["optimizers"]):
+        if load_optimizers and payload.optimizers is not None:
+            for optimizer, state in zip(self.optimizers, payload.optimizers):
                 optimizer.load_state_dict(state)
             optimizer_loaded = True
 
         self._loaded_checkpoint_metadata = {
             "path": str(checkpoint_path) if checkpoint_path is not None else None,
-            "checkpoint_kind": payload.get("checkpoint_kind"),
-            "episode": payload.get("episode"),
-            "checkpoint_rule": payload.get("checkpoint_rule", {}),
+            "checkpoint_kind": payload.checkpoint_kind,
+            "episode": payload.episode,
+            "checkpoint_rule": payload.checkpoint_rule.to_dict(),
             "optimizer_loaded": optimizer_loaded,
-            "evaluation_summary": payload.get("evaluation_summary"),
+            "evaluation_summary": copy.deepcopy(payload.evaluation_summary),
         }
         return payload
 
@@ -925,11 +929,12 @@ class MODQNTrainer:
         """Restore the in-memory best-eval checkpoint into the live trainer."""
         if self._best_eval_payload is None:
             raise ValueError("No best-eval checkpoint payload is available")
-        return self._load_checkpoint_payload(
+        payload = self._load_checkpoint_payload(
             copy.deepcopy(self._best_eval_payload),
             checkpoint_path="<in-memory-best-eval>",
             load_optimizers=load_optimizers,
         )
+        return payload.to_dict()
 
     def load_checkpoint(
         self,
@@ -939,16 +944,16 @@ class MODQNTrainer:
     ) -> dict[str, Any]:
         """Load trainer weights/state from a checkpoint file."""
         checkpoint_path = Path(path)
-        payload = torch.load(
+        payload = read_checkpoint(
             checkpoint_path,
             map_location=self.device,
-            weights_only=False,
         )
-        return self._load_checkpoint_payload(
+        loaded = self._load_checkpoint_payload(
             payload,
             checkpoint_path=checkpoint_path,
             load_optimizers=load_optimizers,
         )
+        return loaded.to_dict()
 
     # -- training loop ------------------------------------------------------
 
