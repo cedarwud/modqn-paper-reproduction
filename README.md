@@ -91,6 +91,12 @@ checked-in `tests/fixtures/sample-bundle-v1/` fixture includes the
 optional `policyDiagnostics` row object and matching manifest
 disclosure.
 
+For current interpretation of the newer Phase 04 materials, also read
+`artifacts/phase-04-current-state-2026-04-19.md`. That note treats the
+Phase 04 kickoff / slice docs and local semantic-golden surfaces as
+approved **internal hardening direction**, but not yet as a landed
+change to the producer's frozen external contract.
+
 The Phase 02 export bundle freeze is now landed as the Phase 03A
 `phase-03a-replay-bundle-v1` surface (see
 `docs/phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md` and
@@ -103,6 +109,24 @@ reopen surface is now the landed
 `docs/phases/phase-03b-ntn-sim-core-producer-diagnostics-export-sdd.md`.
 Further work should treat that additive diagnostics shape as the current
 producer authority.
+
+## Current Integration Guidance
+
+Before any further refactor starts, use this repo boundary:
+
+1. `modqn-paper-reproduction` remains the standalone Python-first
+   producer / exporter / truth-source.
+2. The frozen external producer surfaces remain:
+   - Phase 03A replay bundle contract,
+   - Phase 03B additive `policyDiagnostics` surface,
+   - `tests/fixtures/sample-bundle-v1/`,
+   - baseline / closeout claim boundary,
+   - strict resolved-run config guardrails.
+3. The Phase 04 surfaces are internal hardening materials for future
+   cleanup. They do **not** currently replace the Phase 03A / 03B
+   contract as the downstream consumer authority.
+4. Future globe-centric or `ntn-sim-core` consumer work should continue
+   integrating against exported artifacts, not trainer internals.
 
 ## Directory Layout
 
@@ -218,7 +242,12 @@ Training entrypoints now hard-reject the paper-envelope config and require a res
 9. `docs/phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
 10. `docs/phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
 11. `docs/phases/phase-03b-ntn-sim-core-producer-diagnostics-export-sdd.md`
-12. `docs/assumptions/modqn-reproduction-assumption-register.md`
+12. `artifacts/phase-04-current-state-2026-04-19.md`
+13. `docs/phases/phase-04-readme-summary.md`
+14. `docs/phases/phase-04-refactor-contract-spine-sdd.md`
+15. `docs/phases/phase-04a-refactor-semantic-golden-sdd.md`
+16. `docs/phases/phase-04b-refactor-training-artifact-model-sdd.md`
+17. `docs/assumptions/modqn-reproduction-assumption-register.md`
 
 ## Intended Deliverables
 

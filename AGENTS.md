@@ -61,9 +61,18 @@ read:
 1. `docs/phases/phase-01d-reproduction-reopen-gate-sdd.md`
 2. `artifacts/phase-01d-reopen-trigger-check-2026-04-16-producer-diagnostics.md`
 
+For current interpretation of the newer Phase 04 refactor materials,
+also read:
+
+1. `artifacts/phase-04-current-state-2026-04-19.md`
+2. `docs/phases/phase-04-readme-summary.md`
+3. `docs/phases/phase-04-refactor-contract-spine-sdd.md`
+4. `docs/phases/phase-04a-refactor-semantic-golden-sdd.md`
+5. `docs/phases/phase-04b-refactor-training-artifact-model-sdd.md`
+
 ## Current State Snapshot
 
-As of `2026-04-16`, the repo is a working standalone baseline
+As of `2026-04-19`, the repo is a working standalone baseline
 reproduction surface.
 The frozen comparison-baseline bundle remains valid, and both the
 paper-faithful scenario-correction follow-on and the comparator-protocol
@@ -90,6 +99,9 @@ What is already true:
     for additive producer diagnostics export
 12. the Phase 03B producer-owned policy diagnostics slice is now landed
     as an exporter-only additive surface over the frozen replay bundle
+13. the newer Phase 04 materials describe internal hardening direction
+    only and do not yet supersede the landed Phase 03A / 03B producer
+    authority
 
 What is not yet established:
 
@@ -103,6 +115,8 @@ What is not yet established:
    diagnosis
 7. downstream consumer adoption of the exported optional diagnostics
    surface is still separate follow-on work
+8. any repo-wide landed promotion of the Phase 04 internal hardening
+   slices
 
 ## Current Guardrails
 
@@ -117,3 +131,7 @@ What is not yet established:
 7. `docs/phases/phase-01d-reproduction-reopen-gate-sdd.md` is only a
    standby gate; it does not by itself authorize renewed reproduction
    implementation.
+8. Treat `artifacts/phase-04-current-state-2026-04-19.md` as the
+   interpretation note for Phase 04. Do not present Phase 04 kickoff,
+   Slice A, or Slice B documents as landed producer-contract changes
+   unless a later explicit landed status note says so.

@@ -16,6 +16,11 @@ For the landed bounded reopen execution status, also read
 `artifacts/phase-03b-producer-diagnostics-export-status-2026-04-16.md`,
 which records the producer-side prerequisite now established for
 downstream consumer promotion.
+For current interpretation of the newer Phase 04 materials, also read
+`artifacts/phase-04-current-state-2026-04-19.md`. That note keeps
+Phase 03A / 03B as the landed external producer authority and treats
+Phase 04 kickoff / slice documents as in-flight internal hardening
+surfaces until a later landed status note explicitly promotes them.
 
 ## Read Order
 
@@ -31,6 +36,11 @@ downstream consumer promotion.
 10. `phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
 11. `phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
 12. `phases/phase-03b-ntn-sim-core-producer-diagnostics-export-sdd.md`
+13. `../artifacts/phase-04-current-state-2026-04-19.md`
+14. `phases/phase-04-readme-summary.md`
+15. `phases/phase-04-refactor-contract-spine-sdd.md`
+16. `phases/phase-04a-refactor-semantic-golden-sdd.md`
+17. `phases/phase-04b-refactor-training-artifact-model-sdd.md`
 
 ## Purpose Split
 
@@ -39,6 +49,6 @@ downstream consumer promotion.
 2. `decisions/`
    Records architectural decisions and rationale.
 3. `phases/`
-   Records phase-by-phase SDDs, including the explicit follow-on tracks, the standby reopen gate, and any later bounded reopen execution surfaces.
+   Records phase-by-phase SDDs, including the explicit follow-on tracks, the standby reopen gate, any later bounded reopen execution surfaces, and draft internal-hardening plans that do not automatically supersede landed producer authority.
 4. `assumptions/`
    Tracks reproduction assumptions that are not fully fixed by the paper.
