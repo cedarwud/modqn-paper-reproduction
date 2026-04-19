@@ -72,6 +72,7 @@ also read:
 6. `artifacts/phase-04b-training-artifact-model-status-2026-04-19.md`
 7. `docs/phases/phase-04c-refactor-bundle-layer-split-sdd.md`
 8. `artifacts/phase-04c-bundle-layer-split-status-2026-04-19.md`
+9. `docs/phases/phase-04d-refactor-runtime-spine-split-sdd.md`
 
 ## Current State Snapshot
 

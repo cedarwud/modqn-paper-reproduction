@@ -55,3 +55,8 @@ Short read before the detailed Phase 04 docs:
     fixture-tools modules, adds `artifacts/compat.py`, and single-sources
     `ReplaySummary` across `manifest.replaySummary` and
     `evaluation.summary.replay_timeline`.
+15. `phase-04d-refactor-runtime-spine-split-sdd.md`
+    Draft execution SDD for Phase 04 Slice D. Plans the `runtime/`
+    package split for `TrainerConfig`, state encoding, objective math,
+    replay buffer, Q-network, checkpoint payload, evaluation, and replay
+    runner while preserving `algorithms/modqn.py` as a façade.

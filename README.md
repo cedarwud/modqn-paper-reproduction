@@ -255,7 +255,8 @@ Training entrypoints now hard-reject the paper-envelope config and require a res
 15. `docs/phases/phase-04a-refactor-semantic-golden-sdd.md`
 16. `docs/phases/phase-04b-refactor-training-artifact-model-sdd.md`
 17. `docs/phases/phase-04c-refactor-bundle-layer-split-sdd.md`
-18. `docs/assumptions/modqn-reproduction-assumption-register.md`
+18. `docs/phases/phase-04d-refactor-runtime-spine-split-sdd.md`
+19. `docs/assumptions/modqn-reproduction-assumption-register.md`
 
 ## Intended Deliverables
 

@@ -43,6 +43,7 @@ follow-on work.
 16. `phases/phase-04a-refactor-semantic-golden-sdd.md`
 17. `phases/phase-04b-refactor-training-artifact-model-sdd.md`
 18. `phases/phase-04c-refactor-bundle-layer-split-sdd.md`
+19. `phases/phase-04d-refactor-runtime-spine-split-sdd.md`
 
 ## Purpose Split
 
