@@ -24,8 +24,17 @@ def run_export_command(
         else input_dir / "export-bundle"
     )
     try:
-        outputs = export_training_run(input_dir, output_dir)
-    except FileNotFoundError as exc:
+        outputs = export_training_run(
+            input_dir,
+            output_dir,
+            replay_start_time_s=float(args.replay_start_time_s),
+            replay_slot_count=(
+                None
+                if args.replay_slot_count is None
+                else int(args.replay_slot_count)
+            ),
+        )
+    except (FileNotFoundError, ValueError) as exc:
         print(f"[modqn-export] ERROR: {exc}", file=sys.stderr)
         return 2
 

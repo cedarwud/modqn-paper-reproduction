@@ -15,7 +15,13 @@ from ..artifacts import RunArtifactPaths, read_run_metadata, read_training_log
 from .replay_bundle import export_replay_bundle, validate_replay_bundle
 
 
-def export_training_run(input_dir: str | Path, output_dir: str | Path) -> dict[str, Path]:
+def export_training_run(
+    input_dir: str | Path,
+    output_dir: str | Path,
+    *,
+    replay_start_time_s: float = 0.0,
+    replay_slot_count: int | None = None,
+) -> dict[str, Path]:
     """Export a completed run artifact into CSV/PNG bundle surfaces."""
     in_dir = Path(input_dir)
     out_dir = Path(output_dir)
@@ -39,6 +45,8 @@ def export_training_run(input_dir: str | Path, output_dir: str | Path) -> dict[s
         in_dir,
         out_dir,
         metadata=metadata,
+        replay_start_time_s=replay_start_time_s,
+        replay_slot_count=replay_slot_count,
     )
     summary_path = write_json(
         evaluation_dir / "summary.json",

@@ -364,8 +364,10 @@ class StepEnvironment:
         self,
         rng: Generator,
         mobility_rng: Optional[Generator] = None,
+        *,
+        initial_time_s: float = 0.0,
     ) -> tuple[list[UserState], list[ActionMask], DiagnosticsReport]:
-        """Reset to t=0 and return initial states, masks, and diagnostics.
+        """Reset to the requested start time and return states, masks, and diagnostics.
 
         Parameters
         ----------
@@ -374,8 +376,18 @@ class StepEnvironment:
         mobility_rng : Generator, optional
             Separate RNG for user position generation.
             If None, uses *rng* (acceptable for Phase 1).
+        initial_time_s : float, optional
+            Orbital time offset in seconds for the reset state. This keeps the
+            producer in control of replay-window selection without changing the
+            scenario or consumer truth source.
         """
-        self._t_s = 0.0
+        if not math.isfinite(initial_time_s) or initial_time_s < 0.0:
+            raise ValueError(
+                "initial_time_s must be a finite value >= 0.0, "
+                f"got {initial_time_s!r}"
+            )
+
+        self._t_s = float(initial_time_s)
         self._step_index = 0
 
         # Generate user positions: scattered around the configured ground point.

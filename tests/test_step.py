@@ -158,6 +158,33 @@ class TestStateAssembly(unittest.TestCase):
             self.assertLessEqual(abs(east_km), 100.0 + 1e-6)
             self.assertLessEqual(abs(north_km), 45.0 + 1e-6)
 
+    def test_reset_can_start_from_nonzero_orbital_time(self) -> None:
+        cfg = StepConfig(num_users=1, user_lat_deg=40.0, user_lon_deg=116.0)
+        orbit = OrbitConfig(
+            num_satellites=4,
+            raan_deg=116.0,
+            initial_true_anomaly_offset_deg=40.0,
+        )
+        env = StepEnvironment(step_config=cfg, orbit_config=orbit)
+        rng = default_rng(42)
+
+        _, masks_at_zero, _ = env.reset(rng, initial_time_s=0.0)
+        visible_at_zero = [
+            sat_index
+            for sat_index in range(4)
+            if np.any(masks_at_zero[0].mask[sat_index * 7: (sat_index + 1) * 7])
+        ]
+        self.assertEqual(visible_at_zero, [0])
+
+        _, masks_at_offset, _ = env.reset(default_rng(42), initial_time_s=1063.0)
+        visible_at_offset = [
+            sat_index
+            for sat_index in range(4)
+            if np.any(masks_at_offset[0].mask[sat_index * 7: (sat_index + 1) * 7])
+        ]
+        self.assertEqual(visible_at_offset, [3])
+        self.assertAlmostEqual(env.time_s, 1063.0)
+
 
 # ---------------------------------------------------------------------------
 # 3. Action mask

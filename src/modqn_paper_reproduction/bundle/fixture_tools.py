@@ -148,6 +148,8 @@ def trim_replay_bundle_for_sample(
         source_full_handover_event_count=full_handover_count,
     )
     manifest["replaySummary"] = replay_summary.to_dict()
+    if "outputDir" in manifest:
+        manifest["outputDir"] = str(dst)
 
     optional_policy_diagnostics = manifest.get("optionalPolicyDiagnostics")
     if isinstance(optional_policy_diagnostics, dict):

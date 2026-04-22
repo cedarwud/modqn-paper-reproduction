@@ -161,6 +161,18 @@ def export_main(argv: list[str] | None = None) -> int:
         default=None,
         help="Directory to write exported CSV/PNG bundle surfaces.",
     )
+    parser.add_argument(
+        "--replay-start-time-s",
+        type=float,
+        default=0.0,
+        help="Optional orbital time offset in seconds for the exported replay window.",
+    )
+    parser.add_argument(
+        "--replay-slot-count",
+        type=int,
+        default=None,
+        help="Optional exported replay length in slots. Defaults to the episode length.",
+    )
     args = parser.parse_args(argv)
 
     from .orchestration.export_main import run_export_command

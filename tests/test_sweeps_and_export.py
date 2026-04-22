@@ -570,3 +570,51 @@ def test_export_cli_emits_bundle(tmp_path: Path) -> None:
         1 for value in first_row["decisionActionValidityMask"] if value
     )
     assert diagnostics["scalarizedMarginToRunnerUp"] >= 0.0
+
+
+def test_export_cli_accepts_custom_replay_window(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    export_dir = tmp_path / "export-windowed"
+
+    train_rc = train_main(
+        [
+            "--config",
+            RESOLVED_CONFIG,
+            "--episodes",
+            "1",
+            "--progress-every",
+            "0",
+            "--output-dir",
+            str(run_dir),
+        ]
+    )
+    assert train_rc == 0
+
+    export_rc = export_main(
+        [
+            "--input",
+            str(run_dir),
+            "--output-dir",
+            str(export_dir),
+            "--replay-start-time-s",
+            "12",
+            "--replay-slot-count",
+            "15",
+        ]
+    )
+    assert export_rc == 0
+
+    summary = json.loads((export_dir / "evaluation" / "summary.json").read_text())
+    assert summary["replay_timeline"]["slotCount"] == 15
+    manifest = json.loads((export_dir / "manifest.json").read_text())
+    replay_window = manifest["replayWindow"]
+    assert replay_window["startTimeSec"] == 12.0
+    assert replay_window["slotCount"] == 15
+    assert replay_window["selectionMode"] == "producer-configured-replay-window"
+
+    first_row = json.loads(
+        (export_dir / "timeline" / "step-trace.jsonl").open().readline()
+    )
+    assert first_row["slotIndex"] == 1
+    assert first_row["decisionTimeSec"] == 12.0
+    assert first_row["timeSec"] == 13.0

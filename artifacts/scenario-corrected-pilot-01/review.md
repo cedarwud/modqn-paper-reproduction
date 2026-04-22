@@ -39,6 +39,33 @@
   - `mean_r3 = -173.7448`
   - `mean_total_handovers = 93.8`
 
+## Truthful Demo Qualification Export
+
+- reviewed producer-backed candidate:
+  `artifacts/scenario-corrected-pilot-01/export-bundle/`
+- replay window selection:
+  `replay_start_time_s=430`, `replay_slot_count=650`
+- producer-side curation:
+  trimmed to `user-0` only after export so the candidate stays small while
+  preserving producer-owned truth
+- qualification summary:
+  - `distinct visible satellites = sat-0, sat-3`
+  - `visible-link rows = 43`
+  - `inter-satellite-handover rows = 1`
+  - `slot count = 650`
+  - `user count = 1`
+
+Root cause for the earlier blocked candidate:
+
+- the original export always replayed from `t=0` for the default
+  `10`-slot episode window,
+- under the Beijing follow-on orbit surface that window only exposed
+  `sat-0`, so the bundle could show visible links and same-satellite
+  beam switches but not multi-satellite visible coverage or an
+  inter-satellite handover,
+- the fix was therefore producer-side replay-window selection, not any
+  consumer-side fixture patching or JSON editing.
+
 ## Interpretation
 
 - The follow-on scenario-corrected runtime surface is stable enough for

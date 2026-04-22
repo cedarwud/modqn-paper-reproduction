@@ -502,6 +502,7 @@ def test_trim_replay_bundle_round_trip(tmp_path: Path) -> None:
     assert sample_subset["sourceFullRowCount"] == full_row_count
     assert sample_subset["sourceFullSlotCount"] == full_slot_count
     assert sample_subset["sourceFullHandoverEventCount"] == full_handover_count
+    assert manifest["outputDir"] == str(trimmed_bundle)
     assert "sampleNote" in manifest
 
 

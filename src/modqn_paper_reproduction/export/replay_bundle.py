@@ -63,10 +63,20 @@ def export_replay_bundle(
     output_dir: str | Path,
     *,
     metadata: RunMetadataV1,
+    replay_start_time_s: float = 0.0,
+    replay_slot_count: int | None = None,
 ) -> dict[str, Any]:
     """Export the replay-complete Phase 03A producer bundle surfaces."""
     in_dir = Path(input_dir)
     out_dir = Path(output_dir)
+    if replay_start_time_s < 0.0:
+        raise ValueError(
+            f"replay_start_time_s must be >= 0.0, got {replay_start_time_s!r}"
+        )
+    if replay_slot_count is not None and replay_slot_count < 1:
+        raise ValueError(
+            f"replay_slot_count must be >= 1 when provided, got {replay_slot_count!r}"
+        )
     cfg = resolve_training_config_snapshot(metadata, artifact_dir=in_dir)
     trainer_cfg = build_trainer_config(cfg)
     seeds = metadata.seeds.to_dict()
@@ -108,7 +118,11 @@ def export_replay_bundle(
     env_seed_seq, mobility_seed_seq = np.random.SeedSequence(replay_seed).spawn(2)
     env_rng = np.random.default_rng(env_seed_seq)
     mobility_rng = np.random.default_rng(mobility_seed_seq)
-    states, masks, diagnostics = trainer.env.reset(env_rng, mobility_rng)
+    states, masks, diagnostics = trainer.env.reset(
+        env_rng,
+        mobility_rng,
+        initial_time_s=replay_start_time_s,
+    )
     encoded = trainer.encode_states(states)
 
     ground_lat_deg = float(trainer.env.config.user_lat_deg)
@@ -179,7 +193,11 @@ def export_replay_bundle(
                 handle.write(json.dumps(row) + "\n")
                 row_count += 1
 
-            if result.done:
+            stop_after_slot = (
+                replay_slot_count is not None
+                and result.step_index >= replay_slot_count
+            ) or (replay_slot_count is None and result.done)
+            if stop_after_slot:
                 break
 
             encoded = trainer.encode_states(result.user_states)
@@ -207,6 +225,17 @@ def export_replay_bundle(
         diagnostics_row_count=diagnostics_row_count,
         diagnostics_missing_row_count=diagnostics_missing_row_count,
     )
+    replay_window = None
+    if replay_start_time_s > 0.0 or replay_slot_count is not None:
+        replay_window = {
+            "startTimeSec": float(replay_start_time_s),
+            "slotCount": (
+                None
+                if replay_slot_count is None
+                else int(replay_slot_count)
+            ),
+            "selectionMode": "producer-configured-replay-window",
+        }
 
     manifest = {
         "paperId": metadata.paper_id,
@@ -258,6 +287,8 @@ def export_replay_bundle(
         "replaySummary": replay_summary.to_dict(),
         "optionalPolicyDiagnostics": optional_policy_diagnostics,
     }
+    if replay_window is not None:
+        manifest["replayWindow"] = replay_window
     manifest_path = _write_json(out_dir / "manifest.json", manifest)
 
     return {
