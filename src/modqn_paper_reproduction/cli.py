@@ -178,3 +178,120 @@ def export_main(argv: list[str] | None = None) -> int:
     from .orchestration.export_main import run_export_command
 
     return run_export_command(args, paper_id=PAPER_ID)
+
+
+def beam_semantics_audit_main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="modqn-beam-semantics-audit")
+    parser.add_argument(
+        "--input",
+        required=True,
+        help="Path to a completed run artifact directory.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="Directory to write beam-semantic audit outputs.",
+    )
+    parser.add_argument(
+        "--evaluation-seed",
+        type=int,
+        default=None,
+        help="Optional deterministic replay seed override.",
+    )
+    parser.add_argument(
+        "--max-steps",
+        type=int,
+        default=None,
+        help="Optional limit on audited decision steps.",
+    )
+    parser.add_argument(
+        "--max-users",
+        type=int,
+        default=None,
+        help="Optional limit on audited users per step.",
+    )
+    args = parser.parse_args(argv)
+
+    from .orchestration.beam_semantics_audit_main import (
+        run_beam_semantics_audit_command,
+    )
+
+    return run_beam_semantics_audit_command(args, paper_id=PAPER_ID)
+
+
+def beam_counterfactual_main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="modqn-beam-counterfactual")
+    parser.add_argument(
+        "--input",
+        required=True,
+        help="Path to a completed run artifact directory.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="Directory to write counterfactual evaluation outputs.",
+    )
+    parser.add_argument(
+        "--evaluation-seed",
+        type=int,
+        default=None,
+        help="Optional deterministic replay seed override.",
+    )
+    parser.add_argument(
+        "--max-steps",
+        type=int,
+        default=None,
+        help="Optional limit on replay steps for bounded evaluation.",
+    )
+    parser.add_argument(
+        "--max-users",
+        type=int,
+        default=None,
+        help="Optional limit on scored/compared users per step.",
+    )
+    args = parser.parse_args(argv)
+
+    from .orchestration.beam_counterfactual_main import (
+        run_beam_counterfactual_command,
+    )
+
+    return run_beam_counterfactual_command(args, paper_id=PAPER_ID)
+
+
+def atmospheric_sign_counterfactual_main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="modqn-atmospheric-sign-counterfactual")
+    parser.add_argument(
+        "--input",
+        required=True,
+        help="Path to a completed run artifact directory.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="Directory to write atmospheric-sign counterfactual outputs.",
+    )
+    parser.add_argument(
+        "--evaluation-seed",
+        type=int,
+        default=None,
+        help="Optional deterministic replay seed override.",
+    )
+    parser.add_argument(
+        "--max-steps",
+        type=int,
+        default=None,
+        help="Optional limit on replay steps for bounded evaluation.",
+    )
+    parser.add_argument(
+        "--max-users",
+        type=int,
+        default=None,
+        help="Optional limit on scored/compared users per step.",
+    )
+    args = parser.parse_args(argv)
+
+    from .orchestration.atmospheric_sign_counterfactual_main import (
+        run_atmospheric_sign_counterfactual_command,
+    )
+
+    return run_atmospheric_sign_counterfactual_command(args, paper_id=PAPER_ID)

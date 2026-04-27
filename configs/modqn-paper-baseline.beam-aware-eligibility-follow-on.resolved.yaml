@@ -1,0 +1,25 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: phase-01f
+  label: beam-aware-eligibility-follow-on
+  status: experimental
+  purpose: >
+    Beam-aware eligibility follow-on that preserves the frozen baseline
+    as the default surface while training and evaluating under one
+    nearest-beam-per-visible-satellite mask proxy.
+
+resolved_assumptions:
+  action_masking_semantics:
+    assumption_id: ASSUME-MODQN-REP-012
+    value:
+      eligibility_rule: nearest-beam-per-visible-satellite
+      eligibility_mode: nearest-beam-per-visible-satellite
+      action_catalog_order: satellite-major-beam-minor
+      invalid_action_q_value: -inf
+      note: >
+        Opt-in follow-on surface: for each visible satellite, keep only
+        the nearest beam eligible for a given user. The frozen baseline
+        remains unchanged and continues to expose all beams under a
+        visible satellite.

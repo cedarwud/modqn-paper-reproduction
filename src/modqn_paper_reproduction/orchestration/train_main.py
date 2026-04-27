@@ -238,6 +238,7 @@ def run_train_command(
                 user_area_height_km=env.config.user_area_height_km,
                 mobility_model=env.config.mobility_model,
                 random_wandering_max_turn_rad=env.config.random_wandering_max_turn_rad,
+                action_mask_eligibility_mode=env.config.action_mask_eligibility_mode,
             ),
             trainer_config=asdict(trainer_cfg),
             best_eval_summary=best_eval_summary,

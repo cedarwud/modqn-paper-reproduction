@@ -247,20 +247,26 @@ Training entrypoints now hard-reject the paper-envelope config and require a res
 5. `docs/phases/phase-01b-slice-c-targeted-high-load-follow-on-sdd.md`
 6. `docs/phases/phase-01c-comparator-protocol-experiment-sdd.md`
 7. `docs/phases/phase-01d-reproduction-reopen-gate-sdd.md`
-8. `docs/phases/phase-02-artifact-bridge-sdd.md`
-9. `docs/phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
-10. `docs/phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
-11. `docs/phases/phase-03b-ntn-sim-core-producer-diagnostics-export-sdd.md`
-12. `artifacts/phase-04-current-state-2026-04-19.md`
-13. `docs/phases/phase-04-readme-summary.md`
-14. `docs/phases/phase-04-refactor-contract-spine-sdd.md`
-15. `docs/phases/phase-04a-refactor-semantic-golden-sdd.md`
-16. `docs/phases/phase-04b-refactor-training-artifact-model-sdd.md`
-17. `docs/phases/phase-04c-refactor-bundle-layer-split-sdd.md`
-18. `docs/phases/phase-04d-refactor-runtime-spine-split-sdd.md`
-19. `docs/phases/phase-04e-refactor-sweep-analysis-plotting-split-sdd.md`
-20. `artifacts/phase-04e-sweep-analysis-plotting-split-status-2026-04-19.md`
-21. `docs/assumptions/modqn-reproduction-assumption-register.md`
+8. `docs/phases/phase-01e-beam-semantics-audit-reopen-sdd.md`
+9. `artifacts/phase-01e-beam-semantics-status-2026-04-22.md`
+10. `docs/phases/phase-01f-beam-aware-eligibility-follow-on-sdd.md`
+11. `docs/phases/phase-01g-atmospheric-sign-counterfactual-sdd.md`
+12. `artifacts/phase-01g-atmospheric-sign-status-2026-04-22.md`
+13. `artifacts/modqn-current-direction-2026-04-22.md`
+14. `docs/phases/phase-02-artifact-bridge-sdd.md`
+15. `docs/phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
+16. `docs/phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
+17. `docs/phases/phase-03b-ntn-sim-core-producer-diagnostics-export-sdd.md`
+18. `artifacts/phase-04-current-state-2026-04-19.md`
+19. `docs/phases/phase-04-readme-summary.md`
+20. `docs/phases/phase-04-refactor-contract-spine-sdd.md`
+21. `docs/phases/phase-04a-refactor-semantic-golden-sdd.md`
+22. `docs/phases/phase-04b-refactor-training-artifact-model-sdd.md`
+23. `docs/phases/phase-04c-refactor-bundle-layer-split-sdd.md`
+24. `docs/phases/phase-04d-refactor-runtime-spine-split-sdd.md`
+25. `docs/phases/phase-04e-refactor-sweep-analysis-plotting-split-sdd.md`
+26. `artifacts/phase-04e-sweep-analysis-plotting-split-status-2026-04-19.md`
+27. `docs/assumptions/modqn-reproduction-assumption-register.md`
 
 ## Intended Deliverables
 

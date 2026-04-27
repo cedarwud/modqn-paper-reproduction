@@ -105,6 +105,7 @@ class StepConfig:
     r3_empty_beam_throughput: float = 0.0
 
     # ASSUME-MODQN-REP-020/021: user mobility and scatter
+    action_mask_eligibility_mode: str = "satellite-visible-all-beams"
     user_heading_stride_rad: float = USER_HEADING_STRIDE_RAD
     user_scatter_radius_km: float = USER_SCATTER_RADIUS_KM
     user_scatter_distribution: str = "uniform-circular"
@@ -134,6 +135,16 @@ class StepConfig:
                 "r3_gap_scope must be one of "
                 "{'all-reachable-beams', 'occupied-beams-only'}, "
                 f"got {self.r3_gap_scope!r}"
+            )
+        if self.action_mask_eligibility_mode not in {
+            "satellite-visible-all-beams",
+            "nearest-beam-per-visible-satellite",
+        }:
+            raise ValueError(
+                "action_mask_eligibility_mode must be one of "
+                "{'satellite-visible-all-beams', "
+                "'nearest-beam-per-visible-satellite'}, "
+                f"got {self.action_mask_eligibility_mode!r}"
             )
         if self.user_scatter_radius_km < 0:
             raise ValueError(
@@ -206,8 +217,9 @@ class UserState:
 class ActionMask:
     """Valid-action mask for one user at time t.
 
-    mask[j] = True means action j is eligible (satellite visible above 0°).
-    Per ASSUME-MODQN-REP-012, ineligible actions get Q = -inf before argmax.
+    mask[j] = True means action j is eligible under the active
+    visibility/beam-eligibility mode. Per ASSUME-MODQN-REP-012,
+    ineligible actions get Q = -inf before argmax.
     """
 
     mask: np.ndarray
@@ -548,9 +560,18 @@ class StepEnvironment:
             # -- action mask (ASSUME-MODQN-REP-012) --
             mask_arr = np.zeros(LK, dtype=bool)
             for vr in vis_all:
-                if vr.is_visible:
-                    base = vr.sat_index * K
+                if not vr.is_visible:
+                    continue
+                base = vr.sat_index * K
+                if self._step_cfg.action_mask_eligibility_mode == "satellite-visible-all-beams":
                     mask_arr[base: base + K] = True
+                else:
+                    local_beam = self._beam.nearest_beam(
+                        sats[vr.sat_index],
+                        ulat,
+                        ulon,
+                    )
+                    mask_arr[base + local_beam] = True
 
             # -- channel quality: SNR to every beam --
             # NOTE (F3 follow-up): channel fading draws consume *rng*

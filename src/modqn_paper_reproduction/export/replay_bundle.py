@@ -270,6 +270,9 @@ def export_replay_bundle(
                 "latDeg": float(ground_lat_deg),
                 "lonDeg": float(ground_lon_deg),
             },
+            "actionMaskEligibilityMode": str(
+                trainer.env.config.action_mask_eligibility_mode
+            ),
             "userAreaDistribution": str(trainer.env.config.user_scatter_distribution),
             "userScatterRadiusKm": float(trainer.env.config.user_scatter_radius_km),
             "userAreaWidthKm": float(trainer.env.config.user_area_width_km),

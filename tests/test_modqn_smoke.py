@@ -81,6 +81,7 @@ def test_config_load():
     assert env.num_beams_total == 28  # 4 sats * 7 beams
     assert env.config.num_users == 100
     assert env.config.r3_gap_scope == "all-reachable-beams"
+    assert env.config.action_mask_eligibility_mode == "satellite-visible-all-beams"
     assert env.config.user_heading_stride_rad == 2.3998277
     assert env.config.user_scatter_radius_km == 50.0
 

@@ -1,5 +1,10 @@
 """Analysis and plotting helpers for landed sweep/export surfaces."""
 
+from .atmospheric_sign_counterfactual import (
+    export_atmospheric_sign_counterfactual_eval,
+)
+from .beam_counterfactual import export_counterfactual_eligibility_eval
+from .beam_semantics import export_beam_semantics_audit
 from .figures import export_figure_sweep_results
 from .reward_geometry import (
     build_reward_geometry_scale_table,
@@ -23,6 +28,9 @@ __all__ = [
     "build_reward_geometry_table_ii_frames",
     "build_table_ii_analysis_frames",
     "collect_reward_diagnostics",
+    "export_atmospheric_sign_counterfactual_eval",
+    "export_counterfactual_eligibility_eval",
+    "export_beam_semantics_audit",
     "export_figure_sweep_results",
     "export_reward_geometry_analysis",
     "export_table_ii_results",

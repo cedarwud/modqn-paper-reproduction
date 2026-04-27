@@ -190,6 +190,7 @@ class RuntimeEnvironmentV1:
     user_area_height_km: float
     mobility_model: str
     random_wandering_max_turn_rad: float
+    action_mask_eligibility_mode: str = "satellite-visible-all-beams"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -209,6 +210,7 @@ class RuntimeEnvironmentV1:
             "random_wandering_max_turn_rad": float(
                 self.random_wandering_max_turn_rad
             ),
+            "action_mask_eligibility_mode": self.action_mask_eligibility_mode,
         }
 
     @classmethod
@@ -229,6 +231,12 @@ class RuntimeEnvironmentV1:
             mobility_model=str(payload["mobility_model"]),
             random_wandering_max_turn_rad=float(
                 payload["random_wandering_max_turn_rad"]
+            ),
+            action_mask_eligibility_mode=str(
+                payload.get(
+                    "action_mask_eligibility_mode",
+                    "satellite-visible-all-beams",
+                )
             ),
         )
 

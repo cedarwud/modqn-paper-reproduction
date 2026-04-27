@@ -152,6 +152,8 @@ def _training_experiment_block(cfg: dict[str, Any]) -> dict[str, Any]:
 def build_step_config(cfg: dict[str, Any]) -> StepConfig:
     """Build StepConfig from the resolved-run YAML."""
     base = cfg.get("baseline", cfg)
+    mask_val = _resolved_assumption_value(cfg, "action_masking_semantics")
+    mask_val = mask_val if isinstance(mask_val, dict) else {}
 
     phi1 = 0.5
     phi2 = 1.0
@@ -207,6 +209,24 @@ def build_step_config(cfg: dict[str, Any]) -> StepConfig:
     random_wandering_max_turn_rad = float(
         mobility_val.get("max_turn_rad", math.pi / 4.0)
     )
+    eligibility_mode_raw = str(
+        mask_val.get(
+            "eligibility_mode",
+            mask_val.get("eligibility_rule", "satellite-visible-above-0deg-horizon"),
+        )
+    )
+    if eligibility_mode_raw == "satellite-visible-above-0deg-horizon":
+        action_mask_eligibility_mode = "satellite-visible-all-beams"
+    elif eligibility_mode_raw in {
+        "satellite-visible-all-beams",
+        "nearest-beam-per-visible-satellite",
+    }:
+        action_mask_eligibility_mode = eligibility_mode_raw
+    else:
+        raise ConfigValidationError(
+            "Resolved assumption 'action_masking_semantics' has unsupported "
+            f"eligibility mode/rule {eligibility_mode_raw!r}."
+        )
 
     return StepConfig(
         num_users=base.get("users", 100),
@@ -225,6 +245,7 @@ def build_step_config(cfg: dict[str, Any]) -> StepConfig:
         r3_empty_beam_throughput=float(
             r3_gap_val.get("empty_beam_throughput", 0.0)
         ),
+        action_mask_eligibility_mode=action_mask_eligibility_mode,
         user_heading_stride_rad=float(
             _required_mapping_field(
                 heading_val,

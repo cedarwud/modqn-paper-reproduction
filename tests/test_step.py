@@ -63,6 +63,10 @@ class TestStepConfig(unittest.TestCase):
         self.assertAlmostEqual(cfg.phi1, 0.5)
         self.assertAlmostEqual(cfg.phi2, 1.0)
         self.assertEqual(cfg.r3_gap_scope, "all-reachable-beams")
+        self.assertEqual(
+            cfg.action_mask_eligibility_mode,
+            "satellite-visible-all-beams",
+        )
         self.assertAlmostEqual(cfg.user_heading_stride_rad, USER_HEADING_STRIDE_RAD)
         self.assertAlmostEqual(cfg.user_scatter_radius_km, USER_SCATTER_RADIUS_KM)
         self.assertEqual(cfg.user_scatter_distribution, "uniform-circular")
@@ -95,6 +99,10 @@ class TestStepConfig(unittest.TestCase):
     def test_rejects_unknown_mobility_model(self) -> None:
         with self.assertRaises(ValueError):
             StepConfig(mobility_model="unknown")
+
+    def test_rejects_unknown_action_mask_eligibility_mode(self) -> None:
+        with self.assertRaises(ValueError):
+            StepConfig(action_mask_eligibility_mode="unknown")
 
 
 # ---------------------------------------------------------------------------
@@ -222,6 +230,29 @@ class TestActionMask(unittest.TestCase):
             self.assertTrue(
                 np.all(beam_slice) or not np.any(beam_slice),
                 f"Satellite {si}: mask should be all-or-nothing per satellite"
+            )
+
+    def test_mask_can_be_nearest_beam_per_visible_satellite(self) -> None:
+        env = StepEnvironment(
+            step_config=StepConfig(
+                num_users=1,
+                user_lat_deg=0.0,
+                user_lon_deg=0.0,
+                action_mask_eligibility_mode="nearest-beam-per-visible-satellite",
+            ),
+            orbit_config=OrbitConfig(num_satellites=4),
+            beam_config=BeamConfig(),
+            channel_config=ChannelConfig(),
+        )
+        rng = default_rng(42)
+        _, masks, _ = env.reset(rng)
+        m = masks[0].mask
+        for si in range(4):
+            beam_slice = m[si * 7: (si + 1) * 7]
+            self.assertIn(
+                int(np.sum(beam_slice)),
+                {0, 1},
+                f"Satellite {si}: nearest-beam mode should keep at most one beam valid",
             )
 
 
