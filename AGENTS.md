@@ -27,6 +27,25 @@ When details conflict, use this order:
 3. Use the repo-local virtual environment when running tests or training: `.venv/`.
 4. Keep active runtime assumptions visible in config, metadata, or both. Do not hide them in code-only defaults.
 
+## Environment Bootstrap
+
+For a new local environment, use:
+
+```bash
+python3 -m venv .venv
+env PIP_CACHE_DIR=/tmp/pip-cache .venv/bin/python -m pip install -r requirements.txt
+```
+
+If Matplotlib cannot write to the home config directory, prefix training,
+sweep, export, and pytest commands with:
+
+```bash
+env MPLCONFIGDIR=/tmp/modqn-mplconfig
+```
+
+Do not install dependencies into the system Python for repo work; use
+the repo-local `.venv/`.
+
 ## Artifact Rules
 
 1. Write training artifacts under `artifacts/`.
@@ -42,13 +61,19 @@ When details conflict, use this order:
 
 For a quick project-state handoff, read these before proposing new work:
 
-1. `artifacts/public-summary-2026-04-15-phase-01c-closeout.md`
-2. `artifacts/phase-01c-closeout-status-2026-04-15.md`
-3. `artifacts/phase-01b-closeout-status-2026-04-14.md`
-4. `artifacts/reproduction-status-2026-04-13.md`
-5. `artifacts/phase-01c-protocol-bounded-03/review.md`
-6. `artifacts/run-9000/anomaly-review.md`
-7. `docs/baseline-acceptance-checklist.md`
+1. `artifacts/modqn-current-direction-2026-04-22.md`
+2. `artifacts/public-summary-2026-04-15-phase-01c-closeout.md`
+3. `artifacts/phase-01c-closeout-status-2026-04-15.md`
+4. `artifacts/phase-01b-closeout-status-2026-04-14.md`
+5. `artifacts/reproduction-status-2026-04-13.md`
+6. `artifacts/phase-01c-protocol-bounded-03/review.md`
+7. `artifacts/run-9000/anomaly-review.md`
+8. `docs/baseline-acceptance-checklist.md`
+
+For regenerating curated OriginLab-ready plotting CSVs, also read:
+
+1. `docs/origin-plot-data-runbook.md`
+2. `artifacts/origin-plot-data/README.md`
 
 For the planned low-coupling `ntn-sim-core` presentation follow-on, also
 read:
@@ -60,6 +85,10 @@ read:
 
 1. `docs/phases/phase-01d-reproduction-reopen-gate-sdd.md`
 2. `artifacts/phase-01d-reopen-trigger-check-2026-04-16-producer-diagnostics.md`
+3. `artifacts/phase-01e-beam-semantics-status-2026-04-22.md`
+4. `artifacts/phase-01f-bounded-pilot-status-2026-04-22.md`
+5. `artifacts/phase-01g-atmospheric-sign-status-2026-04-22.md`
+6. `artifacts/modqn-current-direction-2026-04-22.md`
 
 For current interpretation of the newer Phase 04 refactor materials,
 also read:
@@ -78,12 +107,15 @@ also read:
 
 ## Current State Snapshot
 
-As of `2026-04-19`, the repo is a working standalone baseline
+As of `2026-04-22`, the repo is a working standalone baseline
 reproduction surface.
 The frozen comparison-baseline bundle remains valid, and both the
 paper-faithful scenario-correction follow-on and the comparator-protocol
 follow-on have now been closed as negative results rather than as
-upgrades to a full paper-faithful baseline.
+upgrades to a full paper-faithful baseline. Later bounded reopen work
+established a real beam-semantics issue and a useful beam-aware
+follow-on surface, but it did not authorize default long retraining or a
+new paper-faithful reproduction claim.
 
 What is already true:
 
@@ -117,6 +149,18 @@ What is already true:
     fifth internal hardening step
 18. later Phase 04 slices remain internal hardening direction only and
     do not supersede the landed Phase 03A / 03B producer authority
+19. Phase 01E established that the frozen baseline compresses the
+    beam-level decision surface and justifies one bounded beam-aware
+    follow-on
+20. Phase 01F established that the beam-aware eligibility follow-on
+    materially improves the bounded held-out surface and removes
+    beam-collapse / comparator-degeneration on the audited surface
+21. Phase 01G established that the corrected atmospheric sign has a
+    real but modest diagnostic effect and does not by itself justify a
+    new training branch
+22. curated OriginLab-ready plotting CSVs should be regenerated through
+    `docs/origin-plot-data-runbook.md` and tracked only under
+    `artifacts/origin-plot-data/`
 
 What is not yet established:
 
@@ -128,24 +172,27 @@ What is not yet established:
    dominance diagnosis
 6. the Phase 01C comparator-protocol check did not overturn the same
    diagnosis
-7. downstream consumer adoption of the exported optional diagnostics
-   surface is still separate follow-on work
+7. a broader globe-centric or same-page consumer presentation follow-on
+   remains separate work
 8. any landed Phase 04 internal hardening slice beyond Slice E
 
 ## Current Guardrails
 
 1. Do not start a new `9000`-episode long run by default.
-2. Do not silently replace the baseline with `configs/modqn-paper-baseline.reward-calibration.resolved.yaml`.
-3. Treat the reward-calibration config as an explicit experiment only.
-4. Use `docs/baseline-acceptance-checklist.md` as the freeze note for comparison-baseline scope.
-5. Treat Phase 01B and Phase 01C as closed unless a new explicitly
+2. Do not start a new `500`-episode run by default.
+3. Do not silently replace the baseline with `configs/modqn-paper-baseline.reward-calibration.resolved.yaml`.
+4. Treat the reward-calibration config as an explicit experiment only.
+5. Use `docs/baseline-acceptance-checklist.md` as the freeze note for comparison-baseline scope.
+6. Treat Phase 01B and Phase 01C as closed unless a new explicitly
    labeled reopen surface is created.
-6. If no new user direction is given, prefer freeze/disclosure over more
+7. If no new user direction is given, prefer freeze/disclosure over more
    retraining.
-7. `docs/phases/phase-01d-reproduction-reopen-gate-sdd.md` is only a
+8. `docs/phases/phase-01d-reproduction-reopen-gate-sdd.md` is only a
    standby gate; it does not by itself authorize renewed reproduction
    implementation.
-8. Treat `artifacts/phase-04-current-state-2026-04-19.md` as the
+9. Treat `artifacts/modqn-current-direction-2026-04-22.md` as the
+   current stop/recommendation note after Phase 01E / 01F / 01G.
+10. Treat `artifacts/phase-04-current-state-2026-04-19.md` as the
    interpretation note for Phase 04. Slice A semantic-golden tests,
    Slice B's training-artifact model seam, Slice C's bundle-layer
    split, Slice D's runtime-spine split, and Slice E's

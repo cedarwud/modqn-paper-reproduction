@@ -1,6 +1,8 @@
 # Phase 01E: Beam Semantics Audit Reopen SDD
 
-**Status:** Proposed bounded reopen SDD  
+**Status:** Executed bounded reopen SDD; closed by
+[`../../artifacts/phase-01e-beam-semantics-status-2026-04-22.md`](../../artifacts/phase-01e-beam-semantics-status-2026-04-22.md)
+
 **Date:** `2026-04-22`  
 **Depends on:**
 

@@ -1,14 +1,17 @@
 # Phase 01F: Beam-Aware Eligibility Follow-On SDD
 
-**Status:** Proposed bounded follow-on SDD  
+**Status:** Executed bounded follow-on SDD; closed by
+[`../../artifacts/phase-01f-bounded-pilot-status-2026-04-22.md`](../../artifacts/phase-01f-bounded-pilot-status-2026-04-22.md)
+
 **Date:** `2026-04-22`
 
 ## 1. Depends On
 
 1. [`phase-01e-beam-semantics-audit-reopen-sdd.md`](./phase-01e-beam-semantics-audit-reopen-sdd.md)
 2. [`../../artifacts/phase-01e-beam-semantics-status-2026-04-22.md`](../../artifacts/phase-01e-beam-semantics-status-2026-04-22.md)
-3. [`../../artifacts/codex-pilot-200ep-2026-04-22/beam-semantics-audit/review.md`](../../artifacts/codex-pilot-200ep-2026-04-22/beam-semantics-audit/review.md)
-4. [`../../artifacts/codex-pilot-200ep-2026-04-22/beam-counterfactual-audit/review.md`](../../artifacts/codex-pilot-200ep-2026-04-22/beam-counterfactual-audit/review.md)
+
+The raw generated audit directories referenced by the status note are
+output artifacts and may not be present in a clean checkout.
 
 ## 2. Purpose
 

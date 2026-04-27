@@ -2,9 +2,13 @@
 
 Current landed producer authority stops at the Phase 03A replay bundle
 contract plus the Phase 03B additive diagnostics export. Under Phase 04,
-Slices A / B / C / D are now landed as internal guardrail slices, while
-the broader cleanup track still does not revise the frozen external
-contract.
+Slices A / B / C / D / E are now landed as internal guardrail slices,
+while the broader cleanup track still does not revise the frozen
+external contract.
+
+For the latest reproduction/retraining stop recommendation, read
+`../../artifacts/modqn-current-direction-2026-04-22.md` before opening a
+new experimental surface.
 
 Short read before the detailed Phase 04 docs:
 
@@ -21,17 +25,23 @@ Short read before the detailed Phase 04 docs:
 5. `phase-01d-reproduction-reopen-gate-sdd.md`
    Standby reopen gate that defines when reproduction work may be restarted after the Phase 01C stop.
 6. `phase-01e-beam-semantics-audit-reopen-sdd.md`
-   Proposed bounded reopen slice for evaluating whether the current
+   Bounded reopen slice for evaluating whether the current
    beam-semantic surface collapses comparator meaning strongly enough to
-   justify any later follow-on work.
+   justify any later follow-on work. See
+   `../../artifacts/phase-01e-beam-semantics-status-2026-04-22.md` for
+   the landed evaluation status.
 7. `phase-01f-beam-aware-eligibility-follow-on-sdd.md`
-   Proposed bounded training follow-on after `Phase 01E` established
+   Bounded training follow-on after `Phase 01E` established
    that one beam-aware eligibility proxy has material downstream
-   effects.
+   effects. See
+   `../../artifacts/phase-01f-bounded-pilot-status-2026-04-22.md` for
+   the landed bounded-pilot status.
 8. `phase-01g-atmospheric-sign-counterfactual-sdd.md`
-   Proposed evaluation-only follow-on after `Phase 01F` to measure how
+   Evaluation-only follow-on after `Phase 01F` to measure how
    much `ASSUME-MODQN-REP-009` still drives reward geometry and policy
-   behavior under the preserved checkpoint surface.
+   behavior under the preserved checkpoint surface. See
+   `../../artifacts/phase-01g-atmospheric-sign-status-2026-04-22.md` for
+   the landed evaluation status.
 9. `phase-02-artifact-bridge-sdd.md`
    Stable export bundle from Python reproduction to external consumers.
 10. `phase-03-ntn-sim-core-visual-integration-sdd.md`

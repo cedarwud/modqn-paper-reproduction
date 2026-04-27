@@ -31,6 +31,7 @@
       "latDeg": 0.0,
       "lonDeg": 0.0
     },
+    "actionMaskEligibilityMode": "satellite-visible-all-beams",
     "userAreaDistribution": "uniform-circular",
     "userScatterRadiusKm": 50.0,
     "userAreaWidthKm": 0.0,

@@ -34,6 +34,8 @@ artifacts/*/*
 !artifacts/*/review.md
 !artifacts/*/anomaly-review.md
 !artifacts/*/analysis*.md
+!artifacts/origin-plot-data/
+!artifacts/origin-plot-data/**
 
 # OS / editor noise
 .DS_Store

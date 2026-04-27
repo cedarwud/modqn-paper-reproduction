@@ -1,6 +1,8 @@
 # Phase 01G: Atmospheric-Sign Counterfactual Audit SDD
 
-**Status:** Proposed evaluation-only follow-on SDD  
+**Status:** Executed evaluation-only follow-on SDD; closed by
+[`../../artifacts/phase-01g-atmospheric-sign-status-2026-04-22.md`](../../artifacts/phase-01g-atmospheric-sign-status-2026-04-22.md)
+
 **Date:** `2026-04-22`
 
 ## 1. Depends On

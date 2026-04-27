@@ -1,0 +1,21 @@
+suite,figure_id,parameter_name,parameter_label,parameter_unit,parameter_value,method,weight_label,w1,w2,w3,mean_scalar_reward,std_scalar_reward,policy_episode,eval_seed_count,training_episodes,checkpoint_kind
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.0,DQN_scalar,0.5/0.3/0.2,0.5,0.3,0.2,52.26321317253104,0.16653140370045322,49,5,50,best-weighted-reward-on-eval
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.0,DQN_throughput,0.5/0.3/0.2,0.5,0.3,0.2,52.27521317253105,0.1661963570800832,49,5,50,best-weighted-reward-on-eval
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.0,MODQN,0.5/0.3/0.2,0.5,0.3,0.2,52.27521317253105,0.1661963570800832,49,5,50,best-weighted-reward-on-eval
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.0,RSS_max,0.5/0.3/0.2,0.5,0.3,0.2,52.26321317253104,0.16653140370045322,-1,5,0,not-applicable
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.2,DQN_scalar,0.5/0.3/0.2,0.5,0.3,0.2,52.255222578048844,0.1665229975709281,49,5,50,best-weighted-reward-on-eval
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.2,DQN_throughput,0.5/0.3/0.2,0.5,0.3,0.2,52.267222578048845,0.16618469674224512,49,5,50,best-weighted-reward-on-eval
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.2,MODQN,0.5/0.3/0.2,0.5,0.3,0.2,52.267222578048845,0.16618469674224512,49,5,50,best-weighted-reward-on-eval
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.2,RSS_max,0.5/0.3/0.2,0.5,0.3,0.2,52.255222578048844,0.1665229975709281,-1,5,0,not-applicable
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.4,DQN_scalar,0.5/0.3/0.2,0.5,0.3,0.2,52.2470075305936,0.16651462583019078,49,5,50,best-weighted-reward-on-eval
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.4,DQN_throughput,0.5/0.3/0.2,0.5,0.3,0.2,52.259007530593614,0.1661730689626825,49,5,50,best-weighted-reward-on-eval
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.4,MODQN,0.5/0.3/0.2,0.5,0.3,0.2,52.259007530593614,0.1661730689626825,49,5,50,best-weighted-reward-on-eval
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.4,RSS_max,0.5/0.3/0.2,0.5,0.3,0.2,52.2470075305936,0.16651462583019078,-1,5,0,not-applicable
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.6,DQN_scalar,0.5/0.3/0.2,0.5,0.3,0.2,52.23856848964682,0.16650609937819852,49,5,50,best-weighted-reward-on-eval
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.6,DQN_throughput,0.5/0.3/0.2,0.5,0.3,0.2,52.250568489646824,0.16616128355841,49,5,50,best-weighted-reward-on-eval
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.6,MODQN,0.5/0.3/0.2,0.5,0.3,0.2,52.250568489646824,0.16616128355841,49,5,50,best-weighted-reward-on-eval
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.6,RSS_max,0.5/0.3/0.2,0.5,0.3,0.2,52.23856848964682,0.16650609937819852,-1,5,0,not-applicable
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.8,DQN_scalar,0.5/0.3/0.2,0.5,0.3,0.2,52.22990558738703,0.16649741001181392,49,5,50,best-weighted-reward-on-eval
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.8,DQN_throughput,0.5/0.3/0.2,0.5,0.3,0.2,52.24190558738703,0.1661493354143996,49,5,50,best-weighted-reward-on-eval
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.8,MODQN,0.5/0.3/0.2,0.5,0.3,0.2,52.24190558738703,0.1661493354143996,49,5,50,best-weighted-reward-on-eval
+fig-6,Fig. 6,satellite_speed_km_s,Satellite Speed,km/s,7.8,RSS_max,0.5/0.3/0.2,0.5,0.3,0.2,52.22990558738703,0.16649741001181392,-1,5,0,not-applicable

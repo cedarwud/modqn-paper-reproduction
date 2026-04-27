@@ -1,0 +1,21 @@
+suite,figure_id,parameter_name,parameter_label,parameter_unit,parameter_value,method,weight_label,w1,w2,w3,mean_scalar_reward,std_scalar_reward,policy_episode,eval_seed_count,training_episodes,checkpoint_kind
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,30.0,DQN_scalar,0.5/0.3/0.2,0.5,0.3,0.2,52.2470075305936,0.16651462583019078,49,5,50,best-weighted-reward-on-eval
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,30.0,DQN_throughput,0.5/0.3/0.2,0.5,0.3,0.2,52.259007530593614,0.1661730689626825,49,5,50,best-weighted-reward-on-eval
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,30.0,MODQN,0.5/0.3/0.2,0.5,0.3,0.2,52.259007530593614,0.1661730689626825,49,5,50,best-weighted-reward-on-eval
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,30.0,RSS_max,0.5/0.3/0.2,0.5,0.3,0.2,52.2470075305936,0.16651462583019078,-1,5,0,not-applicable
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,60.0,DQN_scalar,0.5/0.3/0.2,0.5,0.3,0.2,52.24699811496746,0.16651897221110468,49,5,50,best-weighted-reward-on-eval
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,60.0,DQN_throughput,0.5/0.3/0.2,0.5,0.3,0.2,52.25899811496746,0.1661773780709147,49,5,50,best-weighted-reward-on-eval
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,60.0,MODQN,0.5/0.3/0.2,0.5,0.3,0.2,52.25899811496746,0.1661773780709147,49,5,50,best-weighted-reward-on-eval
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,60.0,RSS_max,0.5/0.3/0.2,0.5,0.3,0.2,52.24699811496746,0.16651897221110468,-1,5,0,not-applicable
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,90.0,DQN_scalar,0.5/0.3/0.2,0.5,0.3,0.2,52.246988085937616,0.16652329179299705,49,5,50,best-weighted-reward-on-eval
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,90.0,DQN_throughput,0.5/0.3/0.2,0.5,0.3,0.2,52.25898808593763,0.1661816620055637,49,5,50,best-weighted-reward-on-eval
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,90.0,MODQN,0.5/0.3/0.2,0.5,0.3,0.2,52.25898808593763,0.1661816620055637,49,5,50,best-weighted-reward-on-eval
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,90.0,RSS_max,0.5/0.3/0.2,0.5,0.3,0.2,52.246988085937616,0.16652329179299705,-1,5,0,not-applicable
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,120.0,DQN_scalar,0.5/0.3/0.2,0.5,0.3,0.2,52.24697756195077,0.16652759694711436,49,5,50,best-weighted-reward-on-eval
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,120.0,DQN_throughput,0.5/0.3/0.2,0.5,0.3,0.2,52.25897756195077,0.1661859306324273,49,5,50,best-weighted-reward-on-eval
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,120.0,MODQN,0.5/0.3/0.2,0.5,0.3,0.2,52.25897756195077,0.1661859306324273,49,5,50,best-weighted-reward-on-eval
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,120.0,RSS_max,0.5/0.3/0.2,0.5,0.3,0.2,52.24697756195077,0.16652759694711436,-1,5,0,not-applicable
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,150.0,DQN_scalar,0.5/0.3/0.2,0.5,0.3,0.2,52.24696660594941,0.16653200422360231,49,5,50,best-weighted-reward-on-eval
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,150.0,DQN_throughput,0.5/0.3/0.2,0.5,0.3,0.2,52.258966605949425,0.16619030152122127,49,5,50,best-weighted-reward-on-eval
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,150.0,MODQN,0.5/0.3/0.2,0.5,0.3,0.2,52.258966605949425,0.16619030152122127,49,5,50,best-weighted-reward-on-eval
+fig-5,Fig. 5,user_speed_kmh,User Speed,km/h,150.0,RSS_max,0.5/0.3/0.2,0.5,0.3,0.2,52.24696660594941,0.16653200422360231,-1,5,0,not-applicable

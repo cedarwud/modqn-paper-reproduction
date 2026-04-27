@@ -34,6 +34,13 @@ Current status:
 6. one bounded reopen slice has now landed as additive
    producer-diagnostics export only; this is not a broad reproduction
    restart
+7. later Phase 01E / 01F / 01G bounded reopen work established a real
+   beam-semantics issue, a useful beam-aware follow-on surface, and a
+   modest atmospheric-sign diagnostic effect, but still does not justify
+   new default long training
+8. the current recommendation is to stop active repair/retraining work,
+   keep the frozen baseline as the disclosed comparison authority, and
+   reopen only under a new explicit experimental question
 
 What exists now:
 
@@ -68,6 +75,9 @@ What exists now:
     artifacts, the split bundle-contract layer, the runtime spine, and
     the sweep/analysis/plotting seam without changing the external
     producer contract
+21. a curated `artifacts/origin-plot-data/` tracking surface plus
+    `docs/origin-plot-data-runbook.md` for regenerating OriginLab-ready
+    plotting CSVs from the reviewed sweep surfaces
 
 What does not exist yet:
 
@@ -78,18 +88,21 @@ What does not exist yet:
 4. a globe-centric or same-page consumer follow-on beyond the currently
    landed `ntn-sim-core` bundle / diagnostics consumption path
 
-The latest repo-level closeout authority remains
+For the current stop/recommendation state, read
+`artifacts/modqn-current-direction-2026-04-22.md` first. It interprets
+the later Phase 01E / 01F / 01G reopen work and records that more
+episodes are not justified right now.
+
+For the frozen comparison-baseline claim boundary, use
 `artifacts/phase-01c-closeout-status-2026-04-15.md`, with matching
 summary surface at
-`artifacts/public-summary-2026-04-15-phase-01c-closeout.md`.
+`artifacts/public-summary-2026-04-15-phase-01c-closeout.md`. Later
+Phase 01E / 01F / 01G work is follow-on evidence, not a silent
+replacement of that disclosed baseline.
 
-The latest reopen assessment is now
-`artifacts/phase-01d-reopen-trigger-check-2026-04-16-producer-diagnostics.md`,
-which allows one bounded export-oriented reopen slice only.
-
-That reopen slice is now recorded in
+For producer/export authority, use
 `artifacts/phase-03b-producer-diagnostics-export-status-2026-04-16.md`
-as the landed status note for this bounded producer-diagnostics slice.
+as the landed status note for the bounded producer-diagnostics slice.
 It established the producer-side prerequisite for downstream consumer
 promotion. The `ntn-sim-core` consumer-side diagnostics adoption is now
 landed in its shipped SDD set, while any broader globe-centric or
@@ -178,9 +191,13 @@ Create a virtual environment and install the project:
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[train]"
+env PIP_CACHE_DIR=/tmp/pip-cache .venv/bin/python -m pip install -r requirements.txt
 ```
+
+The explicit `PIP_CACHE_DIR` keeps bootstrap usable in sandboxed or
+read-only home-directory environments. If Matplotlib cannot write to
+`~/.config`, prefix training, sweep, export, and test commands with
+`MPLCONFIGDIR=/tmp/modqn-mplconfig`.
 
 Primary training commands:
 
@@ -198,6 +215,12 @@ Additional entrypoints:
 ./.venv/bin/python scripts/run_sweeps.py --config configs/modqn-paper-baseline.resolved-template.yaml --suite reward-geometry --input-table-ii artifacts/table-ii-200ep-01 --reference-run artifacts/run-9000 --output-dir artifacts/reward-geometry-01
 ./.venv/bin/python scripts/export_ntn_sim_core_bundle.py --input artifacts/pilot-02-best-eval --output-dir artifacts/pilot-02-best-eval/export-bundle
 ./.venv/bin/python scripts/generate_sample_bundle.py --output tests/fixtures/sample-bundle-v1 --episodes 1 --max-users 1
+```
+
+Validation:
+
+```bash
+env MPLCONFIGDIR=/tmp/modqn-mplconfig .venv/bin/python -m pytest tests -q
 ```
 
 `train_modqn.py` is a real training entrypoint and writes both the final checkpoint and
@@ -223,6 +246,11 @@ end-to-end on a one-episode smoke training and trims the timeline into a
 small, byte-stable `tests/fixtures/sample-bundle-v1/` fixture that downstream
 consumers (e.g. `ntn-sim-core`) can ingest without re-running training.
 
+To regenerate curated OriginLab-ready plotting CSVs, use
+`docs/origin-plot-data-runbook.md` instead of ad hoc sweep commands. It
+pins the documented episode counts for the reviewed baseline plot
+surface: `200` for `Table II`, and `50` for `Fig. 3` to `Fig. 6`.
+
 ## Config Surfaces
 
 This project intentionally separates two config roles:
@@ -242,42 +270,49 @@ Training entrypoints now hard-reject the paper-envelope config and require a res
 
 1. `docs/baseline-acceptance-checklist.md`
 2. `docs/decisions/ADR-001-separate-python-reproduction-project.md`
-3. `docs/phases/phase-01-python-baseline-reproduction-sdd.md`
-4. `docs/phases/phase-01b-paper-faithful-follow-on-sdd.md`
-5. `docs/phases/phase-01b-slice-c-targeted-high-load-follow-on-sdd.md`
-6. `docs/phases/phase-01c-comparator-protocol-experiment-sdd.md`
-7. `docs/phases/phase-01d-reproduction-reopen-gate-sdd.md`
-8. `docs/phases/phase-01e-beam-semantics-audit-reopen-sdd.md`
-9. `artifacts/phase-01e-beam-semantics-status-2026-04-22.md`
-10. `docs/phases/phase-01f-beam-aware-eligibility-follow-on-sdd.md`
-11. `docs/phases/phase-01g-atmospheric-sign-counterfactual-sdd.md`
-12. `artifacts/phase-01g-atmospheric-sign-status-2026-04-22.md`
-13. `artifacts/modqn-current-direction-2026-04-22.md`
-14. `docs/phases/phase-02-artifact-bridge-sdd.md`
-15. `docs/phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
-16. `docs/phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
-17. `docs/phases/phase-03b-ntn-sim-core-producer-diagnostics-export-sdd.md`
-18. `artifacts/phase-04-current-state-2026-04-19.md`
-19. `docs/phases/phase-04-readme-summary.md`
-20. `docs/phases/phase-04-refactor-contract-spine-sdd.md`
-21. `docs/phases/phase-04a-refactor-semantic-golden-sdd.md`
-22. `docs/phases/phase-04b-refactor-training-artifact-model-sdd.md`
-23. `docs/phases/phase-04c-refactor-bundle-layer-split-sdd.md`
-24. `docs/phases/phase-04d-refactor-runtime-spine-split-sdd.md`
-25. `docs/phases/phase-04e-refactor-sweep-analysis-plotting-split-sdd.md`
-26. `artifacts/phase-04e-sweep-analysis-plotting-split-status-2026-04-19.md`
-27. `docs/assumptions/modqn-reproduction-assumption-register.md`
+3. `artifacts/modqn-current-direction-2026-04-22.md`
+4. `docs/origin-plot-data-runbook.md`
+5. `docs/phases/phase-01-python-baseline-reproduction-sdd.md`
+6. `docs/phases/phase-01b-paper-faithful-follow-on-sdd.md`
+7. `docs/phases/phase-01b-slice-c-targeted-high-load-follow-on-sdd.md`
+8. `docs/phases/phase-01c-comparator-protocol-experiment-sdd.md`
+9. `docs/phases/phase-01d-reproduction-reopen-gate-sdd.md`
+10. `docs/phases/phase-01e-beam-semantics-audit-reopen-sdd.md`
+11. `artifacts/phase-01e-beam-semantics-status-2026-04-22.md`
+12. `docs/phases/phase-01f-beam-aware-eligibility-follow-on-sdd.md`
+13. `artifacts/phase-01f-bounded-pilot-status-2026-04-22.md`
+14. `docs/phases/phase-01g-atmospheric-sign-counterfactual-sdd.md`
+15. `artifacts/phase-01g-atmospheric-sign-status-2026-04-22.md`
+16. `docs/phases/phase-02-artifact-bridge-sdd.md`
+17. `docs/phases/phase-03-ntn-sim-core-visual-integration-sdd.md`
+18. `docs/phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
+19. `docs/phases/phase-03b-ntn-sim-core-producer-diagnostics-export-sdd.md`
+20. `artifacts/phase-04-current-state-2026-04-19.md`
+21. `docs/phases/phase-04-readme-summary.md`
+22. `docs/phases/phase-04-refactor-contract-spine-sdd.md`
+23. `docs/phases/phase-04a-refactor-semantic-golden-sdd.md`
+24. `docs/phases/phase-04b-refactor-training-artifact-model-sdd.md`
+25. `docs/phases/phase-04c-refactor-bundle-layer-split-sdd.md`
+26. `docs/phases/phase-04d-refactor-runtime-spine-split-sdd.md`
+27. `docs/phases/phase-04e-refactor-sweep-analysis-plotting-split-sdd.md`
+28. `artifacts/phase-04e-sweep-analysis-plotting-split-status-2026-04-19.md`
+29. `docs/assumptions/modqn-reproduction-assumption-register.md`
 
 ## Intended Deliverables
 
-Phase 1 should eventually produce:
+Phase 1 has produced:
 
 1. trained `MODQN`
 2. `RSS_max`, `DQN_throughput`, `DQN_scalar`, and `MODQN` evaluation outputs
 3. paper-style outputs for `Table II` and `Fig. 3` to `Fig. 6`
-4. figure-ready CSV/JSON data
+4. figure-ready CSV/JSON data plus curated OriginLab-ready CSV tracking
+   under `artifacts/origin-plot-data/`
 5. explicit assumption disclosures per run
 
-Phase 2 should freeze an exportable artifact bundle for `ntn-sim-core` ingestion.
+Phase 2's exportable artifact-bundle goal is landed through the promoted
+Phase 03A replay bundle surface.
 
-Phase 3 should map those artifacts into `ntn-sim-core` replay/overlay/3D presentation without moving the trainer itself into the platform repo.
+Phase 3A / 3B define the landed producer-side export and diagnostics
+surfaces for downstream consumption without moving the trainer into the
+platform repo. Broader globe-centric presentation remains separate
+consumer work.

@@ -49,6 +49,14 @@ _FIXTURE_PRIMARY_CHECKPOINT_PLACEHOLDER = "<fixture-primary-checkpoint>"
 _FIXTURE_SECONDARY_CHECKPOINT_PLACEHOLDER = "<fixture-secondary-checkpoint>"
 _FIXTURE_EXPORTED_AT = "FIXTURE-DETERMINISTIC-TIMESTAMP"
 _FIXTURE_ELAPSED_S = 0.0
+_GITKEEP = ".gitkeep"
+
+
+def _preserve_required_empty_dirs(target_dir: Path) -> None:
+    """Keep schema-required empty directories present in clean checkouts."""
+    sweeps_dir = target_dir / "evaluation" / "sweeps"
+    sweeps_dir.mkdir(parents=True, exist_ok=True)
+    (sweeps_dir / _GITKEEP).write_text("")
 
 
 def _normalize_fixture_manifest(target_dir: Path) -> ReplaySummary | None:
@@ -198,6 +206,7 @@ def main(argv: list[str] | None = None) -> int:
 
     normalized_replay_summary = _normalize_fixture_manifest(output_dir)
     _normalize_fixture_summary(output_dir, normalized_replay_summary)
+    _preserve_required_empty_dirs(output_dir)
     validate_replay_bundle(output_dir)
 
     print(

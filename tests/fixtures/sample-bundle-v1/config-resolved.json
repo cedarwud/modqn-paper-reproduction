@@ -150,6 +150,7 @@
       "assumption_id": "ASSUME-MODQN-REP-012",
       "value": {
         "eligibility_rule": "satellite-visible-above-0deg-horizon",
+        "eligibility_mode": "satellite-visible-all-beams",
         "action_catalog_order": "satellite-major-beam-minor",
         "invalid_action_q_value": "-inf"
       }

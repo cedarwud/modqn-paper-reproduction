@@ -1,0 +1,7 @@
+# Repo-local training/test bootstrap.
+#
+# Runtime dependencies are declared in pyproject.toml. This requirements
+# file installs the project in editable mode with the training and test
+# extras needed by agents that run smoke training, sweeps, exports, and
+# pytest validation.
+-e .[train,test]
