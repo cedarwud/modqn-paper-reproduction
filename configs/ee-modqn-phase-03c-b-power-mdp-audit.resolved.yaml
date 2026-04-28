@@ -1,0 +1,57 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: phase-03c-b
+  label: power-mdp-codebook-audit
+  method_family: EE-MODQN-power-MDP-new-extension
+  status: audit-only
+  purpose: >
+    Opt-in hierarchical handover plus centralized discrete beam-power codebook
+    audit. This is a new-extension / HOBS-inspired controller surface, not a
+    HOBS optimizer and not a paper-faithful MODQN baseline replacement.
+
+resolved_assumptions:
+  hobs_power_surface:
+    assumption_id: ASSUME-MODQN-REP-025
+    value:
+      mode: phase-03c-b-power-codebook
+      inactive_beam_policy: zero-w
+      power_codebook_profile: fixed-mid
+      power_codebook_levels_w: [0.5, 1.0, 2.0]
+      total_power_budget_w: 8.0
+      active_base_power_w: 0.25
+      load_scale_power_w: 0.35
+      load_exponent: 0.5
+      max_power_w: 2.0
+      units: linear-w
+      provenance: >
+        Phase 03C-B new-extension / HOBS-inspired centralized discrete
+        codebook controller. It exists only to audit whether the EE denominator
+        can be changed by a power decision under fixed handover trajectories.
+        Phase 02B remains a synthesized proxy and this surface is not a HOBS
+        paper-backed optimizer.
+  phase_03c_b_power_mdp_audit:
+    assumption_id: ASSUME-MODQN-REP-025
+    value:
+      artifact_namespace: artifacts/ee-modqn-phase-03c-b-power-mdp-audit
+      fixed_beam_trajectories:
+        - phase03b-ee-best-eval-if-available
+        - hold-current
+        - random-valid
+        - spread-valid
+      power_semantics:
+        - fixed-2w
+        - phase-02b-proxy
+        - fixed-low
+        - fixed-mid
+        - fixed-high
+        - load-concave
+        - qos-tail-boost
+        - budget-trim
+      training: not-run
+      catfish: disabled
+      claim_boundary: >
+        Static/counterfactual denominator audit only. Per-user EE credit is not
+        system EE, scalar reward is not a success basis, and any next training
+        pilot requires a separate bounded approval.

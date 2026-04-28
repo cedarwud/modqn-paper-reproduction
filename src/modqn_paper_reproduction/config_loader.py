@@ -326,6 +326,7 @@ def build_power_surface_config(cfg: dict[str, Any]) -> PowerSurfaceConfig:
     """Build the opt-in HOBS power surface config from resolved YAML."""
     power_val = _resolved_assumption_value(cfg, "hobs_power_surface")
     power_val = power_val if isinstance(power_val, dict) else {}
+    levels = power_val.get("power_codebook_levels_w", (0.5, 1.0, 2.0))
 
     return PowerSurfaceConfig(
         hobs_power_surface_mode=power_val.get("mode", "static-config"),
@@ -340,6 +341,15 @@ def build_power_surface_config(cfg: dict[str, Any]) -> PowerSurfaceConfig:
             None
             if power_val.get("max_power_w", 2.0) is None
             else float(power_val.get("max_power_w", 2.0))
+        ),
+        power_codebook_profile=str(
+            power_val.get("power_codebook_profile", "fixed-mid")
+        ),
+        power_codebook_levels_w=tuple(float(level) for level in levels),
+        total_power_budget_w=(
+            None
+            if power_val.get("total_power_budget_w", 8.0) is None
+            else float(power_val.get("total_power_budget_w", 8.0))
         ),
     )
 

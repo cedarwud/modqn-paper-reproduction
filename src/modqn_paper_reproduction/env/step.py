@@ -78,6 +78,19 @@ HOBS_POWER_SURFACE_STATIC_CONFIG = "static-config"
 HOBS_POWER_SURFACE_ACTIVE_LOAD_CONCAVE = "active-load-concave"
 """Opt-in Phase 02B proxy: active beam power is allocated from beam load."""
 
+HOBS_POWER_SURFACE_PHASE_03C_B_POWER_CODEBOOK = "phase-03c-b-power-codebook"
+"""Opt-in Phase 03C-B new-extension: centralized discrete power codebook."""
+
+POWER_CODEBOOK_PROFILES = {
+    "fixed-low",
+    "fixed-mid",
+    "fixed-high",
+    "load-concave",
+    "qos-tail-boost",
+    "budget-trim",
+}
+"""Supported Phase 03C-B HOBS-inspired power-codebook controller profiles."""
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -214,16 +227,21 @@ class PowerSurfaceConfig:
     load_scale_power_w: float = 0.35
     load_exponent: float = 0.5
     max_power_w: float | None = 2.0
+    power_codebook_profile: str = "fixed-mid"
+    power_codebook_levels_w: tuple[float, ...] = (0.5, 1.0, 2.0)
+    total_power_budget_w: float | None = 8.0
 
     def __post_init__(self) -> None:
         if self.hobs_power_surface_mode not in {
             HOBS_POWER_SURFACE_STATIC_CONFIG,
             HOBS_POWER_SURFACE_ACTIVE_LOAD_CONCAVE,
+            HOBS_POWER_SURFACE_PHASE_03C_B_POWER_CODEBOOK,
         }:
             raise ValueError(
                 "hobs_power_surface_mode must be one of "
                 f"{{{HOBS_POWER_SURFACE_STATIC_CONFIG!r}, "
-                f"{HOBS_POWER_SURFACE_ACTIVE_LOAD_CONCAVE!r}}}, "
+                f"{HOBS_POWER_SURFACE_ACTIVE_LOAD_CONCAVE!r}, "
+                f"{HOBS_POWER_SURFACE_PHASE_03C_B_POWER_CODEBOOK!r}}}, "
                 f"got {self.hobs_power_surface_mode!r}"
             )
         if self.inactive_beam_policy not in {
@@ -249,12 +267,52 @@ class PowerSurfaceConfig:
             raise ValueError(f"load_exponent must be > 0, got {self.load_exponent}")
         if self.max_power_w is not None and self.max_power_w <= 0:
             raise ValueError(f"max_power_w must be > 0 when set, got {self.max_power_w}")
+        if self.power_codebook_profile not in POWER_CODEBOOK_PROFILES:
+            raise ValueError(
+                "power_codebook_profile must be one of "
+                f"{sorted(POWER_CODEBOOK_PROFILES)!r}, "
+                f"got {self.power_codebook_profile!r}"
+            )
+        if not self.power_codebook_levels_w:
+            raise ValueError("power_codebook_levels_w must contain at least one level.")
+        if any(level <= 0 for level in self.power_codebook_levels_w):
+            raise ValueError(
+                "power_codebook_levels_w values must all be > 0, "
+                f"got {self.power_codebook_levels_w!r}"
+            )
+        if tuple(self.power_codebook_levels_w) != tuple(sorted(self.power_codebook_levels_w)):
+            raise ValueError(
+                "power_codebook_levels_w must be sorted ascending, "
+                f"got {self.power_codebook_levels_w!r}"
+            )
+        if (
+            self.max_power_w is not None
+            and max(self.power_codebook_levels_w) > float(self.max_power_w)
+        ):
+            raise ValueError(
+                "power_codebook_levels_w must not exceed max_power_w, "
+                f"got levels={self.power_codebook_levels_w!r}, "
+                f"max_power_w={self.max_power_w!r}"
+            )
+        if self.total_power_budget_w is not None and self.total_power_budget_w <= 0:
+            raise ValueError(
+                "total_power_budget_w must be > 0 when set, "
+                f"got {self.total_power_budget_w}"
+            )
         if (
             self.hobs_power_surface_mode == HOBS_POWER_SURFACE_ACTIVE_LOAD_CONCAVE
             and self.inactive_beam_policy != "zero-w"
         ):
             raise ValueError(
                 "active-load-concave requires inactive_beam_policy='zero-w'."
+            )
+        if (
+            self.hobs_power_surface_mode
+            == HOBS_POWER_SURFACE_PHASE_03C_B_POWER_CODEBOOK
+            and self.inactive_beam_policy != "zero-w"
+        ):
+            raise ValueError(
+                "phase-03c-b-power-codebook requires inactive_beam_policy='zero-w'."
             )
 
 
@@ -1078,10 +1136,10 @@ def _beam_transmit_power_w(
 ) -> np.ndarray:
     """Return explicit per-beam transmit power in linear W.
 
-    ``static-config`` deliberately mirrors the frozen MODQN baseline. The
-    HOBS-compatible opt-in mode is ``active-load-concave``, where inactive
-    beams are assigned ``0 W`` and active beams get an explicit allocated
-    power derived from current beam load.
+    ``static-config`` deliberately mirrors the frozen MODQN baseline. Phase
+    02B ``active-load-concave`` remains a synthesized proxy. Phase 03C-B
+    ``phase-03c-b-power-codebook`` is a new-extension / HOBS-inspired
+    centralized discrete controller, not a paper-backed HOBS optimizer.
     """
     if (
         power_surface_config.hobs_power_surface_mode
@@ -1091,6 +1149,15 @@ def _beam_transmit_power_w(
             beam_loads,
             fill_value=float(channel_tx_power_w),
             dtype=np.float64,
+        )
+
+    if (
+        power_surface_config.hobs_power_surface_mode
+        == HOBS_POWER_SURFACE_PHASE_03C_B_POWER_CODEBOOK
+    ):
+        return _power_codebook_beam_transmit_power_w(
+            beam_loads,
+            power_surface_config=power_surface_config,
         )
 
     if (
@@ -1116,6 +1183,104 @@ def _beam_transmit_power_w(
     if power_surface_config.max_power_w is not None:
         active_power = np.minimum(active_power, float(power_surface_config.max_power_w))
     powers[active] = active_power
+    return powers
+
+
+def _nearest_codebook_level(value: float, levels: tuple[float, ...]) -> float:
+    """Return the closest configured discrete linear-W power level."""
+    return min(levels, key=lambda level: (abs(float(level) - value), float(level)))
+
+
+def _power_codebook_beam_transmit_power_w(
+    beam_loads: np.ndarray,
+    *,
+    power_surface_config: PowerSurfaceConfig,
+) -> np.ndarray:
+    """Apply the Phase 03C-B centralized discrete codebook controller.
+
+    The controller observes post-handover beam loads and chooses one linear-W
+    level for each active beam. Inactive beams are always ``0 W``. This is
+    intentionally a bounded audit/control surface, not a learned optimizer.
+    """
+    loads = beam_loads.astype(np.float64, copy=False)
+    powers = np.zeros_like(loads, dtype=np.float64)
+    active = loads > 0.0
+    if not np.any(active):
+        return powers
+
+    levels = tuple(float(level) for level in power_surface_config.power_codebook_levels_w)
+    low = levels[0]
+    mid = levels[len(levels) // 2]
+    high = levels[-1]
+    profile = power_surface_config.power_codebook_profile
+
+    active_loads = loads[active]
+    if profile == "fixed-low":
+        active_power = np.full_like(active_loads, low, dtype=np.float64)
+    elif profile == "fixed-mid":
+        active_power = np.full_like(active_loads, mid, dtype=np.float64)
+    elif profile == "fixed-high":
+        active_power = np.full_like(active_loads, high, dtype=np.float64)
+    elif profile == "load-concave":
+        raw = (
+            power_surface_config.active_base_power_w
+            + power_surface_config.load_scale_power_w
+            * np.power(active_loads, power_surface_config.load_exponent)
+        )
+        if power_surface_config.max_power_w is not None:
+            raw = np.minimum(raw, float(power_surface_config.max_power_w))
+        active_power = np.asarray(
+            [_nearest_codebook_level(float(value), levels) for value in raw],
+            dtype=np.float64,
+        )
+    elif profile == "qos-tail-boost":
+        active_power = np.full_like(active_loads, mid, dtype=np.float64)
+        if active_loads.size == 1:
+            active_power[0] = high
+        else:
+            tail_threshold = float(np.percentile(active_loads, 75))
+            light_threshold = float(np.percentile(active_loads, 25))
+            active_power[active_loads >= tail_threshold] = high
+            active_power[active_loads <= light_threshold] = low
+    elif profile == "budget-trim":
+        active_power = _budget_trim_power_levels(
+            active_loads,
+            levels=levels,
+            budget_w=power_surface_config.total_power_budget_w,
+        )
+    else:
+        raise ValueError(f"Unsupported power_codebook_profile: {profile!r}")
+
+    powers[active] = active_power
+    return powers
+
+
+def _budget_trim_power_levels(
+    active_loads: np.ndarray,
+    *,
+    levels: tuple[float, ...],
+    budget_w: float | None,
+) -> np.ndarray:
+    """Start high and demote lower-load beams until the budget can fit."""
+    powers = np.full_like(active_loads, levels[-1], dtype=np.float64)
+    if budget_w is None or float(np.sum(powers, dtype=np.float64)) <= budget_w:
+        return powers
+
+    level_indices = np.full(active_loads.shape, len(levels) - 1, dtype=np.int32)
+    # Preserve capacity for the most loaded beams first; trim lower-load beams.
+    demotion_order = np.argsort(active_loads, kind="mergesort")
+    while float(np.sum(powers, dtype=np.float64)) > budget_w:
+        changed = False
+        for idx in demotion_order:
+            if level_indices[idx] <= 0:
+                continue
+            level_indices[idx] -= 1
+            powers[idx] = levels[int(level_indices[idx])]
+            changed = True
+            if float(np.sum(powers, dtype=np.float64)) <= budget_w:
+                return powers
+        if not changed:
+            return powers
     return powers
 
 

@@ -42,6 +42,17 @@ learned best-eval policies collapsed every evaluated step to one active beam,
 throughput-vs-EE rescoring remained effectively identical. See
 `03b-ee-modqn-objective-geometry.execution-report.md`.
 
+Phase `03C-B` **passes only to a bounded paired pilot**. It added an opt-in
+hierarchical handover plus centralized discrete power-codebook audit surface
+under `configs/ee-modqn-phase-03c-b-power-mdp-*` and
+`artifacts/ee-modqn-phase-03c-b-power-mdp-*`. The static/counterfactual audit
+fixed the same beam trajectories and replayed `fixed-2w`, Phase `02B` proxy,
+and Phase `03C-B` codebook candidates. It proved that power decisions can
+change the denominator and that same-policy throughput-vs-EE ranking can
+separate. This is not learned EE-MODQN effectiveness evidence, and the
+controller is a new-extension / HOBS-inspired surface, not a HOBS optimizer.
+See `03c-b-power-mdp-audit.execution-report.md`.
+
 Phases `04` to `06` remain evidence-gated:
 
 1. Phase `04` is a separate single-Catfish feasibility branch and should not be
@@ -66,6 +77,7 @@ Read in this order when taking over the plan:
 10. `docs/research/catfish-ee-modqn/02b-hobs-power-surface.execution-report.md`
 11. `docs/research/catfish-ee-modqn/03-ee-modqn-validation.execution-report.md`
 12. `docs/research/catfish-ee-modqn/03b-ee-modqn-objective-geometry.execution-report.md`
+13. `docs/research/catfish-ee-modqn/03c-b-power-mdp-audit.execution-report.md`
 
 Use later phase reviews only as constraints unless the user explicitly asks to plan those phases.
 
@@ -158,6 +170,12 @@ Phase `03B` execution artifacts:
 5. `artifacts/ee-modqn-phase-03b-ee-objective-geometry-pilot/paired-comparison-vs-control/`
 6. `artifacts/ee-modqn-phase-03b-policy-diagnostics/`
 
+Phase `03C-B` static power-MDP audit artifacts:
+
+1. `configs/ee-modqn-phase-03c-b-power-mdp-audit.resolved.yaml`
+2. `artifacts/ee-modqn-phase-03c-b-power-mdp-audit/`
+3. `docs/research/catfish-ee-modqn/03c-b-power-mdp-audit.execution-report.md`
+
 Decision:
 
 ```text
@@ -166,6 +184,8 @@ NEEDS MORE EVIDENCE
 
 Do not claim EE-MODQN is effective from this pilot.
 Do not claim that Phase `03B` reward geometry solved denominator collapse.
+Phase `03C-B` allows only a bounded paired pilot with explicit power decisions;
+it does not authorize EE-MODQN effectiveness, Catfish, or multi-Catfish claims.
 
 ## What Not To Do Next
 

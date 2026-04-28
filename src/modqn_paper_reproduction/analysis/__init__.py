@@ -8,6 +8,7 @@ from .beam_semantics import export_beam_semantics_audit
 from .ee_denominator import export_ee_denominator_audit
 from .figures import export_figure_sweep_results
 from .phase03_ee_modqn import export_phase03_paired_validation
+from .phase03c_b_power_mdp_audit import export_phase03c_b_power_mdp_audit
 from .reward_geometry import (
     build_reward_geometry_scale_table,
     build_reward_geometry_table_ii_frames,
@@ -36,6 +37,7 @@ __all__ = [
     "export_ee_denominator_audit",
     "export_figure_sweep_results",
     "export_phase03_paired_validation",
+    "export_phase03c_b_power_mdp_audit",
     "export_reward_geometry_analysis",
     "export_table_ii_results",
     "export_training_log_artifacts",
