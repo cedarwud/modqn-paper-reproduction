@@ -64,6 +64,13 @@ and the tiny `EE_system` increase coincided with a `50%` p05 throughput drop.
 This is runtime/eval evidence against promoting the current EE route. See
 `03c-c-power-mdp-pilot.execution-report.md`.
 
+Phase `03D` **stops the current EE-MODQN route**. The disposition concludes
+that the current MODQN handover MDP plus `r1` substitution is blocked and
+should not continue with more episodes, selector tweaks, reward tuning, or
+Catfish. The EE formula remains valid as a metric, but any renewed EE research
+must be opened as a new resource-allocation MDP design gate with a renamed
+method family. See `03d-ee-route-disposition.execution-report.md`.
+
 Phases `04` to `06` remain evidence-gated:
 
 1. Phase `04` is a separate single-Catfish feasibility branch and should not be
@@ -90,6 +97,7 @@ Read in this order when taking over the plan:
 12. `docs/research/catfish-ee-modqn/03b-ee-modqn-objective-geometry.execution-report.md`
 13. `docs/research/catfish-ee-modqn/03c-b-power-mdp-audit.execution-report.md`
 14. `docs/research/catfish-ee-modqn/03c-c-power-mdp-pilot.execution-report.md`
+15. `docs/research/catfish-ee-modqn/03d-ee-route-disposition.execution-report.md`
 
 Use later phase reviews only as constraints unless the user explicitly asks to plan those phases.
 
@@ -200,7 +208,7 @@ Phase `03C-C` bounded paired pilot artifacts:
 Decision:
 
 ```text
-BLOCKED for Phase 03C-C; EE-MODQN remains not promoted
+BLOCKED for Phase 03C-C; Phase 03D stops the current EE-MODQN route
 ```
 
 Do not claim EE-MODQN is effective from this pilot.
@@ -208,7 +216,9 @@ Do not claim that Phase `03B` reward geometry solved denominator collapse.
 Do not claim that the Phase `03C-C` runtime selector solved denominator
 collapse. The current route remains blocked until a design correction can make
 evaluation exercise a non-single-point active-power distribution without
-throughput/service collapse.
+throughput/service collapse. After Phase `03D`, that design correction is no
+longer treated as a Phase `03C` patch; it must be opened as a new
+resource-allocation MDP method family.
 
 ## What Not To Do Next
 
@@ -223,7 +233,9 @@ Do not:
 7. write follow-on outputs into frozen baseline artifact directories,
 8. change baseline configs to mean EE-MODQN or Catfish-MODQN,
 9. treat the Phase `03C-C` tiny `EE_system` delta as effectiveness evidence,
-10. rerun the same one-beam-collapsed route with more episodes as the next gate.
+10. rerun the same one-beam-collapsed route with more episodes as the next gate,
+11. continue Phase `03C` with selector tweaks or reward retuning,
+12. use Catfish as an EE repair mechanism before a resource-allocation MDP exists.
 
 ## Recommended Next Prompt
 
