@@ -310,6 +310,7 @@ def compute_channel(
     config: ChannelConfig,
     rng: Optional[Generator] = None,
     fading: bool = True,
+    tx_power_w: float | None = None,
 ) -> ChannelResult:
     """Compute the full single-link channel from paper Eq. (1)-(2).
 
@@ -328,6 +329,9 @@ def compute_channel(
         Random source for Rician fading.  Required when ``fading=True``.
     fading : bool
         If False, eta = 1.0 (deterministic mode for testing).
+    tx_power_w : float, optional
+        Linear-W transmit power override for opt-in per-beam power surfaces.
+        When omitted, the paper-baseline ``config.tx_power_w`` path is used.
 
     Returns
     -------
@@ -352,7 +356,12 @@ def compute_channel(
     noise_w = config.noise_power_w
 
     # Received power and SNR
-    rx_power = config.tx_power_w * channel_gain
+    effective_tx_power_w = (
+        config.tx_power_w if tx_power_w is None else float(tx_power_w)
+    )
+    if effective_tx_power_w < 0:
+        raise ValueError(f"tx_power_w override must be >= 0, got {effective_tx_power_w}")
+    rx_power = effective_tx_power_w * channel_gain
     snr = rx_power / noise_w if noise_w > 0 else math.inf
 
     return ChannelResult(

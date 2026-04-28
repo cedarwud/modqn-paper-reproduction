@@ -45,3 +45,21 @@ env PIP_CACHE_DIR=/tmp/pip-cache .venv/bin/python -m pip install -r requirements
    `atmospheric_sign_counterfactual_summary.json`,
    `atmospheric_sign_vs_baseline.csv`,
    `reward_geometry_diagnostics_comparison.csv`, and `review.md`.
+7. `audit_ee_denominator.py`
+   Phase 02 report-only EE denominator audit entrypoint. Loads a resolved-run
+   config without training, samples runtime steps under explicit audit policies,
+   and emits `ee_denominator_summary.json`, `ee_denominator_audit.csv`, and
+   `review.md`. Static baseline configs are labeled as fixed-power diagnostics;
+   opt-in Phase 02B configs with `hobs_power_surface.mode:
+   active-load-concave` report explicit per-beam `beam_transmit_power_w`,
+   active-beam masks, total active beam power, and the HOBS EE go/no-go gate.
+8. `compare_phase03_ee_modqn.py`
+   Phase 03 / 03B paired-validation entrypoint. Replays matched `MODQN-control`
+   and `EE-MODQN` checkpoints, reports `EE_system`, raw throughput, served
+   ratio, active beam count / active power distributions, handover / r2,
+   load-balance / r3, same-policy rescoring, and reward-hacking flags. It does
+   not run Catfish or promote final EE-MODQN effectiveness claims.
+9. `diagnose_phase03a_policy_power.py`
+   Policy-denominator diagnostic entrypoint. Replays paired checkpoints and
+   counterfactual policies to distinguish a variable runtime denominator from
+   learned policies that fail to exercise that denominator.

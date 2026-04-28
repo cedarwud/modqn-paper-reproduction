@@ -31,6 +31,7 @@ from .channel import (
 from .step import (
     ActionMask,
     DiagnosticsReport,
+    PowerSurfaceConfig,
     RewardComponents,
     StepConfig,
     StepEnvironment,
@@ -52,6 +53,7 @@ __all__ = [
     "OrbitConfig",
     "OrbitProxy",
     "PathLossResult",
+    "PowerSurfaceConfig",
     "RewardComponents",
     "SatelliteSnapshot",
     "StepConfig",

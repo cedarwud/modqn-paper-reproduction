@@ -5,6 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
+R1_REWARD_MODE_THROUGHPUT = "throughput"
+R1_REWARD_MODE_PER_USER_EE_CREDIT = "per-user-ee-credit"
+R1_REWARD_MODE_PER_USER_BEAM_EE_CREDIT = "per-user-beam-ee-credit"
+
+
 @dataclass(frozen=True)
 class TrainerConfig:
     """All trainer hyperparameters — none may be hidden in code.
@@ -57,10 +62,18 @@ class TrainerConfig:
     # -- explicit experiment surface ---------------------------------------
     training_experiment_kind: str = "baseline"
     training_experiment_id: str = ""
+    method_family: str = "MODQN-baseline"
+    phase: str = "baseline"
+    comparison_role: str = "not-applicable"
+    r1_reward_mode: str = R1_REWARD_MODE_THROUGHPUT
+    r1_reward_label: str = "throughput"
+    r1_reward_provenance: str = "paper-backed MODQN throughput objective"
     reward_calibration_enabled: bool = False
     reward_calibration_mode: str = "raw-unscaled"
     reward_calibration_source: str = "raw-unscaled"
     reward_calibration_scales: tuple[float, float, float] = (1.0, 1.0, 1.0)
+    reward_normalization_mode: str = "raw-unscaled"
+    load_balance_calibration_mode: str = "baseline-paper-weight"
 
     def __post_init__(self) -> None:
         if len(self.objective_weights) != 3:
@@ -73,6 +86,60 @@ class TrainerConfig:
                 "reward_calibration_scales must have length 3, "
                 f"got {self.reward_calibration_scales!r}"
             )
+        if self.training_experiment_kind not in {
+            "baseline",
+            "reward-calibration",
+            "phase-03-objective-substitution",
+            "phase-03b-objective-geometry",
+        }:
+            raise ValueError(
+                "training_experiment_kind must be one of "
+                "{'baseline', 'reward-calibration', "
+                "'phase-03-objective-substitution', "
+                "'phase-03b-objective-geometry'}, "
+                f"got {self.training_experiment_kind!r}"
+            )
+        if self.r1_reward_mode not in {
+            R1_REWARD_MODE_THROUGHPUT,
+            R1_REWARD_MODE_PER_USER_EE_CREDIT,
+            R1_REWARD_MODE_PER_USER_BEAM_EE_CREDIT,
+        }:
+            raise ValueError(
+                "r1_reward_mode must be one of "
+                f"{{{R1_REWARD_MODE_THROUGHPUT!r}, "
+                f"{R1_REWARD_MODE_PER_USER_EE_CREDIT!r}, "
+                f"{R1_REWARD_MODE_PER_USER_BEAM_EE_CREDIT!r}}}, "
+                f"got {self.r1_reward_mode!r}"
+            )
+        if (
+            self.r1_reward_mode
+            in {
+                R1_REWARD_MODE_PER_USER_EE_CREDIT,
+                R1_REWARD_MODE_PER_USER_BEAM_EE_CREDIT,
+            }
+            and self.training_experiment_kind
+            not in {
+                "phase-03-objective-substitution",
+                "phase-03b-objective-geometry",
+            }
+        ):
+            raise ValueError(
+                "EE r1 reward modes are only allowed for "
+                "training_experiment_kind='phase-03-objective-substitution' "
+                "or 'phase-03b-objective-geometry'."
+            )
+        if (
+            self.training_experiment_kind
+            not in {
+                "phase-03-objective-substitution",
+                "phase-03b-objective-geometry",
+            }
+            and self.method_family == "EE-MODQN"
+        ):
+            raise ValueError(
+                "method_family='EE-MODQN' requires "
+                "a Phase 03/03B EE training_experiment_kind."
+            )
         if self.reward_calibration_mode not in {
             "raw-unscaled",
             "divide-by-fixed-scales",
@@ -83,10 +150,14 @@ class TrainerConfig:
                 f"got {self.reward_calibration_mode!r}"
             )
         if self.reward_calibration_enabled:
-            if self.training_experiment_kind != "reward-calibration":
+            if self.training_experiment_kind not in {
+                "reward-calibration",
+                "phase-03b-objective-geometry",
+            }:
                 raise ValueError(
                     "reward_calibration_enabled requires "
-                    "training_experiment_kind='reward-calibration'."
+                    "training_experiment_kind='reward-calibration' or "
+                    "'phase-03b-objective-geometry'."
                 )
             if self.reward_calibration_mode != "divide-by-fixed-scales":
                 raise ValueError(

@@ -1,0 +1,32 @@
+config_role: resolved-run-follow-on
+inherits_from: ee-modqn-power-surface-phase-02b.resolved.yaml
+
+track:
+  phase: phase-03
+  label: modqn-control-paired-pilot
+  method_family: MODQN-control
+  status: bounded-pilot
+  purpose: >
+    Paired Phase 03 control run. Uses the same opt-in Phase 02B HOBS-linked
+    SINR / power surface as EE-MODQN, while keeping r1 as throughput and r2/r3
+    unchanged. This config must not overwrite or replace the frozen MODQN
+    baseline.
+
+baseline:
+  episodes: 20
+
+training_experiment:
+  kind: phase-03-objective-substitution
+  experiment_id: P03-MODQN-CONTROL-PILOT
+  method_family: MODQN-control
+  phase: phase-03
+  objective_substitution:
+    enabled: true
+    r1_reward_mode: throughput
+    r1_label: throughput
+    r1_provenance: paper-backed MODQN throughput objective on the Phase 02B opt-in power surface
+    r2_label: handover penalty unchanged
+    r3_label: load balance unchanged
+    catfish: disabled
+    multi_catfish: disabled
+    comparison_role: paired-control

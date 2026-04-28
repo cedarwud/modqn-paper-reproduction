@@ -1,0 +1,31 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: phase-02b
+  label: hobs-power-surface-audit
+  method_family: EE-MODQN
+  status: audit-only
+  purpose: >
+    Opt-in HOBS-compatible per-beam transmit-power surface for denominator
+    audit. This config does not replace the MODQN reward and must not be used
+    to claim EE-MODQN training evidence by itself.
+
+resolved_assumptions:
+  hobs_power_surface:
+    assumption_id: ASSUME-MODQN-REP-024
+    value:
+      mode: active-load-concave
+      inactive_beam_policy: zero-w
+      active_base_power_w: 0.25
+      load_scale_power_w: 0.35
+      load_exponent: 0.5
+      max_power_w: 2.0
+      units: linear-w
+      provenance: >
+        Phase 02B synthesized allocation proxy. HOBS requires P_b(t) to be a
+        downlink per-beam transmit-power control/allocation variable in linear
+        W; the source paper does not provide a MODQN-side power-control action.
+        This surface allocates explicit active-beam transmit power from current
+        beam load and assigns inactive beams 0 W so denominator behavior can be
+        audited without changing the reward.

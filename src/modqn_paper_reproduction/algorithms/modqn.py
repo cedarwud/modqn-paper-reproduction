@@ -46,6 +46,7 @@ from ..env.step import (
 from ..runtime.objective_math import (
     apply_reward_calibration,
     scalarize_objectives,
+    select_r1_reward_value,
 )
 from ..runtime.q_network import DQNNetwork
 from ..runtime.replay_buffer import ReplayBuffer
@@ -400,6 +401,31 @@ class MODQNTrainer:
         """Public wrapper for the active state-encoding surface."""
         return self._encode_states(states)
 
+    def reward_vector_from_step_result(
+        self,
+        result,
+        uid: int,
+    ) -> np.ndarray:
+        """Return the trainer-selected three-objective reward vector.
+
+        Baseline and MODQN-control configs keep ``r1`` as throughput. Phase 03
+        EE-MODQN configs may explicitly gate ``r1`` to the per-user EE
+        credit-assignment reward while preserving ``r2`` and ``r3`` unchanged.
+        """
+        rw = result.rewards[uid]
+        r1 = select_r1_reward_value(
+            throughput_bps=rw.r1_throughput,
+            per_user_ee_credit_bps_per_w=rw.r1_energy_efficiency_credit,
+            per_user_beam_ee_credit_bps_per_w=(
+                rw.r1_beam_power_efficiency_credit
+            ),
+            config=self.config,
+        )
+        return np.array(
+            [r1, rw.r2_handover, rw.r3_load_balance],
+            dtype=np.float64,
+        )
+
     def _evaluate_one_seed(
         self,
         eval_seed: int,
@@ -427,11 +453,8 @@ class MODQNTrainer:
             )
             result = self.env.step(actions, env_rng)
 
-            for rw in result.rewards:
-                reward_vec = np.array(
-                    [rw.r1_throughput, rw.r2_handover, rw.r3_load_balance],
-                    dtype=np.float64,
-                )
+            for uid, rw in enumerate(result.rewards):
+                reward_vec = self.reward_vector_from_step_result(result, uid)
                 ep_reward += reward_vec
                 if rw.r2_handover < 0:
                     ep_handovers += 1
@@ -718,10 +741,7 @@ class MODQNTrainer:
                 # Store transitions per user (ASSUME-MODQN-REP-007: shared policy)
                 for uid in range(self.num_users):
                     rw = result.rewards[uid]
-                    reward_vec = np.array(
-                        [rw.r1_throughput, rw.r2_handover, rw.r3_load_balance],
-                        dtype=np.float64,
-                    )
+                    reward_vec = self.reward_vector_from_step_result(result, uid)
                     reward_vec_train = apply_reward_calibration(reward_vec, cfg)
                     self.replay.push(
                         encoded[uid],

@@ -1,0 +1,61 @@
+config_role: resolved-run-follow-on
+inherits_from: ee-modqn-power-surface-phase-02b.resolved.yaml
+
+track:
+  phase: phase-03b
+  label: ee-modqn-objective-geometry-pilot
+  method_family: EE-MODQN
+  status: bounded-pilot
+  purpose: >
+    Paired Phase 03B EE-MODQN run. Uses the same opt-in Phase 02B HOBS-linked
+    SINR / power surface as MODQN-control and changes r1 to a denominator-
+    sensitive per-user beam-power EE credit. This is a modeling /
+    credit-assignment assumption for Phase 03B only and must not be used to
+    claim Catfish, multi-Catfish, final Catfish-EE-MODQN, or full
+    paper-faithful reproduction effectiveness.
+
+baseline:
+  episodes: 60
+  objective_weights: [0.2, 0.2, 0.6]
+
+training_experiment:
+  kind: phase-03b-objective-geometry
+  experiment_id: P03B-EE-MODQN-GEOMETRY-PILOT
+  method_family: EE-MODQN
+  phase: phase-03b
+  metadata_labels:
+    method_family: EE-MODQN
+    phase: phase-03b
+    r1_reward_mode: per-user-beam-ee-credit
+    reward_normalization_mode: divide-by-fixed-scales
+    load_balance_calibration_mode: r3-weight-0.60-with-r1-normalized
+    comparison_role: paired-ee-objective
+  objective_geometry:
+    enabled: true
+    r1_reward_mode: per-user-beam-ee-credit
+    r1_label: per-user beam-power EE credit-assignment reward
+    r1_provenance: >
+      Phase 03B modeling / credit-assignment assumption:
+      r1_i(t) = R_i(t) / P_b(t), where P_b(t) is the selected active beam
+      transmit power from the Phase 02B surface. This differs from the Phase 03
+      allocated-power credit R_i(t) / (P_b(t) / N_b(t)) because Phase 03A found
+      that allocated-power credit degenerates to throughput scaling under
+      one-beam collapse. This per-user credit is not system EE; final
+      evaluation must still report EE_system = sum_i R_i(t) /
+      sum_active_beams P_b(t).
+    reward_normalization:
+      enabled: true
+      mode: divide-by-fixed-scales
+      source: phase-03b-config-fixed-scale
+      scales:
+        r1: 10.0
+        r2: 1.0
+        r3: 1.0
+    load_balance_calibration:
+      mode: r3-weight-0.60-with-r1-normalized
+      objective_weights: [0.2, 0.2, 0.6]
+      rationale: >
+        Phase 03A found one-beam collapse with unchanged r3. This bounded
+        pilot deliberately gives r3 enough scalarized influence to test
+        whether learned policies can exercise denominator variability.
+    comparison_role: paired-ee-objective

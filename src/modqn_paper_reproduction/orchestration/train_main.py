@@ -83,6 +83,16 @@ def run_train_command(
         f"secondary={trainer_cfg.checkpoint_secondary_report} "
         "(secondary best-eval checkpoint uses the configured evaluation seed set)"
     )
+    print(
+        "[modqn-train] method: "
+        f"family={trainer_cfg.method_family}, "
+        f"phase={trainer_cfg.phase}, "
+        f"role={trainer_cfg.comparison_role}, "
+        f"experiment={trainer_cfg.training_experiment_kind}, "
+        f"r1={trainer_cfg.r1_reward_mode}, "
+        f"reward-normalization={trainer_cfg.reward_normalization_mode}, "
+        f"load-balance-calibration={trainer_cfg.load_balance_calibration_mode}"
+    )
     if trainer_cfg.reward_calibration_enabled:
         print(
             "[modqn-train] experiment: "
@@ -197,6 +207,14 @@ def run_train_command(
             primary_final=final_checkpoint_path,
             secondary_best_eval=secondary_checkpoint_path,
         )
+        evaluation_metrics_label = "raw-paper-metrics"
+        checkpoint_selection_metric = "raw-weighted-eval"
+        if trainer_cfg.training_experiment_kind == "phase-03-objective-substitution":
+            evaluation_metrics_label = (
+                "phase-03-selected-objective-metrics; full EE_system panel "
+                "is produced by the paired Phase 03 validator"
+            )
+            checkpoint_selection_metric = f"weighted-eval-{trainer_cfg.r1_reward_mode}"
         metadata = RunMetadataV1(
             paper_id=paper_id,
             package_version=package_version,
@@ -218,8 +236,8 @@ def run_train_command(
                 scales=tuple(trainer_cfg.reward_calibration_scales),
                 training_experiment_kind=trainer_cfg.training_experiment_kind,
                 training_experiment_id=trainer_cfg.training_experiment_id,
-                evaluation_metrics="raw-paper-metrics",
-                checkpoint_selection_metric="raw-weighted-eval",
+                evaluation_metrics=evaluation_metrics_label,
+                checkpoint_selection_metric=checkpoint_selection_metric,
             ),
             checkpoint_files=checkpoint_catalog.to_v1(),
             resolved_assumptions=cfg.get("resolved_assumptions", {}),

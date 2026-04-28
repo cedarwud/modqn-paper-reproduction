@@ -219,6 +219,42 @@ def beam_semantics_audit_main(argv: list[str] | None = None) -> int:
     return run_beam_semantics_audit_command(args, paper_id=PAPER_ID)
 
 
+def ee_denominator_audit_main(argv: list[str] | None = None) -> int:
+    parser = _build_parser("modqn-ee-denominator-audit")
+    parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="Directory to write Phase 02 EE denominator audit outputs.",
+    )
+    parser.add_argument(
+        "--evaluation-seed",
+        type=int,
+        default=20260428,
+        help="Deterministic runtime-audit seed.",
+    )
+    parser.add_argument(
+        "--max-steps",
+        type=int,
+        default=None,
+        help="Optional limit on audited steps per policy.",
+    )
+    parser.add_argument(
+        "--policies",
+        default="hold-current,random-valid,first-valid",
+        help=(
+            "Comma-separated audit policies: hold-current, random-valid, "
+            "first-valid."
+        ),
+    )
+    args = parser.parse_args(argv)
+
+    from .orchestration.ee_denominator_audit_main import (
+        run_ee_denominator_audit_command,
+    )
+
+    return run_ee_denominator_audit_command(args, paper_id=PAPER_ID)
+
+
 def beam_counterfactual_main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="modqn-beam-counterfactual")
     parser.add_argument(

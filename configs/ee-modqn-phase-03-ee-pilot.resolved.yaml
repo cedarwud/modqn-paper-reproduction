@@ -1,0 +1,36 @@
+config_role: resolved-run-follow-on
+inherits_from: ee-modqn-power-surface-phase-02b.resolved.yaml
+
+track:
+  phase: phase-03
+  label: ee-modqn-paired-pilot
+  method_family: EE-MODQN
+  status: bounded-pilot
+  purpose: >
+    Paired Phase 03 EE-MODQN run. Uses the same opt-in Phase 02B HOBS-linked
+    SINR / power surface as MODQN-control and changes only r1 from throughput
+    to the per-user EE credit-assignment reward. This config must not be used
+    to claim Catfish, multi-Catfish, or final Catfish-EE-MODQN effectiveness.
+
+baseline:
+  episodes: 20
+
+training_experiment:
+  kind: phase-03-objective-substitution
+  experiment_id: P03-EE-MODQN-PILOT
+  method_family: EE-MODQN
+  phase: phase-03
+  objective_substitution:
+    enabled: true
+    r1_reward_mode: per-user-ee-credit
+    r1_label: per-user EE credit-assignment reward
+    r1_provenance: >
+      Modeling / credit-assignment assumption:
+      r1_i(t) = R_i(t) / (P_b(t) / N_b(t)). This is not system EE.
+      Final evaluation must report EE_system = sum_i R_i(t) /
+      sum_active_beams P_b(t).
+    r2_label: handover penalty unchanged
+    r3_label: load balance unchanged
+    catfish: disabled
+    multi_catfish: disabled
+    comparison_role: paired-ee-objective

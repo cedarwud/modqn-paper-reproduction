@@ -72,6 +72,12 @@ RANDOM_WANDERING_MAX_TURN_RAD: float = math.pi / 4.0
 follow-on `random wandering` mobility rule. The paper names the mobility
 family but does not disclose the exact turn-law details."""
 
+HOBS_POWER_SURFACE_STATIC_CONFIG = "static-config"
+"""Default baseline path: keep the paper Table I scalar transmit power."""
+
+HOBS_POWER_SURFACE_ACTIVE_LOAD_CONCAVE = "active-load-concave"
+"""Opt-in Phase 02B proxy: active beam power is allocated from beam load."""
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -187,6 +193,71 @@ class StepConfig:
         return int(self.episode_duration_s / self.slot_duration_s)
 
 
+@dataclass(frozen=True)
+class PowerSurfaceConfig:
+    """Opt-in per-beam transmit-power surface.
+
+    The default ``static-config`` mode preserves the frozen MODQN baseline:
+    channel/SINR uses ``ChannelConfig.tx_power_w`` exactly as before.
+
+    ``active-load-concave`` is a Phase 02B audit surface, not an EE reward. It
+    emits explicit linear-W ``P_b(t)`` values from the current active beam load:
+
+    ``P_b(t) = min(max_w, active_base_power_w + load_scale_power_w * N_b^exponent)``
+
+    for active beams and ``0 W`` for inactive beams.
+    """
+
+    hobs_power_surface_mode: str = HOBS_POWER_SURFACE_STATIC_CONFIG
+    inactive_beam_policy: str = "excluded-from-active-beams"
+    active_base_power_w: float = 0.25
+    load_scale_power_w: float = 0.35
+    load_exponent: float = 0.5
+    max_power_w: float | None = 2.0
+
+    def __post_init__(self) -> None:
+        if self.hobs_power_surface_mode not in {
+            HOBS_POWER_SURFACE_STATIC_CONFIG,
+            HOBS_POWER_SURFACE_ACTIVE_LOAD_CONCAVE,
+        }:
+            raise ValueError(
+                "hobs_power_surface_mode must be one of "
+                f"{{{HOBS_POWER_SURFACE_STATIC_CONFIG!r}, "
+                f"{HOBS_POWER_SURFACE_ACTIVE_LOAD_CONCAVE!r}}}, "
+                f"got {self.hobs_power_surface_mode!r}"
+            )
+        if self.inactive_beam_policy not in {
+            "excluded-from-active-beams",
+            "zero-w",
+        }:
+            raise ValueError(
+                "inactive_beam_policy must be one of "
+                "{'excluded-from-active-beams', 'zero-w'}, "
+                f"got {self.inactive_beam_policy!r}"
+            )
+        if self.active_base_power_w < 0:
+            raise ValueError(
+                "active_base_power_w must be >= 0, "
+                f"got {self.active_base_power_w}"
+            )
+        if self.load_scale_power_w < 0:
+            raise ValueError(
+                "load_scale_power_w must be >= 0, "
+                f"got {self.load_scale_power_w}"
+            )
+        if self.load_exponent <= 0:
+            raise ValueError(f"load_exponent must be > 0, got {self.load_exponent}")
+        if self.max_power_w is not None and self.max_power_w <= 0:
+            raise ValueError(f"max_power_w must be > 0 when set, got {self.max_power_w}")
+        if (
+            self.hobs_power_surface_mode == HOBS_POWER_SURFACE_ACTIVE_LOAD_CONCAVE
+            and self.inactive_beam_policy != "zero-w"
+        ):
+            raise ValueError(
+                "active-load-concave requires inactive_beam_policy='zero-w'."
+            )
+
+
 # ---------------------------------------------------------------------------
 # Result types
 # ---------------------------------------------------------------------------
@@ -234,8 +305,17 @@ class ActionMask:
 class RewardComponents:
     """Raw reward vector r1/r2/r3 for one user at one step.
 
+    The paper-backed MODQN r1 throughput is always preserved. Phase 03 may
+    opt into the separate per-user EE credit as the trainer's first objective,
+    but that credit is a modeling / credit-assignment assumption and not the
+    system-level EE metric.
+
     No normalization is applied. Values are in natural units:
-    - r1: bits/s (throughput)
+    - r1_throughput: bits/s (throughput)
+    - r1_energy_efficiency_credit: bits/s/W using equal allocated
+      ``P_b/N_b`` credit assignment (Phase 03 diagnostic or gated objective)
+    - r1_beam_power_efficiency_credit: bits/s/W using full selected-beam
+      ``P_b`` denominator (Phase 03B credit-assignment sensitivity)
     - r2: dimensionless penalty (0, -phi1, or -phi2)
     - r3: dimensionless ratio (negative gap / num_users)
     """
@@ -243,6 +323,8 @@ class RewardComponents:
     r1_throughput: float
     r2_handover: float
     r3_load_balance: float
+    r1_energy_efficiency_credit: float = 0.0
+    r1_beam_power_efficiency_credit: float = 0.0
 
 
 @dataclass
@@ -260,6 +342,12 @@ class StepResult:
     # Per-beam aggregate throughput for load balance computation.
     beam_throughputs: np.ndarray
     """Total throughput per beam, shape (L*K,)."""
+
+    active_beam_mask: np.ndarray
+    """Boolean active-beam mask derived from post-action beam loads, shape (L*K,)."""
+
+    beam_transmit_power_w: np.ndarray
+    """Explicit downlink per-beam transmit power ``P_b(t)`` in linear W."""
 
 
 @dataclass
@@ -308,11 +396,13 @@ class StepEnvironment:
         orbit_config: OrbitConfig | None = None,
         beam_config: BeamConfig | None = None,
         channel_config: ChannelConfig | None = None,
+        power_surface_config: PowerSurfaceConfig | None = None,
     ) -> None:
         self._step_cfg = step_config or StepConfig()
         self._orbit = OrbitProxy(orbit_config)
         self._beam = BeamPattern(beam_config)
         self._channel_cfg = channel_config or ChannelConfig()
+        self._power_surface_cfg = power_surface_config or PowerSurfaceConfig()
 
         self._num_beams_total = (
             self._orbit.num_satellites * self._beam.num_beams
@@ -349,6 +439,10 @@ class StepEnvironment:
     @property
     def channel_config(self) -> ChannelConfig:
         return self._channel_cfg
+
+    @property
+    def power_surface_config(self) -> PowerSurfaceConfig:
+        return self._power_surface_cfg
 
     @property
     def time_s(self) -> float:
@@ -424,7 +518,9 @@ class StepEnvironment:
         self._assignments = self._initial_assignments()
 
         # Build state and masks
-        states, masks, _beam_thr, _user_thr, _beam_loads = self._build_states_and_masks(rng)
+        states, masks, _beam_thr, _user_thr, _beam_loads, _beam_power_w = (
+            self._build_states_and_masks(rng)
+        )
 
         # Diagnostics on first reset only. The report depends on config, not on
         # mutable episode state, so later resets can safely reuse the cached
@@ -476,7 +572,7 @@ class StepEnvironment:
         self._assignments = actions.astype(np.int32)
 
         # Compute state and masks for the new time
-        states, masks, beam_throughputs, user_throughputs, beam_loads = (
+        states, masks, beam_throughputs, user_throughputs, beam_loads, beam_power_w = (
             self._build_states_and_masks(rng)
         )
 
@@ -491,6 +587,7 @@ class StepEnvironment:
         rewards = self._compute_rewards(
             prev_assignments, self._assignments,
             beam_throughputs, beam_loads, user_throughputs, reachable_mask,
+            beam_transmit_power_w=beam_power_w,
         )
 
         done = self._step_index >= self._step_cfg.steps_per_episode
@@ -503,13 +600,22 @@ class StepEnvironment:
             action_masks=masks,
             rewards=rewards,
             beam_throughputs=beam_throughputs,
+            active_beam_mask=beam_loads > 0.0,
+            beam_transmit_power_w=beam_power_w,
         )
 
     # -- internal: state assembly ---------------------------------------------
 
     def _build_states_and_masks(
         self, rng: Generator
-    ) -> tuple[list[UserState], list[ActionMask], np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[
+        list[UserState],
+        list[ActionMask],
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+    ]:
         """Build per-user states, masks, per-beam throughput, and per-user throughput.
 
         Returns
@@ -525,6 +631,8 @@ class StepEnvironment:
             Pre-decision user count per beam. Used by both state `N(t)` and
             ASSUME-MODQN-REP-019 gap semantics so that empty-beam treatment is
             config-driven rather than hardwired.
+        beam_transmit_power_w : ndarray, shape (L*K,), float64
+            Explicit per-beam downlink transmit power in linear W.
         """
         L = self._orbit.num_satellites
         K = self._beam.num_beams
@@ -542,6 +650,12 @@ class StepEnvironment:
             beam_idx = int(self._assignments[uid])
             if 0 <= beam_idx < LK:
                 beam_loads[beam_idx] += 1
+
+        beam_transmit_power_w = _beam_transmit_power_w(
+            beam_loads,
+            channel_tx_power_w=self._channel_cfg.tx_power_w,
+            power_surface_config=self._power_surface_cfg,
+        )
 
         states: list[UserState] = []
         masks: list[ActionMask] = []
@@ -584,19 +698,36 @@ class StepEnvironment:
             snr_arr = np.zeros(LK, dtype=np.float64)
             for vr in vis_all:
                 if vr.is_visible and vr.slant_range_km > 0:
+                    static_power_mode = (
+                        self._power_surface_cfg.hobs_power_surface_mode
+                        == HOBS_POWER_SURFACE_STATIC_CONFIG
+                    )
                     ch = compute_channel(
                         slant_range_km=vr.slant_range_km,
                         altitude_km=self._orbit.config.altitude_km,
                         config=self._channel_cfg,
                         rng=rng,
                         fading=True,
+                        tx_power_w=None if static_power_mode else 1.0,
                     )
                     base = vr.sat_index * K
                     # All beams of a visible satellite share the same
                     # slant-range-based SNR. The paper does not model
-                    # per-beam off-axis gain — channel quality depends
-                    # on user-satellite geometry only.
-                    snr_arr[base: base + K] = ch.snr_linear
+                    # per-beam off-axis gain. In opt-in HOBS power-surface
+                    # mode, the per-beam transmit power is the explicit
+                    # numerator power P_b(t); baseline mode keeps the old
+                    # scalar config-power SNR path.
+                    if static_power_mode:
+                        snr_arr[base: base + K] = ch.snr_linear
+                    else:
+                        for local_beam in range(K):
+                            beam_idx = base + local_beam
+                            tx_power_w = float(beam_transmit_power_w[beam_idx])
+                            snr_arr[beam_idx] = (
+                                0.0
+                                if tx_power_w <= 0.0
+                                else (tx_power_w * ch.channel_gain) / ch.noise_power_w
+                            )
 
             # -- beam offsets Γ(t): local-tangent (east, north) km --
             offsets = np.zeros((LK, 2), dtype=np.float64)
@@ -641,7 +772,14 @@ class StepEnvironment:
             if 0 <= beam_idx < LK:
                 beam_throughputs[beam_idx] += user_throughputs[uid]
 
-        return states, masks, beam_throughputs, user_throughputs, beam_loads
+        return (
+            states,
+            masks,
+            beam_throughputs,
+            user_throughputs,
+            beam_loads,
+            beam_transmit_power_w,
+        )
 
     # -- internal: rewards ----------------------------------------------------
 
@@ -653,6 +791,8 @@ class StepEnvironment:
         beam_loads: np.ndarray,
         user_throughputs: np.ndarray,
         reachable_mask: np.ndarray,
+        *,
+        beam_transmit_power_w: np.ndarray,
     ) -> list[RewardComponents]:
         """Compute r1/r2/r3 for each user. No normalization.
 
@@ -685,9 +825,23 @@ class StepEnvironment:
             # r1: single-truth throughput (float64, no recomputation)
             r1 = float(user_throughputs[uid])
 
-            # r2: handover penalty
             prev_beam = int(prev_assignments[uid])
             cur_beam = int(cur_assignments[uid])
+            cur_load = (
+                float(beam_loads[cur_beam])
+                if 0 <= cur_beam < len(beam_loads)
+                else 0.0
+            )
+            cur_power_w = (
+                float(beam_transmit_power_w[cur_beam])
+                if 0 <= cur_beam < len(beam_transmit_power_w)
+                else 0.0
+            )
+            allocated_power_w = cur_power_w / cur_load if cur_load > 0.0 else 0.0
+            r1_ee_credit = r1 / allocated_power_w if allocated_power_w > 0.0 else 0.0
+            r1_beam_ee_credit = r1 / cur_power_w if cur_power_w > 0.0 else 0.0
+
+            # r2: handover penalty
             r2 = _handover_penalty(prev_beam, cur_beam, K, phi1, phi2)
 
             # r3: load balance — -(max - min) / U
@@ -697,6 +851,8 @@ class StepEnvironment:
                 r1_throughput=r1,
                 r2_handover=r2,
                 r3_load_balance=r3,
+                r1_energy_efficiency_credit=float(r1_ee_credit),
+                r1_beam_power_efficiency_credit=float(r1_beam_ee_credit),
             ))
 
         return rewards
@@ -815,11 +971,17 @@ class StepEnvironment:
         """
         # Zenith case: slant_range = altitude (satellite directly overhead)
         alt = self._orbit.config.altitude_km
+        zenith_tx_power_w = _diagnostic_beam_power_w(
+            1.0,
+            channel_tx_power_w=self._channel_cfg.tx_power_w,
+            power_surface_config=self._power_surface_cfg,
+        )
         zenith_ch = compute_channel(
             slant_range_km=alt,
             altitude_km=alt,
             config=self._channel_cfg,
             fading=False,
+            tx_power_w=zenith_tx_power_w,
         )
         zenith_snr_db = zenith_ch.snr_db
 
@@ -833,8 +995,18 @@ class StepEnvironment:
         L = self._orbit.num_satellites
         K = self._beam.num_beams
         typical_users_per_beam = max(U / (L * K), 1.0)
+        typical_tx_power_w = _diagnostic_beam_power_w(
+            typical_users_per_beam,
+            channel_tx_power_w=self._channel_cfg.tx_power_w,
+            power_surface_config=self._power_surface_cfg,
+        )
+        typical_snr = (
+            0.0
+            if zenith_tx_power_w <= 0.0
+            else zenith_ch.snr_linear * (typical_tx_power_w / zenith_tx_power_w)
+        )
         sample_r1 = (bw / typical_users_per_beam) * math.log2(
-            1.0 + zenith_ch.snr_linear
+            1.0 + typical_snr
         )
 
         sample_r2_beam = -self._step_cfg.phi1
@@ -896,6 +1068,71 @@ def _reachable_beam_mask(masks: list[ActionMask]) -> np.ndarray:
     for m in masks[1:]:
         combined |= m.mask
     return combined
+
+
+def _beam_transmit_power_w(
+    beam_loads: np.ndarray,
+    *,
+    channel_tx_power_w: float,
+    power_surface_config: PowerSurfaceConfig,
+) -> np.ndarray:
+    """Return explicit per-beam transmit power in linear W.
+
+    ``static-config`` deliberately mirrors the frozen MODQN baseline. The
+    HOBS-compatible opt-in mode is ``active-load-concave``, where inactive
+    beams are assigned ``0 W`` and active beams get an explicit allocated
+    power derived from current beam load.
+    """
+    if (
+        power_surface_config.hobs_power_surface_mode
+        == HOBS_POWER_SURFACE_STATIC_CONFIG
+    ):
+        return np.full_like(
+            beam_loads,
+            fill_value=float(channel_tx_power_w),
+            dtype=np.float64,
+        )
+
+    if (
+        power_surface_config.hobs_power_surface_mode
+        != HOBS_POWER_SURFACE_ACTIVE_LOAD_CONCAVE
+    ):
+        raise ValueError(
+            "Unsupported hobs_power_surface_mode: "
+            f"{power_surface_config.hobs_power_surface_mode!r}"
+        )
+
+    loads = beam_loads.astype(np.float64, copy=False)
+    powers = np.zeros_like(loads, dtype=np.float64)
+    active = loads > 0.0
+    if not np.any(active):
+        return powers
+
+    active_power = (
+        power_surface_config.active_base_power_w
+        + power_surface_config.load_scale_power_w
+        * np.power(loads[active], power_surface_config.load_exponent)
+    )
+    if power_surface_config.max_power_w is not None:
+        active_power = np.minimum(active_power, float(power_surface_config.max_power_w))
+    powers[active] = active_power
+    return powers
+
+
+def _diagnostic_beam_power_w(
+    beam_load: float,
+    *,
+    channel_tx_power_w: float,
+    power_surface_config: PowerSurfaceConfig,
+) -> float:
+    loads = np.array([float(beam_load)], dtype=np.float64)
+    return float(
+        _beam_transmit_power_w(
+            loads,
+            channel_tx_power_w=channel_tx_power_w,
+            power_surface_config=power_surface_config,
+        )[0]
+    )
 
 
 def _load_balance_gap(

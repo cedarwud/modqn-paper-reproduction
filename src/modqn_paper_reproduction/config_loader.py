@@ -18,7 +18,7 @@ import yaml
 from .env.orbit import OrbitConfig
 from .env.beam import BeamConfig
 from .env.channel import AtmosphericSignMode, ChannelConfig
-from .env.step import StepConfig, StepEnvironment
+from .env.step import PowerSurfaceConfig, StepConfig, StepEnvironment
 from .runtime.trainer_spec import TrainerConfig
 
 
@@ -322,6 +322,28 @@ def build_channel_config(cfg: dict[str, Any]) -> ChannelConfig:
     )
 
 
+def build_power_surface_config(cfg: dict[str, Any]) -> PowerSurfaceConfig:
+    """Build the opt-in HOBS power surface config from resolved YAML."""
+    power_val = _resolved_assumption_value(cfg, "hobs_power_surface")
+    power_val = power_val if isinstance(power_val, dict) else {}
+
+    return PowerSurfaceConfig(
+        hobs_power_surface_mode=power_val.get("mode", "static-config"),
+        inactive_beam_policy=power_val.get(
+            "inactive_beam_policy",
+            "excluded-from-active-beams",
+        ),
+        active_base_power_w=float(power_val.get("active_base_power_w", 0.25)),
+        load_scale_power_w=float(power_val.get("load_scale_power_w", 0.35)),
+        load_exponent=float(power_val.get("load_exponent", 0.5)),
+        max_power_w=(
+            None
+            if power_val.get("max_power_w", 2.0) is None
+            else float(power_val.get("max_power_w", 2.0))
+        ),
+    )
+
+
 def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
     """Build TrainerConfig from the resolved-run YAML."""
     base = cfg.get("baseline", cfg)
@@ -362,10 +384,18 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
 
     training_experiment_kind = "baseline"
     training_experiment_id = ""
+    method_family = "MODQN-baseline"
+    phase = str(cfg.get("track", {}).get("phase", "baseline"))
+    comparison_role = "not-applicable"
+    r1_reward_mode = "throughput"
+    r1_reward_label = "throughput"
+    r1_reward_provenance = "paper-backed MODQN throughput objective"
     reward_calibration_enabled = False
     reward_calibration_mode = "raw-unscaled"
     reward_calibration_source = "raw-unscaled"
     reward_calibration_scales = (1.0, 1.0, 1.0)
+    reward_normalization_mode = "raw-unscaled"
+    load_balance_calibration_mode = "baseline-paper-weight"
 
     if experiment_block:
         training_experiment_kind = str(
@@ -376,85 +406,253 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
             )
         )
         training_experiment_id = str(experiment_block.get("experiment_id", "")).strip()
+        method_family = str(
+            experiment_block.get(
+                "method_family",
+                cfg.get("track", {}).get("method_family", "MODQN-baseline"),
+            )
+        )
+        phase = str(experiment_block.get("phase", phase))
 
-        if training_experiment_kind != "reward-calibration":
+        if training_experiment_kind == "reward-calibration":
+            reward_calibration_block = _required_mapping_field(
+                experiment_block,
+                "reward_calibration",
+                context="training_experiment",
+            )
+            if not isinstance(reward_calibration_block, dict):
+                raise ConfigValidationError(
+                    "training_experiment.reward_calibration must be a mapping."
+                )
+
+            reward_calibration_enabled = bool(
+                _required_mapping_field(
+                    reward_calibration_block,
+                    "enabled",
+                    context="training_experiment.reward_calibration",
+                )
+            )
+            reward_calibration_mode = str(
+                _required_mapping_field(
+                    reward_calibration_block,
+                    "mode",
+                    context="training_experiment.reward_calibration",
+                )
+            )
+            reward_calibration_source = str(
+                reward_calibration_block.get("source", "unspecified")
+            )
+
+            if not reward_calibration_enabled:
+                raise ConfigValidationError(
+                    "training_experiment.reward_calibration.enabled must be true when the "
+                    "reward-calibration experiment surface is selected."
+                )
+
+            if reward_calibration_mode != "divide-by-fixed-scales":
+                raise ConfigValidationError(
+                    "Only reward_calibration.mode='divide-by-fixed-scales' is currently "
+                    f"supported, got {reward_calibration_mode!r}."
+                )
+
+            scales_val = _required_mapping_field(
+                reward_calibration_block,
+                "scales",
+                context="training_experiment.reward_calibration",
+            )
+            if not isinstance(scales_val, dict):
+                raise ConfigValidationError(
+                    "training_experiment.reward_calibration.scales must be a mapping."
+                )
+            reward_calibration_scales = (
+                float(
+                    _required_mapping_field(
+                        scales_val,
+                        "r1",
+                        context="training_experiment.reward_calibration.scales",
+                    )
+                ),
+                float(
+                    _required_mapping_field(
+                        scales_val,
+                        "r2",
+                        context="training_experiment.reward_calibration.scales",
+                    )
+                ),
+                float(
+                    _required_mapping_field(
+                        scales_val,
+                        "r3",
+                        context="training_experiment.reward_calibration.scales",
+                    )
+                ),
+            )
+        elif training_experiment_kind == "phase-03-objective-substitution":
+            objective_block = _required_mapping_field(
+                experiment_block,
+                "objective_substitution",
+                context="training_experiment",
+            )
+            if not isinstance(objective_block, dict):
+                raise ConfigValidationError(
+                    "training_experiment.objective_substitution must be a mapping."
+                )
+            if not bool(objective_block.get("enabled", False)):
+                raise ConfigValidationError(
+                    "training_experiment.objective_substitution.enabled must be true "
+                    "for Phase 03 objective-substitution configs."
+                )
+            r1_reward_mode = str(
+                _required_mapping_field(
+                    objective_block,
+                    "r1_reward_mode",
+                    context="training_experiment.objective_substitution",
+                )
+            )
+            r1_reward_label = str(objective_block.get("r1_label", r1_reward_mode))
+            r1_reward_provenance = str(
+                objective_block.get("r1_provenance", "unspecified")
+            )
+            comparison_role = str(
+                objective_block.get("comparison_role", comparison_role)
+            )
+        elif training_experiment_kind == "phase-03b-objective-geometry":
+            geometry_block = _required_mapping_field(
+                experiment_block,
+                "objective_geometry",
+                context="training_experiment",
+            )
+            if not isinstance(geometry_block, dict):
+                raise ConfigValidationError(
+                    "training_experiment.objective_geometry must be a mapping."
+                )
+            if not bool(geometry_block.get("enabled", False)):
+                raise ConfigValidationError(
+                    "training_experiment.objective_geometry.enabled must be true "
+                    "for Phase 03B objective-geometry configs."
+                )
+            r1_reward_mode = str(
+                _required_mapping_field(
+                    geometry_block,
+                    "r1_reward_mode",
+                    context="training_experiment.objective_geometry",
+                )
+            )
+            r1_reward_label = str(geometry_block.get("r1_label", r1_reward_mode))
+            r1_reward_provenance = str(
+                geometry_block.get("r1_provenance", "unspecified")
+            )
+            comparison_role = str(
+                geometry_block.get("comparison_role", comparison_role)
+            )
+
+            reward_norm_block = _required_mapping_field(
+                geometry_block,
+                "reward_normalization",
+                context="training_experiment.objective_geometry",
+            )
+            if not isinstance(reward_norm_block, dict):
+                raise ConfigValidationError(
+                    "training_experiment.objective_geometry.reward_normalization "
+                    "must be a mapping."
+                )
+            reward_calibration_enabled = bool(
+                _required_mapping_field(
+                    reward_norm_block,
+                    "enabled",
+                    context="training_experiment.objective_geometry.reward_normalization",
+                )
+            )
+            reward_calibration_mode = str(
+                _required_mapping_field(
+                    reward_norm_block,
+                    "mode",
+                    context="training_experiment.objective_geometry.reward_normalization",
+                )
+            )
+            reward_normalization_mode = reward_calibration_mode
+            reward_calibration_source = str(
+                reward_norm_block.get("source", "phase-03b-config")
+            )
+            if reward_calibration_enabled:
+                if reward_calibration_mode != "divide-by-fixed-scales":
+                    raise ConfigValidationError(
+                        "Phase 03B reward_normalization currently supports only "
+                        "mode='divide-by-fixed-scales'."
+                    )
+                scales_val = _required_mapping_field(
+                    reward_norm_block,
+                    "scales",
+                    context=(
+                        "training_experiment.objective_geometry."
+                        "reward_normalization"
+                    ),
+                )
+                if not isinstance(scales_val, dict):
+                    raise ConfigValidationError(
+                        "training_experiment.objective_geometry."
+                        "reward_normalization.scales must be a mapping."
+                    )
+                reward_calibration_scales = (
+                    float(
+                        _required_mapping_field(
+                            scales_val,
+                            "r1",
+                            context=(
+                                "training_experiment.objective_geometry."
+                                "reward_normalization.scales"
+                            ),
+                        )
+                    ),
+                    float(
+                        _required_mapping_field(
+                            scales_val,
+                            "r2",
+                            context=(
+                                "training_experiment.objective_geometry."
+                                "reward_normalization.scales"
+                            ),
+                        )
+                    ),
+                    float(
+                        _required_mapping_field(
+                            scales_val,
+                            "r3",
+                            context=(
+                                "training_experiment.objective_geometry."
+                                "reward_normalization.scales"
+                            ),
+                        )
+                    ),
+                )
+
+            load_balance_block = _required_mapping_field(
+                geometry_block,
+                "load_balance_calibration",
+                context="training_experiment.objective_geometry",
+            )
+            if not isinstance(load_balance_block, dict):
+                raise ConfigValidationError(
+                    "training_experiment.objective_geometry."
+                    "load_balance_calibration must be a mapping."
+                )
+            load_balance_calibration_mode = str(
+                _required_mapping_field(
+                    load_balance_block,
+                    "mode",
+                    context=(
+                        "training_experiment.objective_geometry."
+                        "load_balance_calibration"
+                    ),
+                )
+            )
+        else:
             raise ConfigValidationError(
-                "Only training_experiment.kind='reward-calibration' is currently supported, "
+                "Only training_experiment.kind values 'reward-calibration', "
+                "'phase-03-objective-substitution', and "
+                "'phase-03b-objective-geometry' are currently supported, "
                 f"got {training_experiment_kind!r}."
             )
-
-        reward_calibration_block = _required_mapping_field(
-            experiment_block,
-            "reward_calibration",
-            context="training_experiment",
-        )
-        if not isinstance(reward_calibration_block, dict):
-            raise ConfigValidationError(
-                "training_experiment.reward_calibration must be a mapping."
-            )
-
-        reward_calibration_enabled = bool(
-            _required_mapping_field(
-                reward_calibration_block,
-                "enabled",
-                context="training_experiment.reward_calibration",
-            )
-        )
-        reward_calibration_mode = str(
-            _required_mapping_field(
-                reward_calibration_block,
-                "mode",
-                context="training_experiment.reward_calibration",
-            )
-        )
-        reward_calibration_source = str(
-            reward_calibration_block.get("source", "unspecified")
-        )
-
-        if not reward_calibration_enabled:
-            raise ConfigValidationError(
-                "training_experiment.reward_calibration.enabled must be true when the "
-                "reward-calibration experiment surface is selected."
-            )
-
-        if reward_calibration_mode != "divide-by-fixed-scales":
-            raise ConfigValidationError(
-                "Only reward_calibration.mode='divide-by-fixed-scales' is currently "
-                f"supported, got {reward_calibration_mode!r}."
-            )
-
-        scales_val = _required_mapping_field(
-            reward_calibration_block,
-            "scales",
-            context="training_experiment.reward_calibration",
-        )
-        if not isinstance(scales_val, dict):
-            raise ConfigValidationError(
-                "training_experiment.reward_calibration.scales must be a mapping."
-            )
-        reward_calibration_scales = (
-            float(
-                _required_mapping_field(
-                    scales_val,
-                    "r1",
-                    context="training_experiment.reward_calibration.scales",
-                )
-            ),
-            float(
-                _required_mapping_field(
-                    scales_val,
-                    "r2",
-                    context="training_experiment.reward_calibration.scales",
-                )
-            ),
-            float(
-                _required_mapping_field(
-                    scales_val,
-                    "r3",
-                    context="training_experiment.reward_calibration.scales",
-                )
-            ),
-        )
 
     return TrainerConfig(
         hidden_layers=tuple(hidden),
@@ -492,10 +690,18 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
         ),
         training_experiment_kind=training_experiment_kind,
         training_experiment_id=training_experiment_id,
+        method_family=method_family,
+        phase=phase,
+        comparison_role=comparison_role,
+        r1_reward_mode=r1_reward_mode,
+        r1_reward_label=r1_reward_label,
+        r1_reward_provenance=r1_reward_provenance,
         reward_calibration_enabled=reward_calibration_enabled,
         reward_calibration_mode=reward_calibration_mode,
         reward_calibration_source=reward_calibration_source,
         reward_calibration_scales=reward_calibration_scales,
+        reward_normalization_mode=reward_normalization_mode,
+        load_balance_calibration_mode=load_balance_calibration_mode,
     )
 
 
@@ -520,4 +726,5 @@ def build_environment(cfg: dict[str, Any]) -> StepEnvironment:
         orbit_config=build_orbit_config(cfg),
         beam_config=build_beam_config(cfg),
         channel_config=build_channel_config(cfg),
+        power_surface_config=build_power_surface_config(cfg),
     )

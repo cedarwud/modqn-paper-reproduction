@@ -1,0 +1,55 @@
+config_role: resolved-run-follow-on
+inherits_from: ee-modqn-power-surface-phase-02b.resolved.yaml
+
+track:
+  phase: phase-03b
+  label: modqn-control-objective-geometry-pilot
+  method_family: MODQN-control
+  status: bounded-pilot
+  purpose: >
+    Paired Phase 03B control run. Uses the same opt-in Phase 02B
+    HOBS-linked SINR / power surface as EE-MODQN and keeps r1 as throughput,
+    while applying the Phase 03B reward-geometry normalization and
+    load-balance calibration explicitly declared below. This config must not
+    overwrite or replace the frozen MODQN baseline.
+
+baseline:
+  episodes: 60
+  objective_weights: [0.2, 0.2, 0.6]
+
+training_experiment:
+  kind: phase-03b-objective-geometry
+  experiment_id: P03B-MODQN-CONTROL-GEOMETRY-PILOT
+  method_family: MODQN-control
+  phase: phase-03b
+  metadata_labels:
+    method_family: MODQN-control
+    phase: phase-03b
+    r1_reward_mode: throughput
+    reward_normalization_mode: divide-by-fixed-scales
+    load_balance_calibration_mode: r3-weight-0.60-with-r1-normalized
+    comparison_role: paired-control
+  objective_geometry:
+    enabled: true
+    r1_reward_mode: throughput
+    r1_label: throughput
+    r1_provenance: >
+      Paper-backed MODQN throughput objective on the Phase 02B opt-in power
+      surface. Phase 03B only normalizes the trainer-side reward scale and
+      increases the shared load-balance weight for this bounded geometry test.
+    reward_normalization:
+      enabled: true
+      mode: divide-by-fixed-scales
+      source: phase-03b-config-fixed-scale
+      scales:
+        r1: 20.0
+        r2: 1.0
+        r3: 1.0
+    load_balance_calibration:
+      mode: r3-weight-0.60-with-r1-normalized
+      objective_weights: [0.2, 0.2, 0.6]
+      rationale: >
+        Phase 03A found one-beam collapse with unchanged r3. This bounded
+        pilot deliberately gives r3 enough scalarized influence to test
+        whether learned policies can exercise denominator variability.
+    comparison_role: paired-control
