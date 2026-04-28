@@ -1,5 +1,26 @@
 # `modqn-paper-reproduction` EE 路線下一步評估報告
 
+## 2026-04-28 implementation update
+
+Phase 03C-C 已把 Phase 03C-B 的 static / counterfactual power-MDP precondition
+推到 bounded paired runtime pilot，但結果是 **BLOCKED**，不是 promote。新的
+control / candidate config 分別是
+`configs/ee-modqn-phase-03c-c-power-mdp-control.resolved.yaml` 與
+`configs/ee-modqn-phase-03c-c-power-mdp-candidate.resolved.yaml`；candidate
+啟用了 `runtime-ee-selector`，comparison artifact 寫在
+`artifacts/ee-modqn-phase-03c-c-power-mdp-candidate-pilot/paired-comparison-vs-control/`。
+
+最重要的結果是：candidate best-eval 仍然每一步都是 one active beam，
+`selected_power_profile` 也完全 collapse 成 `fixed-low`，所以
+`denominator_varies_in_eval=false`、active power 是單點 `0.5 W` 分布。
+雖然 `EE_system` aggregate 對 control 有極小正 delta
+(`+0.000270185470526485`)，但 p05 throughput 掉約 `50%`，且
+throughput-vs-EE Pearson / Spearman 仍接近 `1.0`、same-policy rescore ranking
+沒有改變。因此這輪實作強化了本報告原本的結論：不能 claim
+EE-MODQN effectiveness，不能把 scalar reward 或 per-user EE credit 當主證據；
+下一步若要重開，必須先解 one-beam collapse 和真正 denominator-sensitive
+action / power coupling，而不是加長同一路線的 training。
+
 ## Short verdict
 
 我的短結論是：**應暫停目前這條 EE-MODQN training 路線的擴大訓練與任何 effectiveness claim，先把問題重定義成「顯式 power-coupling 的新方法」再往下走。** 不是因為 EE 指標本身錯，而是因為目前專案裡的學習行為仍然是 **beam-only handover policy**，而評估時 learned policy 幾乎每一步都收斂成 **one active beam / total active power = 2.0 W**，導致 `EE_system` 在實際 evaluation 裡沒有被 policy 真正驅動；Phase 03A/03B 已經明確顯示 `denominator_varies_in_eval=false`、`EE_system` 與 control 打平、throughput–EE correlation 幾乎等於 1，且 repo 內部 gate 也已寫明「更多 episode 不是下一個 gate」。在這種狀態下，繼續做 reward normalization、r3 calibration、或直接把 Catfish 疊上去，都不太可能把「EE = throughput / 幾乎固定常數」這個核心問題變成可辯護的 EE learning。fileciteturn11file0L1-L1 fileciteturn12file0L1-L1 fileciteturn15file0L1-L1

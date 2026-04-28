@@ -79,9 +79,9 @@ HOBS_POWER_SURFACE_ACTIVE_LOAD_CONCAVE = "active-load-concave"
 """Opt-in Phase 02B proxy: active beam power is allocated from beam load."""
 
 HOBS_POWER_SURFACE_PHASE_03C_B_POWER_CODEBOOK = "phase-03c-b-power-codebook"
-"""Opt-in Phase 03C-B new-extension: centralized discrete power codebook."""
+"""Opt-in Phase 03C-B/C new-extension: centralized discrete power codebook."""
 
-POWER_CODEBOOK_PROFILES = {
+POWER_CODEBOOK_FIXED_PROFILES = {
     "fixed-low",
     "fixed-mid",
     "fixed-high",
@@ -89,7 +89,15 @@ POWER_CODEBOOK_PROFILES = {
     "qos-tail-boost",
     "budget-trim",
 }
-"""Supported Phase 03C-B HOBS-inspired power-codebook controller profiles."""
+"""Concrete Phase 03C-B/C HOBS-inspired codebook profiles."""
+
+POWER_CODEBOOK_RUNTIME_SELECTOR_PROFILE = "runtime-ee-selector"
+"""Phase 03C-C opt-in runtime selector over concrete codebook profiles."""
+
+POWER_CODEBOOK_PROFILES = POWER_CODEBOOK_FIXED_PROFILES | {
+    POWER_CODEBOOK_RUNTIME_SELECTOR_PROFILE,
+}
+"""Supported Phase 03C-B/C HOBS-inspired power-codebook controller profiles."""
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -407,6 +415,18 @@ class StepResult:
     beam_transmit_power_w: np.ndarray
     """Explicit downlink per-beam transmit power ``P_b(t)`` in linear W."""
 
+    selected_power_profile: str = HOBS_POWER_SURFACE_STATIC_CONFIG
+    """Runtime power profile selected for this step."""
+
+    total_active_beam_power_w: float = 0.0
+    """Sum of active-beam transmit power in linear W."""
+
+    power_budget_violation: bool = False
+    """Whether total active beam power exceeded the configured budget."""
+
+    power_budget_excess_w: float = 0.0
+    """Amount by which active beam power exceeded the configured budget."""
+
 
 @dataclass
 class DiagnosticsReport:
@@ -576,7 +596,7 @@ class StepEnvironment:
         self._assignments = self._initial_assignments()
 
         # Build state and masks
-        states, masks, _beam_thr, _user_thr, _beam_loads, _beam_power_w = (
+        states, masks, _beam_thr, _user_thr, _beam_loads, _beam_power_w, _profile = (
             self._build_states_and_masks(rng)
         )
 
@@ -630,9 +650,15 @@ class StepEnvironment:
         self._assignments = actions.astype(np.int32)
 
         # Compute state and masks for the new time
-        states, masks, beam_throughputs, user_throughputs, beam_loads, beam_power_w = (
-            self._build_states_and_masks(rng)
-        )
+        (
+            states,
+            masks,
+            beam_throughputs,
+            user_throughputs,
+            beam_loads,
+            beam_power_w,
+            selected_power_profile,
+        ) = self._build_states_and_masks(rng)
 
         # Build reachable-beam mask: union of all users' action masks.
         # A beam is "reachable" if at least one user can see its satellite.
@@ -650,6 +676,20 @@ class StepEnvironment:
 
         done = self._step_index >= self._step_cfg.steps_per_episode
 
+        active_mask = beam_loads > 0.0
+        total_active_power_w = float(np.sum(beam_power_w[active_mask], dtype=np.float64))
+        budget_w = (
+            self._power_surface_cfg.total_power_budget_w
+            if self._power_surface_cfg.hobs_power_surface_mode
+            == HOBS_POWER_SURFACE_PHASE_03C_B_POWER_CODEBOOK
+            else None
+        )
+        budget_excess_w = (
+            0.0
+            if budget_w is None
+            else max(0.0, total_active_power_w - float(budget_w))
+        )
+
         return StepResult(
             time_s=self._t_s,
             step_index=self._step_index,
@@ -658,8 +698,12 @@ class StepEnvironment:
             action_masks=masks,
             rewards=rewards,
             beam_throughputs=beam_throughputs,
-            active_beam_mask=beam_loads > 0.0,
+            active_beam_mask=active_mask,
             beam_transmit_power_w=beam_power_w,
+            selected_power_profile=selected_power_profile,
+            total_active_beam_power_w=total_active_power_w,
+            power_budget_violation=budget_excess_w > 1e-12,
+            power_budget_excess_w=budget_excess_w,
         )
 
     # -- internal: state assembly ---------------------------------------------
@@ -673,6 +717,7 @@ class StepEnvironment:
         np.ndarray,
         np.ndarray,
         np.ndarray,
+        str,
     ]:
         """Build per-user states, masks, per-beam throughput, and per-user throughput.
 
@@ -691,6 +736,8 @@ class StepEnvironment:
             config-driven rather than hardwired.
         beam_transmit_power_w : ndarray, shape (L*K,), float64
             Explicit per-beam downlink transmit power in linear W.
+        selected_power_profile : str
+            Runtime power profile selected for this step.
         """
         L = self._orbit.num_satellites
         K = self._beam.num_beams
@@ -709,7 +756,7 @@ class StepEnvironment:
             if 0 <= beam_idx < LK:
                 beam_loads[beam_idx] += 1
 
-        beam_transmit_power_w = _beam_transmit_power_w(
+        beam_transmit_power_w, selected_power_profile = _beam_transmit_power_decision(
             beam_loads,
             channel_tx_power_w=self._channel_cfg.tx_power_w,
             power_surface_config=self._power_surface_cfg,
@@ -837,6 +884,7 @@ class StepEnvironment:
             user_throughputs,
             beam_loads,
             beam_transmit_power_w,
+            selected_power_profile,
         )
 
     # -- internal: rewards ----------------------------------------------------
@@ -1134,6 +1182,21 @@ def _beam_transmit_power_w(
     channel_tx_power_w: float,
     power_surface_config: PowerSurfaceConfig,
 ) -> np.ndarray:
+    """Compatibility wrapper returning only the explicit power vector."""
+    powers, _profile = _beam_transmit_power_decision(
+        beam_loads,
+        channel_tx_power_w=channel_tx_power_w,
+        power_surface_config=power_surface_config,
+    )
+    return powers
+
+
+def _beam_transmit_power_decision(
+    beam_loads: np.ndarray,
+    *,
+    channel_tx_power_w: float,
+    power_surface_config: PowerSurfaceConfig,
+) -> tuple[np.ndarray, str]:
     """Return explicit per-beam transmit power in linear W.
 
     ``static-config`` deliberately mirrors the frozen MODQN baseline. Phase
@@ -1145,17 +1208,20 @@ def _beam_transmit_power_w(
         power_surface_config.hobs_power_surface_mode
         == HOBS_POWER_SURFACE_STATIC_CONFIG
     ):
-        return np.full_like(
-            beam_loads,
-            fill_value=float(channel_tx_power_w),
-            dtype=np.float64,
+        return (
+            np.full_like(
+                beam_loads,
+                fill_value=float(channel_tx_power_w),
+                dtype=np.float64,
+            ),
+            HOBS_POWER_SURFACE_STATIC_CONFIG,
         )
 
     if (
         power_surface_config.hobs_power_surface_mode
         == HOBS_POWER_SURFACE_PHASE_03C_B_POWER_CODEBOOK
     ):
-        return _power_codebook_beam_transmit_power_w(
+        return _power_codebook_beam_transmit_power_decision(
             beam_loads,
             power_surface_config=power_surface_config,
         )
@@ -1173,7 +1239,7 @@ def _beam_transmit_power_w(
     powers = np.zeros_like(loads, dtype=np.float64)
     active = loads > 0.0
     if not np.any(active):
-        return powers
+        return powers, HOBS_POWER_SURFACE_ACTIVE_LOAD_CONCAVE
 
     active_power = (
         power_surface_config.active_base_power_w
@@ -1183,7 +1249,7 @@ def _beam_transmit_power_w(
     if power_surface_config.max_power_w is not None:
         active_power = np.minimum(active_power, float(power_surface_config.max_power_w))
     powers[active] = active_power
-    return powers
+    return powers, HOBS_POWER_SURFACE_ACTIVE_LOAD_CONCAVE
 
 
 def _nearest_codebook_level(value: float, levels: tuple[float, ...]) -> float:
@@ -1196,6 +1262,19 @@ def _power_codebook_beam_transmit_power_w(
     *,
     power_surface_config: PowerSurfaceConfig,
 ) -> np.ndarray:
+    """Compatibility wrapper returning only the Phase 03C-B/C power vector."""
+    powers, _profile = _power_codebook_beam_transmit_power_decision(
+        beam_loads,
+        power_surface_config=power_surface_config,
+    )
+    return powers
+
+
+def _power_codebook_beam_transmit_power_decision(
+    beam_loads: np.ndarray,
+    *,
+    power_surface_config: PowerSurfaceConfig,
+) -> tuple[np.ndarray, str]:
     """Apply the Phase 03C-B centralized discrete codebook controller.
 
     The controller observes post-handover beam loads and chooses one linear-W
@@ -1206,22 +1285,89 @@ def _power_codebook_beam_transmit_power_w(
     powers = np.zeros_like(loads, dtype=np.float64)
     active = loads > 0.0
     if not np.any(active):
-        return powers
+        return powers, "none"
 
-    levels = tuple(float(level) for level in power_surface_config.power_codebook_levels_w)
+    levels = tuple(
+        float(level)
+        for level in power_surface_config.power_codebook_levels_w
+    )
+    profile = power_surface_config.power_codebook_profile
+    active_loads = loads[active]
+    selected_profile = (
+        _select_runtime_power_profile(
+            active_loads,
+            levels=levels,
+            budget_w=power_surface_config.total_power_budget_w,
+        )
+        if profile == POWER_CODEBOOK_RUNTIME_SELECTOR_PROFILE
+        else profile
+    )
+    if selected_profile not in POWER_CODEBOOK_FIXED_PROFILES:
+        raise ValueError(
+            "Unsupported concrete power_codebook_profile: "
+            f"{selected_profile!r}"
+        )
+
+    active_power = _power_codebook_profile_levels(
+        active_loads,
+        profile=selected_profile,
+        levels=levels,
+        power_surface_config=power_surface_config,
+    )
+    powers[active] = active_power
+    return powers, selected_profile
+
+
+def _select_runtime_power_profile(
+    active_loads: np.ndarray,
+    *,
+    levels: tuple[float, ...],
+    budget_w: float | None,
+) -> str:
+    """Select one concrete codebook profile from the runtime load state.
+
+    This Phase 03C-C selector is intentionally predeclared and deterministic:
+    it turns post-handover beam-load state into a discrete power-profile
+    decision without changing the frozen beam-action baseline.
+    """
+    active_count = int(active_loads.size)
+    if active_count <= 0:
+        return "none"
+
+    high = float(levels[-1])
+    if budget_w is not None and active_count * high > float(budget_w):
+        return "budget-trim"
+
+    mean_load = float(np.mean(active_loads))
+    max_load = float(np.max(active_loads))
+    if active_count == 1:
+        return "fixed-low" if max_load >= 4.0 else "fixed-mid"
+    if mean_load > 0.0 and max_load / mean_load >= 1.5:
+        return "qos-tail-boost"
+    if active_count >= 4:
+        return "load-concave"
+    return "fixed-mid"
+
+
+def _power_codebook_profile_levels(
+    active_loads: np.ndarray,
+    *,
+    profile: str,
+    levels: tuple[float, ...],
+    power_surface_config: PowerSurfaceConfig,
+) -> np.ndarray:
+    """Apply one concrete power profile to active beam loads."""
     low = levels[0]
     mid = levels[len(levels) // 2]
     high = levels[-1]
-    profile = power_surface_config.power_codebook_profile
 
-    active_loads = loads[active]
     if profile == "fixed-low":
-        active_power = np.full_like(active_loads, low, dtype=np.float64)
-    elif profile == "fixed-mid":
-        active_power = np.full_like(active_loads, mid, dtype=np.float64)
-    elif profile == "fixed-high":
-        active_power = np.full_like(active_loads, high, dtype=np.float64)
-    elif profile == "load-concave":
+        return np.full_like(active_loads, low, dtype=np.float64)
+    if profile == "fixed-mid":
+        return np.full_like(active_loads, mid, dtype=np.float64)
+    if profile == "fixed-high":
+        return np.full_like(active_loads, high, dtype=np.float64)
+    if profile == "load-concave":
         raw = (
             power_surface_config.active_base_power_w
             + power_surface_config.load_scale_power_w
@@ -1229,11 +1375,11 @@ def _power_codebook_beam_transmit_power_w(
         )
         if power_surface_config.max_power_w is not None:
             raw = np.minimum(raw, float(power_surface_config.max_power_w))
-        active_power = np.asarray(
+        return np.asarray(
             [_nearest_codebook_level(float(value), levels) for value in raw],
             dtype=np.float64,
         )
-    elif profile == "qos-tail-boost":
+    if profile == "qos-tail-boost":
         active_power = np.full_like(active_loads, mid, dtype=np.float64)
         if active_loads.size == 1:
             active_power[0] = high
@@ -1242,17 +1388,14 @@ def _power_codebook_beam_transmit_power_w(
             light_threshold = float(np.percentile(active_loads, 25))
             active_power[active_loads >= tail_threshold] = high
             active_power[active_loads <= light_threshold] = low
-    elif profile == "budget-trim":
-        active_power = _budget_trim_power_levels(
+        return active_power
+    if profile == "budget-trim":
+        return _budget_trim_power_levels(
             active_loads,
             levels=levels,
             budget_w=power_surface_config.total_power_budget_w,
         )
-    else:
-        raise ValueError(f"Unsupported power_codebook_profile: {profile!r}")
-
-    powers[active] = active_power
-    return powers
+    raise ValueError(f"Unsupported power_codebook_profile: {profile!r}")
 
 
 def _budget_trim_power_levels(

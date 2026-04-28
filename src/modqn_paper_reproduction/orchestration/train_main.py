@@ -209,10 +209,13 @@ def run_train_command(
         )
         evaluation_metrics_label = "raw-paper-metrics"
         checkpoint_selection_metric = "raw-weighted-eval"
-        if trainer_cfg.training_experiment_kind == "phase-03-objective-substitution":
+        if trainer_cfg.training_experiment_kind in {
+            "phase-03-objective-substitution",
+            "phase-03c-c-power-mdp-pilot",
+        }:
             evaluation_metrics_label = (
-                "phase-03-selected-objective-metrics; full EE_system panel "
-                "is produced by the paired Phase 03 validator"
+                "phase-03-selected-objective-metrics; full EE_system/power "
+                "panel is produced by the paired validator"
             )
             checkpoint_selection_metric = f"weighted-eval-{trainer_cfg.r1_reward_mode}"
         metadata = RunMetadataV1(

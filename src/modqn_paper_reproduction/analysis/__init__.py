@@ -9,6 +9,9 @@ from .ee_denominator import export_ee_denominator_audit
 from .figures import export_figure_sweep_results
 from .phase03_ee_modqn import export_phase03_paired_validation
 from .phase03c_b_power_mdp_audit import export_phase03c_b_power_mdp_audit
+from .phase03c_c_power_mdp_pilot import (
+    export_phase03c_c_power_mdp_paired_validation,
+)
 from .reward_geometry import (
     build_reward_geometry_scale_table,
     build_reward_geometry_table_ii_frames,
@@ -38,6 +41,7 @@ __all__ = [
     "export_figure_sweep_results",
     "export_phase03_paired_validation",
     "export_phase03c_b_power_mdp_audit",
+    "export_phase03c_c_power_mdp_paired_validation",
     "export_reward_geometry_analysis",
     "export_table_ii_results",
     "export_training_log_artifacts",

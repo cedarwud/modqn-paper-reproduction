@@ -63,3 +63,15 @@ env PIP_CACHE_DIR=/tmp/pip-cache .venv/bin/python -m pip install -r requirements
    Policy-denominator diagnostic entrypoint. Replays paired checkpoints and
    counterfactual policies to distinguish a variable runtime denominator from
    learned policies that fail to exercise that denominator.
+10. `audit_phase03c_b_power_mdp.py`
+   Phase 03C-B static/counterfactual power-MDP audit entrypoint. Replays fixed
+   handover trajectories under fixed, Phase 02B proxy, and Phase 03C-B codebook
+   power semantics to test whether explicit power decisions can change the
+   denominator before any bounded training pilot.
+11. `compare_phase03c_c_power_mdp.py`
+   Phase 03C-C bounded paired-pilot comparison entrypoint. Replays matched
+   fixed-power-control and runtime-selector candidate checkpoints, logs selected
+   power profile, active-beam transmit power, budget violations, denominator
+   variability, system EE, QoS guardrails, and throughput-vs-EE ranking checks.
+   It does not run Catfish, multi-Catfish, long training, or frozen baseline
+   mutation.

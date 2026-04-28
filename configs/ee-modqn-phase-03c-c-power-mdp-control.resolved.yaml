@@ -1,0 +1,91 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: phase-03c-c
+  label: power-mdp-control-paired-pilot
+  method_family: MODQN-control
+  status: bounded-pilot
+  purpose: >
+    Paired Phase 03C-C control run. Uses the same hierarchical handover
+    scaffold and Phase 03C power-codebook surface as the candidate, but keeps
+    power selection fixed to a predeclared non-adaptive profile. This config
+    must not overwrite or replace the frozen MODQN baseline.
+
+baseline:
+  episodes: 20
+  objective_weights: [0.2, 0.2, 0.6]
+
+resolved_assumptions:
+  hobs_power_surface:
+    assumption_id: ASSUME-MODQN-REP-025
+    value:
+      mode: phase-03c-b-power-codebook
+      inactive_beam_policy: zero-w
+      power_codebook_profile: fixed-mid
+      power_codebook_levels_w: [0.5, 1.0, 2.0]
+      total_power_budget_w: 8.0
+      active_base_power_w: 0.25
+      load_scale_power_w: 0.35
+      load_exponent: 0.5
+      max_power_w: 2.0
+      units: linear-w
+      provenance: >
+        Phase 03C-C paired-pilot control. The power decision is a fixed,
+        predeclared non-adaptive codebook profile so the candidate can be
+        compared against the same handover scaffold, budget, eval seeds, and
+        checkpoint rule without introducing adaptive power selection.
+  phase_03c_c_power_mdp_pilot:
+    assumption_id: ASSUME-MODQN-REP-025
+    value:
+      artifact_namespace: artifacts/ee-modqn-phase-03c-c-power-mdp-control-pilot
+      paired_candidate_artifact_namespace: artifacts/ee-modqn-phase-03c-c-power-mdp-candidate-pilot
+      comparison_artifact_namespace: artifacts/ee-modqn-phase-03c-c-power-mdp-candidate-pilot/paired-comparison-vs-control
+      control_power_decision: fixed-mid
+      adaptive_power_decision: disabled
+      training_budget: bounded-20-episodes
+      catfish: disabled
+      multi_catfish: disabled
+      claim_boundary: >
+        Bounded paired pilot only. Scalar reward is diagnostic only; success
+        requires system EE, runtime denominator variability, non-collapsed
+        selected power decisions, and QoS guardrails.
+
+training_experiment:
+  kind: phase-03c-c-power-mdp-pilot
+  experiment_id: P03C-C-MODQN-CONTROL-POWER-MDP-PILOT
+  method_family: MODQN-control
+  phase: phase-03c-c
+  metadata_labels:
+    method_family: MODQN-control
+    phase: phase-03c-c
+    r1_reward_mode: throughput
+    power_decision_role: fixed-control
+    power_codebook_profile: fixed-mid
+    reward_normalization_mode: divide-by-fixed-scales
+    load_balance_calibration_mode: r3-weight-0.60-with-r1-normalized
+    comparison_role: paired-control
+  power_mdp_pilot:
+    enabled: true
+    r1_reward_mode: throughput
+    r1_label: throughput
+    r1_provenance: >
+      Paper-backed MODQN throughput objective on the Phase 03C-C opt-in
+      power-codebook surface. The control has no adaptive power decision.
+    reward_normalization:
+      enabled: true
+      mode: divide-by-fixed-scales
+      source: phase-03c-c-config-fixed-scale
+      scales:
+        r1: 20.0
+        r2: 1.0
+        r3: 1.0
+    load_balance_calibration:
+      mode: r3-weight-0.60-with-r1-normalized
+      objective_weights: [0.2, 0.2, 0.6]
+      rationale: >
+        Keep the Phase 03B bounded geometry calibration so this pilot isolates
+        the explicit power-decision surface rather than changing load-balance
+        pressure again.
+    power_decision_role: fixed-control
+    comparison_role: paired-control

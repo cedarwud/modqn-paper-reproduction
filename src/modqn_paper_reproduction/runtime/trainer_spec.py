@@ -91,12 +91,14 @@ class TrainerConfig:
             "reward-calibration",
             "phase-03-objective-substitution",
             "phase-03b-objective-geometry",
+            "phase-03c-c-power-mdp-pilot",
         }:
             raise ValueError(
                 "training_experiment_kind must be one of "
                 "{'baseline', 'reward-calibration', "
                 "'phase-03-objective-substitution', "
-                "'phase-03b-objective-geometry'}, "
+                "'phase-03b-objective-geometry', "
+                "'phase-03c-c-power-mdp-pilot'}, "
                 f"got {self.training_experiment_kind!r}"
             )
         if self.r1_reward_mode not in {
@@ -121,24 +123,27 @@ class TrainerConfig:
             not in {
                 "phase-03-objective-substitution",
                 "phase-03b-objective-geometry",
+                "phase-03c-c-power-mdp-pilot",
             }
         ):
             raise ValueError(
                 "EE r1 reward modes are only allowed for "
-                "training_experiment_kind='phase-03-objective-substitution' "
-                "or 'phase-03b-objective-geometry'."
+                "training_experiment_kind='phase-03-objective-substitution', "
+                "'phase-03b-objective-geometry', or "
+                "'phase-03c-c-power-mdp-pilot'."
             )
         if (
             self.training_experiment_kind
             not in {
                 "phase-03-objective-substitution",
                 "phase-03b-objective-geometry",
+                "phase-03c-c-power-mdp-pilot",
             }
             and self.method_family == "EE-MODQN"
         ):
             raise ValueError(
                 "method_family='EE-MODQN' requires "
-                "a Phase 03/03B EE training_experiment_kind."
+                "a Phase 03/03B/03C-C EE training_experiment_kind."
             )
         if self.reward_calibration_mode not in {
             "raw-unscaled",
@@ -153,11 +158,13 @@ class TrainerConfig:
             if self.training_experiment_kind not in {
                 "reward-calibration",
                 "phase-03b-objective-geometry",
+                "phase-03c-c-power-mdp-pilot",
             }:
                 raise ValueError(
                     "reward_calibration_enabled requires "
                     "training_experiment_kind='reward-calibration' or "
-                    "'phase-03b-objective-geometry'."
+                    "'phase-03b-objective-geometry' or "
+                    "'phase-03c-c-power-mdp-pilot'."
                 )
             if self.reward_calibration_mode != "divide-by-fixed-scales":
                 raise ValueError(

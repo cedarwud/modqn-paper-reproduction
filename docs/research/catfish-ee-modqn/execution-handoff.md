@@ -53,6 +53,17 @@ separate. This is not learned EE-MODQN effectiveness evidence, and the
 controller is a new-extension / HOBS-inspired surface, not a HOBS optimizer.
 See `03c-b-power-mdp-audit.execution-report.md`.
 
+Phase `03C-C` **is blocked**. It ran the bounded paired pilot authorized by
+Phase `03C-B` under `configs/ee-modqn-phase-03c-c-power-mdp-*` and
+`artifacts/ee-modqn-phase-03c-c-power-mdp-*`. The candidate used the explicit
+runtime `runtime-ee-selector`, but best-eval still collapsed every evaluated
+step to one active beam. The selected power profile distribution was a single
+point (`fixed-low`), active power was fixed at `0.5 W`,
+`denominator_varies_in_eval=false`, throughput-vs-EE ranking did not separate,
+and the tiny `EE_system` increase coincided with a `50%` p05 throughput drop.
+This is runtime/eval evidence against promoting the current EE route. See
+`03c-c-power-mdp-pilot.execution-report.md`.
+
 Phases `04` to `06` remain evidence-gated:
 
 1. Phase `04` is a separate single-Catfish feasibility branch and should not be
@@ -78,6 +89,7 @@ Read in this order when taking over the plan:
 11. `docs/research/catfish-ee-modqn/03-ee-modqn-validation.execution-report.md`
 12. `docs/research/catfish-ee-modqn/03b-ee-modqn-objective-geometry.execution-report.md`
 13. `docs/research/catfish-ee-modqn/03c-b-power-mdp-audit.execution-report.md`
+14. `docs/research/catfish-ee-modqn/03c-c-power-mdp-pilot.execution-report.md`
 
 Use later phase reviews only as constraints unless the user explicitly asks to plan those phases.
 
@@ -176,16 +188,27 @@ Phase `03C-B` static power-MDP audit artifacts:
 2. `artifacts/ee-modqn-phase-03c-b-power-mdp-audit/`
 3. `docs/research/catfish-ee-modqn/03c-b-power-mdp-audit.execution-report.md`
 
+Phase `03C-C` bounded paired pilot artifacts:
+
+1. `configs/ee-modqn-phase-03c-c-power-mdp-control.resolved.yaml`
+2. `configs/ee-modqn-phase-03c-c-power-mdp-candidate.resolved.yaml`
+3. `artifacts/ee-modqn-phase-03c-c-power-mdp-control-pilot/`
+4. `artifacts/ee-modqn-phase-03c-c-power-mdp-candidate-pilot/`
+5. `artifacts/ee-modqn-phase-03c-c-power-mdp-candidate-pilot/paired-comparison-vs-control/`
+6. `docs/research/catfish-ee-modqn/03c-c-power-mdp-pilot.execution-report.md`
+
 Decision:
 
 ```text
-NEEDS MORE EVIDENCE
+BLOCKED for Phase 03C-C; EE-MODQN remains not promoted
 ```
 
 Do not claim EE-MODQN is effective from this pilot.
 Do not claim that Phase `03B` reward geometry solved denominator collapse.
-Phase `03C-B` allows only a bounded paired pilot with explicit power decisions;
-it does not authorize EE-MODQN effectiveness, Catfish, or multi-Catfish claims.
+Do not claim that the Phase `03C-C` runtime selector solved denominator
+collapse. The current route remains blocked until a design correction can make
+evaluation exercise a non-single-point active-power distribution without
+throughput/service collapse.
 
 ## What Not To Do Next
 
@@ -198,7 +221,9 @@ Do not:
 5. claim full paper-faithful reproduction,
 6. use scalar reward alone as the comparison result,
 7. write follow-on outputs into frozen baseline artifact directories,
-8. change baseline configs to mean EE-MODQN or Catfish-MODQN.
+8. change baseline configs to mean EE-MODQN or Catfish-MODQN,
+9. treat the Phase `03C-C` tiny `EE_system` delta as effectiveness evidence,
+10. rerun the same one-beam-collapsed route with more episodes as the next gate.
 
 ## Recommended Next Prompt
 

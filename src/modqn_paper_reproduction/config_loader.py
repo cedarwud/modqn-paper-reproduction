@@ -526,26 +526,34 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
             comparison_role = str(
                 objective_block.get("comparison_role", comparison_role)
             )
-        elif training_experiment_kind == "phase-03b-objective-geometry":
+        elif training_experiment_kind in {
+            "phase-03b-objective-geometry",
+            "phase-03c-c-power-mdp-pilot",
+        }:
+            experiment_surface_key = (
+                "objective_geometry"
+                if training_experiment_kind == "phase-03b-objective-geometry"
+                else "power_mdp_pilot"
+            )
             geometry_block = _required_mapping_field(
                 experiment_block,
-                "objective_geometry",
+                experiment_surface_key,
                 context="training_experiment",
             )
             if not isinstance(geometry_block, dict):
                 raise ConfigValidationError(
-                    "training_experiment.objective_geometry must be a mapping."
+                    f"training_experiment.{experiment_surface_key} must be a mapping."
                 )
             if not bool(geometry_block.get("enabled", False)):
                 raise ConfigValidationError(
-                    "training_experiment.objective_geometry.enabled must be true "
-                    "for Phase 03B objective-geometry configs."
+                    f"training_experiment.{experiment_surface_key}.enabled must be "
+                    f"true for {training_experiment_kind} configs."
                 )
             r1_reward_mode = str(
                 _required_mapping_field(
                     geometry_block,
                     "r1_reward_mode",
-                    context="training_experiment.objective_geometry",
+                    context=f"training_experiment.{experiment_surface_key}",
                 )
             )
             r1_reward_label = str(geometry_block.get("r1_label", r1_reward_mode))
@@ -559,48 +567,54 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
             reward_norm_block = _required_mapping_field(
                 geometry_block,
                 "reward_normalization",
-                context="training_experiment.objective_geometry",
+                context=f"training_experiment.{experiment_surface_key}",
             )
             if not isinstance(reward_norm_block, dict):
                 raise ConfigValidationError(
-                    "training_experiment.objective_geometry.reward_normalization "
+                    f"training_experiment.{experiment_surface_key}.reward_normalization "
                     "must be a mapping."
                 )
             reward_calibration_enabled = bool(
                 _required_mapping_field(
                     reward_norm_block,
                     "enabled",
-                    context="training_experiment.objective_geometry.reward_normalization",
+                    context=(
+                        f"training_experiment.{experiment_surface_key}."
+                        "reward_normalization"
+                    ),
                 )
             )
             reward_calibration_mode = str(
                 _required_mapping_field(
                     reward_norm_block,
                     "mode",
-                    context="training_experiment.objective_geometry.reward_normalization",
+                    context=(
+                        f"training_experiment.{experiment_surface_key}."
+                        "reward_normalization"
+                    ),
                 )
             )
             reward_normalization_mode = reward_calibration_mode
             reward_calibration_source = str(
-                reward_norm_block.get("source", "phase-03b-config")
+                reward_norm_block.get("source", f"{training_experiment_kind}-config")
             )
             if reward_calibration_enabled:
                 if reward_calibration_mode != "divide-by-fixed-scales":
                     raise ConfigValidationError(
-                        "Phase 03B reward_normalization currently supports only "
+                        f"{training_experiment_kind} reward_normalization supports only "
                         "mode='divide-by-fixed-scales'."
                     )
                 scales_val = _required_mapping_field(
                     reward_norm_block,
                     "scales",
                     context=(
-                        "training_experiment.objective_geometry."
+                        f"training_experiment.{experiment_surface_key}."
                         "reward_normalization"
                     ),
                 )
                 if not isinstance(scales_val, dict):
                     raise ConfigValidationError(
-                        "training_experiment.objective_geometry."
+                        f"training_experiment.{experiment_surface_key}."
                         "reward_normalization.scales must be a mapping."
                     )
                 reward_calibration_scales = (
@@ -609,7 +623,7 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
                             scales_val,
                             "r1",
                             context=(
-                                "training_experiment.objective_geometry."
+                                f"training_experiment.{experiment_surface_key}."
                                 "reward_normalization.scales"
                             ),
                         )
@@ -619,7 +633,7 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
                             scales_val,
                             "r2",
                             context=(
-                                "training_experiment.objective_geometry."
+                                f"training_experiment.{experiment_surface_key}."
                                 "reward_normalization.scales"
                             ),
                         )
@@ -629,7 +643,7 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
                             scales_val,
                             "r3",
                             context=(
-                                "training_experiment.objective_geometry."
+                                f"training_experiment.{experiment_surface_key}."
                                 "reward_normalization.scales"
                             ),
                         )
@@ -639,11 +653,11 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
             load_balance_block = _required_mapping_field(
                 geometry_block,
                 "load_balance_calibration",
-                context="training_experiment.objective_geometry",
+                context=f"training_experiment.{experiment_surface_key}",
             )
             if not isinstance(load_balance_block, dict):
                 raise ConfigValidationError(
-                    "training_experiment.objective_geometry."
+                    f"training_experiment.{experiment_surface_key}."
                     "load_balance_calibration must be a mapping."
                 )
             load_balance_calibration_mode = str(
@@ -651,7 +665,7 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
                     load_balance_block,
                     "mode",
                     context=(
-                        "training_experiment.objective_geometry."
+                        f"training_experiment.{experiment_surface_key}."
                         "load_balance_calibration"
                     ),
                 )
@@ -660,7 +674,8 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
             raise ConfigValidationError(
                 "Only training_experiment.kind values 'reward-calibration', "
                 "'phase-03-objective-substitution', and "
-                "'phase-03b-objective-geometry' are currently supported, "
+                "'phase-03b-objective-geometry', and "
+                "'phase-03c-c-power-mdp-pilot' are currently supported, "
                 f"got {training_experiment_kind!r}."
             )
 

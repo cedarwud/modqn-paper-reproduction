@@ -1,0 +1,95 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: phase-03c-c
+  label: power-mdp-candidate-paired-pilot
+  method_family: EE-MODQN-power-MDP-new-extension
+  status: bounded-pilot
+  purpose: >
+    Paired Phase 03C-C candidate run. Uses an explicit runtime codebook
+    selector over predeclared beam-power profiles so evaluation can test
+    whether the policy/controller surface produces non-single-point power
+    decisions and denominator variability. This is a new-extension /
+    HOBS-inspired surface, not a HOBS optimizer and not a frozen baseline
+    replacement.
+
+baseline:
+  episodes: 20
+  objective_weights: [0.2, 0.2, 0.6]
+
+resolved_assumptions:
+  hobs_power_surface:
+    assumption_id: ASSUME-MODQN-REP-025
+    value:
+      mode: phase-03c-b-power-codebook
+      inactive_beam_policy: zero-w
+      power_codebook_profile: runtime-ee-selector
+      power_codebook_levels_w: [0.5, 1.0, 2.0]
+      total_power_budget_w: 8.0
+      active_base_power_w: 0.25
+      load_scale_power_w: 0.35
+      load_exponent: 0.5
+      max_power_w: 2.0
+      units: linear-w
+      provenance: >
+        Phase 03C-C new-extension / HOBS-inspired runtime codebook selector.
+        The selector maps post-handover active-beam load state to a discrete
+        power profile. It is not a HOBS paper-backed optimizer, and per-user
+        EE credit remains only a trainer-side credit-assignment signal.
+  phase_03c_c_power_mdp_pilot:
+    assumption_id: ASSUME-MODQN-REP-025
+    value:
+      artifact_namespace: artifacts/ee-modqn-phase-03c-c-power-mdp-candidate-pilot
+      paired_control_artifact_namespace: artifacts/ee-modqn-phase-03c-c-power-mdp-control-pilot
+      comparison_artifact_namespace: artifacts/ee-modqn-phase-03c-c-power-mdp-candidate-pilot/paired-comparison-vs-control
+      candidate_power_decision: runtime-ee-selector
+      adaptive_power_decision: enabled
+      training_budget: bounded-20-episodes
+      catfish: disabled
+      multi_catfish: disabled
+      claim_boundary: >
+        Bounded paired pilot only. Scalar reward is diagnostic only; success
+        requires system EE, runtime denominator variability, non-collapsed
+        selected power decisions, and QoS guardrails.
+
+training_experiment:
+  kind: phase-03c-c-power-mdp-pilot
+  experiment_id: P03C-C-EE-MODQN-POWER-MDP-PILOT
+  method_family: EE-MODQN-power-MDP-new-extension
+  phase: phase-03c-c
+  metadata_labels:
+    method_family: EE-MODQN-power-MDP-new-extension
+    phase: phase-03c-c
+    r1_reward_mode: per-user-beam-ee-credit
+    power_decision_role: runtime-selector-candidate
+    power_codebook_profile: runtime-ee-selector
+    reward_normalization_mode: divide-by-fixed-scales
+    load_balance_calibration_mode: r3-weight-0.60-with-r1-normalized
+    comparison_role: paired-candidate
+  power_mdp_pilot:
+    enabled: true
+    r1_reward_mode: per-user-beam-ee-credit
+    r1_label: per-user beam-power EE credit-assignment reward
+    r1_provenance: >
+      Phase 03C-C modeling / credit-assignment assumption:
+      r1_i(t) = R_i(t) / P_b(t), where P_b(t) is produced by the runtime
+      codebook selector. This is not system EE; final evaluation must still
+      report EE_system = sum_i R_i(t) / sum_active_beams P_b(t).
+    reward_normalization:
+      enabled: true
+      mode: divide-by-fixed-scales
+      source: phase-03c-c-config-fixed-scale
+      scales:
+        r1: 10.0
+        r2: 1.0
+        r3: 1.0
+    load_balance_calibration:
+      mode: r3-weight-0.60-with-r1-normalized
+      objective_weights: [0.2, 0.2, 0.6]
+      rationale: >
+        Keep the Phase 03B bounded geometry calibration so this pilot isolates
+        the explicit power-decision surface rather than changing load-balance
+        pressure again.
+    power_decision_role: runtime-selector-candidate
+    comparison_role: paired-candidate
