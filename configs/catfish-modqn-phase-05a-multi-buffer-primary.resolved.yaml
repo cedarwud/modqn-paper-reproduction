@@ -1,0 +1,43 @@
+config_role: resolved-run-follow-on-analysis
+inherits_from: catfish-modqn-phase-04-b-primary-shaping-off.resolved.yaml
+
+track:
+  phase: phase-05a
+  label: multi-buffer-validation-primary
+  method_family: Catfish-MODQN
+  status: bounded-analysis
+  purpose: >
+    Phase 05A objective-specific high-value buffer validation. This reuses the
+    Phase 04-B single-Catfish training surface only to collect bounded
+    transition-level diagnostics; it must not start full multi-Catfish agents
+    or introduce EE reward semantics.
+
+analysis_experiment:
+  kind: phase-05a-multi-buffer-validation
+  experiment_id: P05A-CATFISH-MODQN-MULTI-BUFFER-PRIMARY
+  method_family: Catfish-MODQN
+  phase: phase-05a
+  phase_05a_multi_buffer:
+    enabled: true
+    ee_reward: disabled
+    full_multi_catfish_agents: disabled
+    objective_top_quantile: 0.80
+    fixed_reward:
+      r1: throughput
+      r2: handover penalty
+      r3: load balance
+    scalar_reference:
+      source: Phase 04-B single Catfish scalar high-value replay admission
+      expression: "quality = 0.5*r1 + 0.3*r2 + 0.2*r3"
+    objective_buffers:
+      r1:
+        criterion: high throughput
+      r2:
+        criterion: handover penalty closer to zero
+      r3:
+        criterion: load-balance penalty closer to zero
+    forbidden:
+      ee_reward_or_objective: true
+      full_multi_catfish_agents: true
+      catfish_r1_r2_r3_learners: true
+      effectiveness_claim: true

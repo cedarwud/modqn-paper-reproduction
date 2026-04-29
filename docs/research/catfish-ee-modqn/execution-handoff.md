@@ -97,8 +97,12 @@ Phases `04` to `06` remain evidence-gated:
 
 1. Phase `04` is parked unless the explicit goal is Catfish feasibility. It is
    a separate single-Catfish branch over the original MODQN reward and should
-   not be mixed into Phase `03` or RA-EE.
-2. Phase `05` must not jump directly to three Catfish agents.
+   not be mixed into Phase `03` or RA-EE. Phase `04-B` runnable evidence and
+   Phase `04C` bounded attribution are complete, but Catfish-MODQN effectiveness
+   is not promoted.
+2. Phase `05` must not jump directly to three Catfish agents. `05A`
+   multi-buffer validation may be planned only as a separate bounded design
+   gate.
 3. Phase `06` cannot make final Catfish-EE-MODQN claims until Phases `03` to
    `05` produce evidence.
 
@@ -137,12 +141,13 @@ Read in this order when taking over the plan:
 13. `docs/research/catfish-ee-modqn/03c-b-power-mdp-audit.execution-report.md`
 14. `docs/research/catfish-ee-modqn/03c-c-power-mdp-pilot.execution-report.md`
 15. `docs/research/catfish-ee-modqn/03d-ee-route-disposition.execution-report.md`
-16. `docs/research/catfish-ee-modqn/ra-ee-02-oracle-power-allocation-audit.execution-report.md`
-17. `docs/research/catfish-ee-modqn/ra-ee-04-bounded-power-allocator-pilot.execution-report.md`
-18. `docs/research/catfish-ee-modqn/ra-ee-05-fixed-association-robustness.execution-report.md`
-19. `docs/research/catfish-ee-modqn/ra-ee-06-association-counterfactual-oracle.execution-report.md`
-20. `docs/research/catfish-ee-modqn/ra-ee-06b-association-proposal-refinement.execution-report.md`
-21. `docs/research/catfish-ee-modqn/ra-ee-07-constrained-power-allocator-distillation.execution-report.md`
+16. `docs/research/catfish-ee-modqn/04c-single-catfish-ablation-attribution.execution-report.md`
+17. `docs/research/catfish-ee-modqn/ra-ee-02-oracle-power-allocation-audit.execution-report.md`
+18. `docs/research/catfish-ee-modqn/ra-ee-04-bounded-power-allocator-pilot.execution-report.md`
+19. `docs/research/catfish-ee-modqn/ra-ee-05-fixed-association-robustness.execution-report.md`
+20. `docs/research/catfish-ee-modqn/ra-ee-06-association-counterfactual-oracle.execution-report.md`
+21. `docs/research/catfish-ee-modqn/ra-ee-06b-association-proposal-refinement.execution-report.md`
+22. `docs/research/catfish-ee-modqn/ra-ee-07-constrained-power-allocator-distillation.execution-report.md`
 22. `docs/research/catfish-ee-modqn/ra-ee-08-offline-association-reevaluation.execution-report.md`
 23. `docs/research/catfish-ee-modqn/ra-ee-09-completion-design-gate.md`
 24. `docs/research/catfish-ee-modqn/ra-ee-09-fixed-association-rb-bandwidth.execution-report.md`
@@ -355,14 +360,15 @@ Forbidden RA-EE claims:
 11. do not rewrite the scoped simulated-EE result as physical power saving or
     same-throughput-less-power unless separately tabulated.
 
-## Phase 04-B Scope
+## Phase 04-B / 04C Scope
 
-Phase `04` remains `NEEDS MORE EVIDENCE`. The next allowed scope is
-Phase `04-B`: a bounded Catfish-MODQN engineering slice under the original
-MODQN reward only.
+Phase `04` remains `NEEDS MORE EVIDENCE` for effectiveness. Phase `04-B`
+implemented the bounded Catfish-MODQN engineering slice under the original
+MODQN reward only. Phase `04C` then ran the bounded attribution grid.
 
 This section remains parked after RA-EE closeout unless the user explicitly
-switches to Catfish feasibility. Do not start Phase `04-B` to repair EE.
+switches to Catfish feasibility. Do not start or continue Catfish work to repair
+EE.
 
 Scope:
 
@@ -391,6 +397,20 @@ same final / best-eval checkpoint protocol
 Tests should cover baseline unchanged behavior, config namespace gating,
 high-value routing, intervention batch composition, metadata / log fields, and
 no EE reward mode in Phase `04` configs.
+
+Phase `04C` outputs:
+
+1. `artifacts/catfish-modqn-phase-04-c-control-20ep/`,
+2. `artifacts/catfish-modqn-phase-04-c-primary-shaping-off-20ep/`,
+3. `artifacts/catfish-modqn-phase-04-c-no-intervention-20ep/`,
+4. `artifacts/catfish-modqn-phase-04-c-no-asymmetric-gamma-20ep/`,
+5. `docs/research/catfish-ee-modqn/04c-single-catfish-ablation-attribution.execution-report.md`.
+
+The Phase `04C` result proves runnable attribution instrumentation and Catfish
+participation in bounded runs. It does not prove effectiveness: the run is one
+seed / `20` episodes, best-eval rows are effectively tied, primary and
+no-asymmetric-gamma are identical on the final training row, and intervention
+attribution remains weak.
 
 Stop if implementation requires changing the original reward, state, action, or
 backbone; if shaping is needed for the primary result; if catfish replay

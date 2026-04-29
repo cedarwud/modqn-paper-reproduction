@@ -27,6 +27,7 @@ test = [
 modqn-train = "modqn_paper_reproduction.cli:train_main"
 modqn-sweeps = "modqn_paper_reproduction.cli:sweep_main"
 modqn-export = "modqn_paper_reproduction.cli:export_main"
+modqn-catfish-phase05a = "modqn_paper_reproduction.cli:catfish_phase05a_multi_buffer_main"
 
 [tool.setuptools.package-dir]
 "" = "src"

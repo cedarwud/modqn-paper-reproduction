@@ -180,6 +180,58 @@ def export_main(argv: list[str] | None = None) -> int:
     return run_export_command(args, paper_id=PAPER_ID)
 
 
+def catfish_phase05a_multi_buffer_main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="modqn-catfish-phase05a")
+    parser.add_argument(
+        "--config",
+        default="configs/catfish-modqn-phase-05a-multi-buffer-primary.resolved.yaml",
+        help="Path to the opt-in Phase 05A analysis config.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default="artifacts/catfish-modqn-phase-05a-multi-buffer-primary-20ep",
+        help="Directory to write Phase 05A diagnostics.",
+    )
+    parser.add_argument(
+        "--episodes",
+        type=int,
+        default=None,
+        help="Optional bounded episode override for smoke/debug runs.",
+    )
+    parser.add_argument(
+        "--progress-every",
+        type=int,
+        default=0,
+        help="Print progress every N episodes (0 = silent).",
+    )
+    args = parser.parse_args(argv)
+
+    from .analysis.catfish_phase05a_multi_buffer import (
+        run_phase05a_multi_buffer_validation,
+    )
+    from .config_loader import ConfigValidationError
+
+    try:
+        diagnostics = run_phase05a_multi_buffer_validation(
+            config_path=args.config,
+            output_dir=args.output_dir,
+            episodes=args.episodes,
+            progress_every=args.progress_every,
+        )
+    except (ConfigValidationError, ValueError) as exc:
+        print(f"[modqn-catfish-phase05a] ERROR: {exc}", file=sys.stderr)
+        return 2
+
+    print(
+        "[modqn-catfish-phase05a] done: "
+        f"samples={diagnostics['sample_count']} "
+        f"recommendation={diagnostics['phase05b_recommendation']}"
+    )
+    for name, path in diagnostics["artifact_paths"].items():
+        print(f"[modqn-catfish-phase05a] {name}: {path}")
+    return 0
+
+
 def beam_semantics_audit_main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="modqn-beam-semantics-audit")
     parser.add_argument(
