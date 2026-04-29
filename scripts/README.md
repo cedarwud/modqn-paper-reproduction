@@ -75,3 +75,11 @@ env PIP_CACHE_DIR=/tmp/pip-cache .venv/bin/python -m pip install -r requirements
    variability, system EE, QoS guardrails, and throughput-vs-EE ranking checks.
    It does not run Catfish, multi-Catfish, long training, or frozen baseline
    mutation.
+12. `audit_ra_ee_02_oracle_power_allocation.py`
+   RA-EE-02 offline oracle / heuristic upper-bound audit entrypoint. Replays
+   fixed association trajectories under finite-codebook power allocations,
+   applies per-beam, total-budget, inactive-beam, served-ratio, outage, and
+   p05-throughput guardrails, and reports whether a budget-respecting
+   power-allocation candidate can improve system EE without QoS collapse. It
+   does not run RL training, Catfish, multi-Catfish, or mutate frozen baseline
+   artifacts.

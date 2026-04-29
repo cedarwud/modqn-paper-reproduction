@@ -12,6 +12,9 @@ from .phase03c_b_power_mdp_audit import export_phase03c_b_power_mdp_audit
 from .phase03c_c_power_mdp_pilot import (
     export_phase03c_c_power_mdp_paired_validation,
 )
+from .ra_ee_02_oracle_power_allocation import (
+    export_ra_ee_02_oracle_power_allocation_audit,
+)
 from .reward_geometry import (
     build_reward_geometry_scale_table,
     build_reward_geometry_table_ii_frames,
@@ -42,6 +45,7 @@ __all__ = [
     "export_phase03_paired_validation",
     "export_phase03c_b_power_mdp_audit",
     "export_phase03c_c_power_mdp_paired_validation",
+    "export_ra_ee_02_oracle_power_allocation_audit",
     "export_reward_geometry_analysis",
     "export_table_ii_results",
     "export_training_log_artifacts",
