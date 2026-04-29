@@ -1,5 +1,51 @@
 # `modqn-paper-reproduction` EE 路線下一步評估報告
 
+## 2026-04-29 RA-EE-08 implementation update
+
+RA-EE-08 已實作為 **offline association re-evaluation gate**，仍是 offline
+deterministic proposal replay，不是 training、learned association、hierarchical
+RL、joint association + power training、Catfish、RB / bandwidth allocation，也不是
+full RA-EE-MODQN。新的 config 是
+`configs/ra-ee-08-offline-association-reevaluation.resolved.yaml`；artifact 寫在
+`artifacts/ra-ee-08-offline-association-reevaluation/`。
+
+Primary matched comparison 是 matched fixed association +
+`deployable-stronger-power-allocator` 對 proposal association + **same**
+`deployable-stronger-power-allocator`。重放的 association proposal families 是
+`active-set-load-spread`、`active-set-quality-spread`、
+`active-set-sticky-spread`、`sticky-oracle-count-local-search`、
+`p05-slack-aware-active-set`、`power-response-aware-load-balance`、
+`bounded-move-served-set` 與 `oracle-score-topk-active-set`。`proposal +
+safe-greedy`、`fixed + safe-greedy`、`fixed + constrained-power oracle`、
+`association-oracle + constrained-power oracle`、以及 `association-oracle +
+deployable allocator` 都只作 diagnostic，不進 acceptance。
+
+RA-EE-08 結果是 **BLOCKED**。八個 held-out proposal 都避免 one-active-beam
+collapse，但沒有任何 proposal 對 matched fixed + same deployable allocator 有正
+`EE_system` delta；predeclared primary family
+`power-response-aware-load-balance` 也是負 delta。held-out EE delta 分別為
+`active-set-load-spread -8.283605568482926`、
+`active-set-quality-spread -8.283605568482926`、
+`active-set-sticky-spread -3.3928346793936726`、
+`sticky-oracle-count-local-search -3.3928346793936726`、
+`p05-slack-aware-active-set -3.3928346793936726`、
+`power-response-aware-load-balance -3.3928346793936726`、
+`bounded-move-served-set -3.3928346793936726`、以及
+`oracle-score-topk-active-set -6.070621808780743`。
+
+QoS / burden split 是：六個 7-active-beam proposal 的 p05 ratio 都 >= `0.95`
+且 served/outage 沒壞，但仍是 negative EE delta；兩個 2-active-beam proposal 的
+p05 ratio 只有 `0.42255785095605874`，其中 `active-set-load-spread` 的
+moved-user ratio 是 `0.9876`。primary rows 沒有 budget、per-beam 或
+inactive-power violations。
+
+RA-EE-08 也沒有 meaningful oracle gap closure。`association-oracle +
+deployable allocator` 對 fixed + deployable control 的 held-out EE delta 是
+`-2.7592661903154294`，`association-oracle + constrained-power oracle` 是
+`-7.442920209643489`，所以 aggregate oracle gap closure 不適用。這表示
+RA-EE-07 的 fixed-association deployable allocator 成為更強比較基準後，RA-EE-06 /
+06B 可見的 association oracle path 沒有在這個公平 pairing 下保留正 gap。
+
 ## 2026-04-29 RA-EE-07 implementation update
 
 RA-EE-07 已實作為 **constrained-power allocator distillation gate**，仍是
