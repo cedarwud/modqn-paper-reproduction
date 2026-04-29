@@ -98,3 +98,11 @@ env PIP_CACHE_DIR=/tmp/pip-cache .venv/bin/python -m pip install -r requirements
    constrained oracle. It does not learn association, train joint association
    + power, add Catfish, allocate RB / bandwidth, continue old EE-MODQN, or
    mutate frozen baseline artifacts.
+15. `run_ra_ee_06b_association_proposal_refinement.py`
+   RA-EE-06B offline oracle-trace export and deterministic association
+   proposal refinement entrypoint. Evaluates proposal-rule candidates against
+   matched fixed association with the same safe-greedy power allocator, plus
+   diagnostic-only proposal fixed-1W, per-user greedy, association oracle, and
+   constrained-power oracle rows. It does not run learned hierarchical RL,
+   joint association + power training, Catfish, multi-Catfish, RB / bandwidth
+   allocation, old EE-MODQN continuation, or frozen baseline mutation.

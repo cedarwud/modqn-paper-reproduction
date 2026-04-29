@@ -1,5 +1,51 @@
 # `modqn-paper-reproduction` EE 路線下一步評估報告
 
+## 2026-04-29 RA-EE-06B implementation update
+
+RA-EE-06B 已實作為 **association proposal refinement / oracle distillation
+audit**，仍是 offline trace export + deterministic proposal rule gate，不是
+learned hierarchical RL，也不是 full RA-EE-MODQN。新的 config 是
+`configs/ra-ee-06b-association-proposal-refinement.resolved.yaml`；artifact
+寫在 `artifacts/ra-ee-06b-association-proposal-refinement/`。
+
+這輪新增完整 per-step oracle trace：
+`ra_ee_06b_oracle_trace.csv`，並輸出 candidate summary、guardrail checks、
+summary JSON 與 `review.md`。trace 包含 active beam mask/count、active-set
+source、load distribution/slack/gap、per-user selected/top-k quality、
+best-vs-selected margin、valid beam count、current/control/oracle/selected
+beam、moved flags、rank/offset distance proxy、handover/r2、p05
+control/candidate/oracle throughput、p05 ratio/slack、selected power vector、
+demoted beams、denominator、safe-greedy demotion counts、tail-user IDs、oracle
+selected policy/profile、EE delta、accepted flag 與 rejection reason。
+
+實作的 deterministic proposal rules 是
+`sticky-oracle-count-local-search`、`p05-slack-aware-active-set`、
+`power-response-aware-load-balance`、`bounded-move-served-set`、以及
+`oracle-score-topk-active-set`。primary comparison 仍是 proposal rule + 同一個
+RA-EE-04/05 `safe-greedy-power-allocator` 對 matched `fixed-hold-current` +
+同一 allocator；`proposal + fixed-1W`、`per-user-greedy-best-beam`、
+`association-oracle+same-safe-greedy`、`association-oracle+constrained-power`
+與 `matched fixed + constrained-power oracle` 都只作 diagnostic / upper-bound
+使用。
+
+RA-EE-06B 結果是 **BLOCKED**。五個 held-out proposal 全部避免 one-active-beam
+或 pathological two-beam overload collapse，且 denominator 都有 variability，
+但沒有任何 primary candidate 對 matched fixed association + same safe-greedy
+allocator 有正 EE delta。四個 sticky/slack/load-balance/bounded-move proposal 的
+held-out EE delta 都是 `-1.7672459194036492`，p05 ratio
+`1.2382114044314652`，moved-user ratio `0.0054`；`oracle-score-topk-active-set`
+的 EE delta 是 `-2.8533857556310522`，p05 ratio `1.3748199249811`，
+moved-user ratio `0.0854`。accepted candidate count 是 `0`。
+
+Diagnostic oracle split 仍然存在：`association-oracle+same-safe-greedy` 在
+held-out 是負 EE delta `-1.476841467806139`，但
+`association-oracle+constrained-power-upper-bound` 是正 EE delta
+`+0.9583236804177204`、p05 ratio `1.0204597070289083`。所以目前可見正路徑仍
+需要 constrained-oracle power，而不是 proposal rule + same safe-greedy
+allocator。這觸發 `proposal_gains_require_constrained_oracle_power=true` 與
+`held_out_EE_delta_negative_or_concentrated=true`；不能進 learned hierarchical
+training。
+
 ## 2026-04-29 RA-EE-06 implementation update
 
 RA-EE-06 已實作為 **association counterfactual / oracle design gate**，method

@@ -1,0 +1,113 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: RA-EE-06B
+  label: association-proposal-refinement
+  method_family: RA-EE association proposal refinement
+  status: offline-trace-and-deterministic-proposal-gate
+  purpose: >
+    RA-EE-06B offline oracle trace export and deterministic association
+    proposal refinement. This is not learned hierarchical RL, not joint
+    association + power training, and not full RA-EE-MODQN.
+
+baseline:
+  episodes: 0
+
+resolved_assumptions:
+  hobs_power_surface:
+    assumption_id: ASSUME-MODQN-REP-029
+    value:
+      mode: phase-03c-b-power-codebook
+      inactive_beam_policy: zero-w
+      power_codebook_profile: fixed-mid
+      power_codebook_levels_w: [0.5, 0.75, 1.0, 1.5, 2.0]
+      total_power_budget_w: 8.0
+      active_base_power_w: 0.25
+      load_scale_power_w: 0.35
+      load_exponent: 0.5
+      max_power_w: 2.0
+      units: linear-w
+      provenance: >
+        RA-EE-06B opt-in counterfactual surface. Association proposal rules
+        are deterministic and offline. The same safe-greedy effective power
+        vector feeds SINR numerator, throughput, system EE denominator, audit
+        logs, and budget checks for matched control and primary candidates.
+  ra_ee_06b_association_proposal_refinement:
+    assumption_id: ASSUME-MODQN-REP-029
+    value:
+      artifact_namespace: artifacts/ra-ee-06b-association-proposal-refinement
+      method_label: RA-EE association proposal refinement / oracle distillation audit
+      implementation_sublabel: RA-EE-06B association proposal refinement / oracle distillation audit
+      offline_trace_export_only: true
+      deterministic_proposal_refinement_only: true
+      learned_hierarchical_RL: disabled
+      learned_association: disabled
+      association_training: disabled
+      joint_association_power_training: disabled
+      matched_control_association_policy: fixed-hold-current
+      candidate_association_policies:
+        - sticky-oracle-count-local-search
+        - p05-slack-aware-active-set
+        - power-response-aware-load-balance
+        - bounded-move-served-set
+        - oracle-score-topk-active-set
+      diagnostic_association_policies:
+        - per-user-greedy-best-beam
+      oracle_association_policies:
+        - sticky-oracle-count-local-search
+        - p05-slack-aware-active-set
+        - power-response-aware-load-balance
+        - bounded-move-served-set
+        - oracle-score-topk-active-set
+      association_action_contract: deterministic-active-set-served-set-proposal-rule
+      min_active_beams: 2
+      max_active_beams: 8
+      target_users_per_active_beam: 16
+      load_cap_overflow_users: 2
+      max_one_active_beam_ratio_for_acceptance: 0.25
+      max_two_beam_overload_step_ratio: 0.10
+      max_moved_user_ratio: 0.20
+      max_moved_user_ratio_per_step: 0.18
+      min_oracle_gap_closed_ratio: 0.20
+      quality_margin_for_move: 0.0
+      local_search_swap_limit: 2
+      trace_top_k: 3
+      power_allocator_embedding: post-association-optimizer
+      power_allocator: safe-greedy-power-allocator
+      matched_control_power_allocator: safe-greedy-power-allocator
+      fixed_control_power_w: 1.0
+      codebook_levels_w: [0.5, 0.75, 1.0, 1.5, 2.0]
+      total_active_power_budget_w: 8.0
+      per_beam_max_power_w: 2.0
+      inactive_beam_policy: zero-w
+      evaluation_buckets:
+        calibration:
+          role: train-like-calibration
+          evaluation_seed_set: [100, 200, 300, 400, 500]
+        held-out:
+          role: held-out-validation
+          evaluation_seed_set: [600, 700, 800, 900, 1000]
+      p05_throughput_min_ratio_vs_control: 0.95
+      served_ratio_min_delta_vs_control: 0.0
+      outage_ratio_max_delta_vs_control: 0.0
+      candidate_max_demoted_beams: 3
+      candidate_step_p05_guardrail_margin: 0.005
+      oracle_max_demoted_beams: 3
+      oracle_same_safe_greedy: association-oracle+same-safe-greedy-diagnostic
+      oracle_upper_bound: association-oracle+constrained-power-upper-bound
+      oracle_upper_bound_role: diagnostic-only
+      matched_fixed_constrained_power_isolation: optional-diagnostic-only
+      catfish: disabled
+      multi_catfish: disabled
+      rb_bandwidth_allocation: disabled
+      old_ee_modqn_continuation: forbidden
+      frozen_baseline_mutation: forbidden
+      hobs_optimizer_claim: forbidden
+      physical_energy_saving_claim: forbidden
+      claim_boundary: >
+        Evidence is limited to offline deterministic proposal rules evaluated
+        against matched fixed association with the same RA-EE-04/05
+        safe-greedy power allocator. Scalar reward, per-user EE credit,
+        per-user greedy selection, association oracle rows, and constrained
+        power oracle rows are diagnostics only.
