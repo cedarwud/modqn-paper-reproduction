@@ -1,5 +1,38 @@
 # `modqn-paper-reproduction` EE 路線下一步評估報告
 
+## 2026-04-29 RA-EE-06 implementation update
+
+RA-EE-06 已實作為 **association counterfactual / oracle design gate**，method
+label 是 `RA-EE hierarchical association + power counterfactual`，不是 full
+RA-EE-MODQN。新的 config 是
+`configs/ra-ee-06-association-counterfactual-oracle.resolved.yaml`；artifact
+寫在 `artifacts/ra-ee-06-association-counterfactual-oracle/`。
+
+這輪只做離線 active-set / served-set association counterfactual。matched
+control 是 `fixed-hold-current` association + RA-EE-04/05
+`safe-greedy-power-allocator`；candidate 是
+`active-set-load-spread`、`active-set-quality-spread`、`active-set-sticky-spread`
+再接同一個 `safe-greedy-power-allocator`；另有
+`association-oracle+constrained-power-upper-bound` 作 diagnostic upper bound。
+沒有 learned association、joint association + power training、Catfish、
+multi-Catfish、RB / bandwidth allocation，也沒有修改 frozen baseline。
+
+RA-EE-06 結果是 **BLOCKED for learned hierarchical association training**。
+三個 held-out active-set proposal 都避免了 one-active-beam collapse，但都沒有
+對 matched fixed-association + same allocator 產生正 `EE_system` delta：
+`active-set-load-spread` 與 `active-set-quality-spread` 的 EE delta 都是
+`-2.919243206981264`，p05 ratio 都是 `0.39743071159396487`；
+`active-set-sticky-spread` 的 EE delta 是 `-1.7672459194036492`，p05 ratio 是
+`1.2382114044314652`。因此沒有 accepted candidate，不能進 learned
+hierarchical RL。
+
+重要的是，diagnostic oracle 在 held-out 上對同一 matched control 有正 EE delta
+`+0.44226236820429676`，p05 ratio `0.9711843089200792`，且通過 QoS / budget
+guardrails。這表示 association + power 的可行上界仍存在，但目前 minimal
+active-set proposal rule 不足。下一步若要繼續，應是 **RA-EE-06B association
+proposal refinement / oracle distillation**，仍不得直接做 joint association +
+power training。
+
 ## 2026-04-29 RA-EE-05 implementation update
 
 RA-EE-05 已實作為 **fixed-association robustness and held-out validation**，

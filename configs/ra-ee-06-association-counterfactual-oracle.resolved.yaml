@@ -1,0 +1,100 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: RA-EE-06
+  label: association-counterfactual-oracle
+  method_family: RA-EE hierarchical association + power design
+  status: design-gate-counterfactual
+  purpose: >
+    RA-EE-06 offline active-set / served-set association counterfactual and
+    oracle design gate. This is not learned association, not joint association
+    + power training, and not full RA-EE-MODQN.
+
+baseline:
+  episodes: 0
+
+resolved_assumptions:
+  hobs_power_surface:
+    assumption_id: ASSUME-MODQN-REP-029
+    value:
+      mode: phase-03c-b-power-codebook
+      inactive_beam_policy: zero-w
+      power_codebook_profile: fixed-mid
+      power_codebook_levels_w: [0.5, 0.75, 1.0, 1.5, 2.0]
+      total_power_budget_w: 8.0
+      active_base_power_w: 0.25
+      load_scale_power_w: 0.35
+      load_exponent: 0.5
+      max_power_w: 2.0
+      units: linear-w
+      provenance: >
+        RA-EE-06 opt-in counterfactual surface. Association proposals are
+        generated offline before the RA-EE-04/05 power allocator resolves one
+        effective power vector. The same vector feeds SINR numerator,
+        throughput, system EE denominator, audit logs, and budget checks.
+  ra_ee_06_association_counterfactual_oracle:
+    assumption_id: ASSUME-MODQN-REP-029
+    value:
+      artifact_namespace: artifacts/ra-ee-06-association-counterfactual-oracle
+      method_label: RA-EE hierarchical association + power counterfactual
+      implementation_sublabel: RA-EE-06 association counterfactual / oracle design gate
+      association_counterfactual_only: true
+      learned_association: disabled
+      association_training: disabled
+      joint_association_power_training: disabled
+      matched_control_association_policy: fixed-hold-current
+      candidate_association_policies:
+        - active-set-load-spread
+        - active-set-quality-spread
+        - active-set-sticky-spread
+      diagnostic_association_policies:
+        - per-user-greedy-best-beam
+      oracle_association_policies:
+        - active-set-load-spread
+        - active-set-quality-spread
+        - active-set-sticky-spread
+      association_action_contract: centralized-active-set-served-set-proposal
+      min_active_beams: 2
+      max_active_beams: 8
+      target_users_per_active_beam: 16
+      load_cap_overflow_users: 2
+      max_one_active_beam_ratio_for_acceptance: 0.25
+      power_allocator_embedding: post-association-optimizer
+      power_allocator: safe-greedy-power-allocator
+      matched_control_power_allocator: safe-greedy-power-allocator
+      fixed_control_power_w: 1.0
+      codebook_levels_w: [0.5, 0.75, 1.0, 1.5, 2.0]
+      total_active_power_budget_w: 8.0
+      per_beam_max_power_w: 2.0
+      inactive_beam_policy: zero-w
+      evaluation_buckets:
+        calibration:
+          role: train-like-calibration
+          evaluation_seed_set: [100, 200, 300, 400, 500]
+        held-out:
+          role: held-out-validation
+          evaluation_seed_set: [600, 700, 800, 900, 1000]
+      p05_throughput_min_ratio_vs_control: 0.95
+      served_ratio_min_delta_vs_control: 0.0
+      outage_ratio_max_delta_vs_control: 0.0
+      candidate_max_demoted_beams: 3
+      candidate_step_p05_guardrail_margin: 0.005
+      oracle_max_demoted_beams: 3
+      oracle_upper_bound: association-oracle+constrained-power-upper-bound
+      oracle_upper_bound_role: diagnostic-only
+      catfish: disabled
+      multi_catfish: disabled
+      rb_bandwidth_allocation: disabled
+      old_ee_modqn_continuation: forbidden
+      frozen_baseline_mutation: forbidden
+      hobs_optimizer_claim: forbidden
+      physical_energy_saving_claim: forbidden
+      claim_boundary: >
+        Design-gate evidence is limited to offline active-set association
+        counterfactuals evaluated with the same RA-EE-04/05 safe-greedy power
+        allocator as the matched fixed-association control. Success must be
+        based on system EE, QoS guardrails, non-collapsed active sets,
+        denominator variability, and zero power violations. Scalar reward,
+        per-user EE credit, per-user greedy selection, and oracle upper-bound
+        results are diagnostics only.
