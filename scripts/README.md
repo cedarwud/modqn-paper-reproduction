@@ -91,3 +91,10 @@ env PIP_CACHE_DIR=/tmp/pip-cache .venv/bin/python -m pip install -r requirements
    diagnostics. It does not learn association, run Catfish or multi-Catfish,
    continue old EE-MODQN, run long training, or mutate frozen baseline
    artifacts.
+14. `run_ra_ee_05_fixed_association_robustness.py`
+   RA-EE-05 fixed-association robustness and held-out validation entrypoint.
+   Evaluates calibration and held-out trajectory buckets under fixed 1 W
+   control, the safe-greedy centralized power allocator, and a diagnostic-only
+   constrained oracle. It does not learn association, train joint association
+   + power, add Catfish, allocate RB / bandwidth, continue old EE-MODQN, or
+   mutate frozen baseline artifacts.

@@ -1,0 +1,92 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: RA-EE-05
+  label: fixed-association-robustness
+  method_family: RA-EE fixed-association power allocation
+  status: held-out-validation
+  purpose: >
+    RA-EE-05 robustness and held-out validation for the fixed-association
+    centralized power allocator. This is not learned association, not joint
+    association + power training, and not full RA-EE-MODQN.
+
+baseline:
+  episodes: 0
+
+resolved_assumptions:
+  hobs_power_surface:
+    assumption_id: ASSUME-MODQN-REP-028
+    value:
+      mode: phase-03c-b-power-codebook
+      inactive_beam_policy: zero-w
+      power_codebook_profile: fixed-mid
+      power_codebook_levels_w: [0.5, 0.75, 1.0, 1.5, 2.0]
+      total_power_budget_w: 8.0
+      active_base_power_w: 0.25
+      load_scale_power_w: 0.35
+      load_exponent: 0.5
+      max_power_w: 2.0
+      units: linear-w
+      provenance: >
+        RA-EE-05 opt-in fixed-association robustness surface. Each trajectory
+        fixes association decisions before power evaluation. The resolved
+        effective power vector feeds SINR numerator, throughput, system EE
+        denominator, audit logs, and budget checks.
+  ra_ee_05_fixed_association_robustness:
+    assumption_id: ASSUME-MODQN-REP-028
+    value:
+      artifact_namespace: artifacts/ra-ee-05-fixed-association-robustness
+      method_label: RA-EE fixed-association centralized power allocator
+      implementation_sublabel: RA-EE-05 fixed-association robustness and held-out validation
+      fixed_association_only: true
+      learned_association: disabled
+      association_training: disabled
+      joint_association_power_training: disabled
+      power_allocator: safe-greedy-power-allocator
+      control_allocator: fixed-control-1w-per-active-beam
+      oracle_upper_bound: constrained-oracle-upper-bound
+      oracle_upper_bound_role: diagnostic-only
+      power_action_contract: centralized-per-active-beam-discrete-vector
+      fixed_control_power_w: 1.0
+      codebook_levels_w: [0.5, 0.75, 1.0, 1.5, 2.0]
+      total_active_power_budget_w: 8.0
+      per_beam_max_power_w: 2.0
+      inactive_beam_policy: zero-w
+      evaluation_buckets:
+        calibration:
+          role: train-like-calibration
+          evaluation_seed_set: [100, 200, 300, 400, 500]
+          trajectory_families:
+            - hold-current
+            - random-valid
+            - spread-valid
+        held-out:
+          role: held-out-validation
+          evaluation_seed_set: [600, 700, 800, 900, 1000]
+          trajectory_families:
+            - random-valid-heldout
+            - spread-valid-heldout
+            - load-skewed-heldout
+            - mobility-shift-heldout
+            - mixed-valid-heldout
+      p05_throughput_min_ratio_vs_control: 0.95
+      served_ratio_min_delta_vs_control: 0.0
+      outage_ratio_max_delta_vs_control: 0.0
+      candidate_max_demoted_beams: 3
+      candidate_step_p05_guardrail_margin: 0.005
+      oracle_max_demoted_beams: 3
+      catfish: disabled
+      multi_catfish: disabled
+      rb_bandwidth_allocation: disabled
+      old_ee_modqn_continuation: forbidden
+      frozen_baseline_mutation: forbidden
+      hobs_optimizer_claim: forbidden
+      physical_energy_saving_claim: forbidden
+      claim_boundary: >
+        Robustness evidence is limited to fixed-association centralized power
+        allocation. Success must be based on system EE, held-out bucket
+        reporting, QoS guardrails, denominator variability, non-single-point
+        power selections, ranking separation, and zero power violations. Scalar
+        reward, per-user EE credit, and oracle upper-bound results are
+        diagnostics only.

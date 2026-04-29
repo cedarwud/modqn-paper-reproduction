@@ -1,5 +1,37 @@
 # `modqn-paper-reproduction` EE 路線下一步評估報告
 
+## 2026-04-29 RA-EE-05 implementation update
+
+RA-EE-05 已實作為 **fixed-association robustness and held-out validation**，
+method label 是 `RA-EE fixed-association centralized power allocator`，不是
+full RA-EE-MODQN。新的 config 是
+`configs/ra-ee-05-fixed-association-robustness.resolved.yaml`；artifact 寫在
+`artifacts/ra-ee-05-fixed-association-robustness/`。
+
+這輪使用 calibration / train-like bucket
+`[hold-current, random-valid, spread-valid]` 搭配 eval seeds
+`[100, 200, 300, 400, 500]`，以及 held-out bucket
+`[random-valid-heldout, spread-valid-heldout, load-skewed-heldout,
+mobility-shift-heldout, mixed-valid-heldout]` 搭配 eval seeds
+`[600, 700, 800, 900, 1000]`。association 仍由固定 trajectory 事先給定；
+沒有 learned association、joint association + power training、Catfish、
+multi-Catfish、RB / bandwidth allocation，且沒有修改 frozen baseline。
+
+RA-EE-05 結果是 **PASS as fixed-association robustness evidence only**。
+held-out 五條 non-collapsed trajectories 全部對 matched fixed-control 有正
+`EE_system` delta，且全部通過 p05 throughput / served ratio / outage /
+budget / per-beam / inactive-power guardrails。held-out EE delta 分別為
+`+2.8552862308795284`、`+0.021591980638277164`、`+1.8625878077186826`、
+`+2.238167231124862`、`+1.491732050135397`；p05 throughput ratio 分別為
+`0.9549524027957726`、`0.9963484525708493`、`1.0`、
+`0.9532709399187361`、`1.0`。accepted held-out trajectories 全部
+`denominator_varies_in_eval=true`，selected power vectors 與 total active
+power 皆非單點分布，且 throughput winner 是 `fixed-control`、EE winner 是
+`safe-greedy-power-allocator`，ranking 分離成立。這只能支持「固定
+association 的集中式 power allocator 通過 held-out robustness gate」；仍不能
+claim learned association、full RA-EE-MODQN effectiveness、HOBS optimizer、
+physical energy saving、Catfish-EE，或 full paper-faithful reproduction。
+
 ## 2026-04-29 RA-EE-04 implementation update
 
 RA-EE-04 已實作為 **fixed-association centralized power-allocation bounded
