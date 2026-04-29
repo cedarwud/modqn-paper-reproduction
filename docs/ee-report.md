@@ -1,5 +1,49 @@
 # `modqn-paper-reproduction` EE 路線下一步評估報告
 
+## 2026-04-29 RA-EE-07 implementation update
+
+RA-EE-07 已實作為 **constrained-power allocator distillation gate**，仍是
+offline replay，不是 learned association、hierarchical RL、joint association
++ power training，也不是 full RA-EE-MODQN。新的 config 是
+`configs/ra-ee-07-constrained-power-allocator-distillation.resolved.yaml`；
+artifact 寫在
+`artifacts/ra-ee-07-constrained-power-allocator-distillation/`。
+
+Primary comparison 是 matched fixed association + RA-EE-04/05
+`safe-greedy-power-allocator` 對 matched fixed association +
+deployable non-oracle stronger allocator。實作的 deployable candidates 是
+`p05-slack-aware-trim-tail-protect-boost`、
+`bounded-local-search-codebook`、`finite-codebook-dp-knapsack` 與
+`deterministic-hybrid-runtime`；completed held-out replay 裡 hybrid 每一步選到
+`bounded-local-search-codebook`。這個選擇只使用 current runtime channel/load/QoS
+slack 與 finite codebook evaluation，不使用 oracle labels、future outcomes 或
+held-out answers。`fixed-1W`、matched fixed + constrained-power oracle
+isolation、association proposal + same deployable allocator、association oracle
++ constrained-power oracle upper bound 都只作 diagnostic。RA-EE-06B association
+proposal buckets 有輸出為 bounded diagnostics；primary fixed-association replay
+沒有 step cap。
+
+RA-EE-07 結果是 **PASS as offline fixed-association deployable
+power-allocator gate only**。held-out 五條 fixed-association trajectories 全部對
+matched safe-greedy 有正 `EE_system` delta 且全部 accepted：
+`random-valid-heldout` `+7.095305632511327`、`spread-valid-heldout`
+`+5.155057818148293`、`load-skewed-heldout` `+3.5780032540779985`、
+`mobility-shift-heldout` `+7.483104400382672`、`mixed-valid-heldout`
+`+5.918477335805619`。p05 throughput ratio 分別是 `0.975101299563657`、
+`0.9995533609188448`、`1.0421330635721502`、`0.986358235603686`、
+`1.0743825126983608`；served ratio 沒有下降、outage ratio 沒有上升，budget /
+per-beam / inactive-power violations 為 `0`。
+
+Held-out aggregate oracle gap closure 是 `1.0` under the RA-EE-07 feasible-codebook
+oracle diagnostic；positive seeds 是 `4 / 5`，max positive trajectory delta share
+是 `0.2560081286323895`，max positive seed delta share 是
+`0.28553406270120996`，所以 gain 沒有集中在單一 trajectory 或 seed。這個 PASS
+只支持「fixed association 下，一個 deployable non-oracle power allocator 可以
+beat safe-greedy 並關閉本 gate 的 constrained-power oracle gap」。它仍不能 claim
+learned association、hierarchical RA-EE、joint association + power training、
+RB / bandwidth allocation、HOBS optimizer、physical energy saving、Catfish-EE，
+或 full paper-faithful reproduction。
+
 ## 2026-04-29 RA-EE-06B implementation update
 
 RA-EE-06B 已實作為 **association proposal refinement / oracle distillation
