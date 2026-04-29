@@ -83,3 +83,11 @@ env PIP_CACHE_DIR=/tmp/pip-cache .venv/bin/python -m pip install -r requirements
    power-allocation candidate can improve system EE without QoS collapse. It
    does not run RL training, Catfish, multi-Catfish, or mutate frozen baseline
    artifacts.
+13. `run_ra_ee_04_bounded_power_allocator.py`
+   RA-EE-04 bounded fixed-association centralized power-allocation pilot.
+   Runs a 20-episode calibration surface, evaluates fixed 1 W control versus
+   the safe-greedy per-active-beam power allocator on non-collapsed fixed
+   trajectories, and optionally exports constrained-oracle upper-bound
+   diagnostics. It does not learn association, run Catfish or multi-Catfish,
+   continue old EE-MODQN, run long training, or mutate frozen baseline
+   artifacts.

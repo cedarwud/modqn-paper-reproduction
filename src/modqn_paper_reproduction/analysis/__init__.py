@@ -15,6 +15,9 @@ from .phase03c_c_power_mdp_pilot import (
 from .ra_ee_02_oracle_power_allocation import (
     export_ra_ee_02_oracle_power_allocation_audit,
 )
+from .ra_ee_04_bounded_power_allocator import (
+    export_ra_ee_04_bounded_power_allocator_pilot,
+)
 from .reward_geometry import (
     build_reward_geometry_scale_table,
     build_reward_geometry_table_ii_frames,
@@ -46,6 +49,7 @@ __all__ = [
     "export_phase03c_b_power_mdp_audit",
     "export_phase03c_c_power_mdp_paired_validation",
     "export_ra_ee_02_oracle_power_allocation_audit",
+    "export_ra_ee_04_bounded_power_allocator_pilot",
     "export_reward_geometry_analysis",
     "export_table_ii_results",
     "export_training_log_artifacts",

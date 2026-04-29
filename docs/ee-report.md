@@ -1,5 +1,27 @@
 # `modqn-paper-reproduction` EE 路線下一步評估報告
 
+## 2026-04-29 RA-EE-04 implementation update
+
+RA-EE-04 已實作為 **fixed-association centralized power-allocation bounded
+pilot**，不是 old EE-MODQN continuation。新的 config 是
+`configs/ra-ee-04-bounded-power-allocator-control.resolved.yaml` 與
+`configs/ra-ee-04-bounded-power-allocator-candidate.resolved.yaml`；artifact
+寫在 `artifacts/ra-ee-04-bounded-power-allocator-control-pilot/`、
+`artifacts/ra-ee-04-bounded-power-allocator-candidate-pilot/` 與
+`artifacts/ra-ee-04-bounded-power-allocator-candidate-pilot/paired-comparison-vs-control/`。
+
+這輪結果是 **PASS as bounded fixed-association power-allocation pilot only**。
+candidate `safe-greedy-power-allocator` 在 `hold-current`、`random-valid`、
+`spread-valid` 三個 non-collapsed fixed trajectories 上都讓
+`denominator_varies_in_eval=true`，且 `EE_system` 對 matched fixed 1 W
+control 分別提升 `+3.170352486871593`、`+1.9471815289625738`、
+`+0.04925456347802992`，同時 p05 throughput ratio 分別為
+`0.9762855249221921`、`0.9645767924959346`、`0.9932220296454757`，通過
+QoS / budget / inactive-power guardrails。這只能支持「固定 association 的
+集中式 power allocation pilot gate 已通過」；仍不能 claim learned
+association、完整 RA-EE-MODQN effectiveness、HOBS optimizer、physical energy
+saving、Catfish-EE，或 full paper-faithful reproduction。
+
 ## 2026-04-28 implementation update
 
 Phase 03C-C 已把 Phase 03C-B 的 static / counterfactual power-MDP precondition
