@@ -106,3 +106,10 @@ env PIP_CACHE_DIR=/tmp/pip-cache .venv/bin/python -m pip install -r requirements
    constrained-power oracle rows. It does not run learned hierarchical RL,
    joint association + power training, Catfish, multi-Catfish, RB / bandwidth
    allocation, old EE-MODQN continuation, or frozen baseline mutation.
+16. `run_ra_ee_09_fixed_association_rb_bandwidth_matched_comparison.py`
+   RA-EE-09 Slice 09E matched held-out replay entrypoint. Evaluates equal-share
+   resource control versus the bounded QoS-slack resource-share candidate on
+   the same fixed association trajectories, same held-out seeds, same
+   evaluation schedule, and same RA-EE-07 deployable stronger power vector.
+   It does not run training, learned association, Catfish, Phase 03C
+   continuation, or full RA-EE-MODQN.

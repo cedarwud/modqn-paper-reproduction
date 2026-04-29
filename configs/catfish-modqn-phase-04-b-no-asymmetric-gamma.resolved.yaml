@@ -1,0 +1,19 @@
+config_role: resolved-run-follow-on
+inherits_from: catfish-modqn-phase-04-b-primary-shaping-off.resolved.yaml
+
+track:
+  label: single-catfish-modqn-no-asymmetric-gamma-ablation
+  status: bounded-feasibility-ablation
+  purpose: >
+    Phase 04-B ablation. It keeps high-value Catfish replay and mixed replay
+    intervention, but sets Catfish gamma equal to main gamma.
+
+training_experiment:
+  experiment_id: P04B-CATFISH-MODQN-NO-ASYMMETRIC-GAMMA
+  phase_04_b_single_catfish:
+    ablation: no-asymmetric-gamma
+    comparison_role: ablation-no-asymmetric-gamma
+    gamma:
+      main_discount_factor: 0.9
+      catfish_discount_factor: 0.9
+      asymmetric_gamma: disabled-ablation

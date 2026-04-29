@@ -1,7 +1,7 @@
 # Review: Phase 04 Single Catfish-MODQN Feasibility
 
-**Date:** `2026-04-28`  
-**Decision:** `NEEDS MORE EVIDENCE`  
+**Date:** `2026-04-29`
+**Decision:** `NEEDS MORE EVIDENCE`
 **Scope:** Single Catfish-MODQN feasibility design only; no EE objective, multi-catfish design, or effectiveness claim is promoted by this review.
 
 ## Decision Summary
@@ -15,6 +15,10 @@ r3 = load balance
 ```
 
 The correct positioning is to test Catfish as a training strategy, not as a replacement objective, state/action redesign, or original Catfish / CDRL actor-critic backbone transplant.
+
+The Phase `04-B` scope is reasonable as a bounded engineering design, but it is
+not promoted. There is still no bounded pilot, replay/intervention diagnostic,
+or shaping-off primary result.
 
 ## Method Boundary
 
@@ -37,6 +41,27 @@ It may add:
 
 Competitive reward shaping should be disabled in the primary feasibility run or isolated as an ablation.
 
+## Phase 04-B Scope Lock
+
+The allowed bounded implementation scope is:
+
+1. new method family: `Catfish-MODQN`,
+2. new config / artifact namespaces such as `configs/catfish-modqn-*` and
+   `artifacts/catfish-modqn-*`,
+3. main replay remains baseline-complete,
+4. catfish replay receives a high-value subset,
+5. high-value ranking initially uses `quality = 0.5*r1 + 0.3*r2 + 0.2*r3`,
+6. reports include quality percentile plus `r1` / `r2` / `r3` component
+   distributions,
+7. catfish agent may use a larger gamma while the main agent keeps baseline
+   gamma,
+8. intervention uses a fixed period or fixed update interval and records the
+   actual mixed batch composition,
+9. competitive shaping is off in the primary run and ablation-only afterward.
+
+The comparator is matched original `MODQN-control` with the same seeds, episode
+budget, evaluation schedule, and final / best-eval checkpoint protocol.
+
 ## Allowed Claims
 
 1. Whether Catfish replay / intervention can be connected to MODQN.
@@ -53,6 +78,13 @@ Competitive reward shaping should be disabled in the primary feasibility run or 
 4. Do not claim improvement without multi-seed, equal-budget, same-checkpoint-protocol comparison.
 5. Do not attribute gains to replay stratification, gamma asymmetry, intervention, or shaping without ablation.
 6. Do not claim late-training collapse is solved; only report whether it is reduced or worsened.
+7. Do not claim EE objective improvement, RA-EE association recovery, learned
+   association effectiveness, RA-EE-09 RB / bandwidth allocation
+   effectiveness, HOBS optimizer behavior, physical energy saving, Catfish-EE,
+   multi-Catfish, Phase `06`, full RA-EE-MODQN, or full paper-faithful
+   reproduction.
+8. Do not use Catfish-MODQN as support for the scoped RA-EE-07 simulated-EE
+   power-allocation claim.
 
 ## Required Metrics
 
@@ -64,6 +96,12 @@ Competitive reward shaping should be disabled in the primary feasibility run or 
 6. Replay composition: main / catfish buffer size, high-value threshold, quality percentiles, and each replay's `r1` / `r2` / `r3` distribution.
 7. Intervention count: trigger count, batch ratio, and actual catfish sample count mixed into main updates.
 8. Stability / collapse indicators: final-vs-best gap, cross-seed variance, TD loss / Q-value spikes, NaN, action collapse, handover collapse, and replay starvation.
+
+## Test Expectations
+
+Focused tests should cover baseline unchanged behavior, config namespace
+gating, high-value routing, intervention batch composition, metadata / log
+fields, and the absence of EE reward mode in Phase `04` configs.
 
 ## High-Value Criterion
 
@@ -99,3 +137,9 @@ Promote only if bounded evidence shows:
 `NEEDS MORE EVIDENCE`.
 
 The design direction is methodologically reasonable and has no current blocker, but it only supports a clean feasibility-validation design. It does not yet support claiming that Catfish-MODQN is feasible, effective, or worth expanding to a more complex method family.
+
+Stop if implementation requires changing the original reward, state, action, or
+backbone; if shaping is needed for the primary result; if catfish replay
+starves; if intervention does not affect main updates; if Q / loss instability
+dominates; if gains appear only in scalar reward; or if results are framed as
+EE / RA-EE / Catfish-EE evidence.

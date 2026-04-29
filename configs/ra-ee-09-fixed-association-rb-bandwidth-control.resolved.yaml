@@ -1,0 +1,137 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: RA-EE-09
+  label: fixed-association-rb-bandwidth-control
+  method_family: RA-EE fixed-association resource accounting
+  status: offline-replay-control-parity-gate
+  purpose: >
+    RA-EE-09 Slice 09A-09C offline fixed-association equal-share resource
+    accounting and throughput parity gate. This is not learned association,
+    not hierarchical RL, not joint association + power/resource training, not
+    Catfish, not Phase 03C continuation, not a candidate allocator, and not
+    full RA-EE-MODQN.
+
+baseline:
+  episodes: 0
+
+resolved_assumptions:
+  hobs_power_surface:
+    assumption_id: ASSUME-MODQN-REP-032
+    value:
+      mode: phase-03c-b-power-codebook
+      inactive_beam_policy: zero-w
+      power_codebook_profile: fixed-mid
+      power_codebook_levels_w: [0.5, 0.75, 1.0, 1.5, 2.0]
+      total_power_budget_w: 8.0
+      active_base_power_w: 0.25
+      load_scale_power_w: 0.35
+      load_exponent: 0.5
+      max_power_w: 2.0
+      units: linear-w
+      provenance: >
+        RA-EE-09 reuses the RA-EE-07 deployable stronger power allocator as the
+        fixed power boundary. The resource accounting layer runs only after the
+        effective power vector is selected and never feeds resource decisions
+        back into the power allocator.
+  ra-ee-09-fixed-association-rb-bandwidth-control:
+    assumption_id: ASSUME-MODQN-REP-032
+    value:
+      enabled: true
+      artifact_namespace: artifacts/ra-ee-09-fixed-association-rb-bandwidth-control-pilot
+      ra_ee_gate_id: RA-EE-09
+      method_label: fixed-association RB / bandwidth allocation design gate
+      implementation_sublabel: RA-EE-09 Slice 09A-09C equal-share control replay
+      offline_replay_only: true
+      association_mode: fixed-replay
+      association_training: disabled
+      learned_association_disabled: true
+      hierarchical_RL_disabled: true
+      joint_association_power_training: disabled
+      power_allocator_id: RA-EE-07 deployable-stronger-power-allocator
+      primary_power_allocator: deployable-stronger-power-allocator
+      deployable_allocator_candidates:
+        - p05-slack-aware-trim-tail-protect-boost
+        - bounded-local-search-codebook
+        - finite-codebook-dp-knapsack
+        - deterministic-hybrid-runtime
+      primary_deployable_allocator: deterministic-hybrid-runtime
+      fixed_control_power_w: 1.0
+      codebook_levels_w: [0.5, 0.75, 1.0, 1.5, 2.0]
+      total_active_power_budget_w: 8.0
+      per_beam_max_power_w: 2.0
+      inactive_beam_power_policy: zero-w
+      resource_unit: normalized_per_beam_bandwidth_fraction
+      resource_allocator_id: ra-ee-09-equal-share-control
+      resource_allocator_candidate: disabled
+      equal_share_control: true
+      per_beam_budget: 1.0
+      total_resource_budget: active_beam_count
+      inactive_beam_resource_policy: zero
+      per_user_min_equal_share_multiplier: 1.0
+      per_user_max_equal_share_multiplier: 1.0
+      resource_sum_tolerance: 1.0e-12
+      throughput_formula_version: ra-ee-09-generalized-resource-share-v1
+      control_formula: R_i(t) = B / N_b(t) * log2(1 + gamma_i,b(t))
+      generalized_formula: R_i(t) = B * rho_i,b(t) * log2(1 + gamma_i,b(t))
+      equal_share_formula: rho_i,b(t) = 1 / N_b(t)
+      resource_allocation_order: after-power-vector-selection
+      resource_allocation_feedback_to_power_decision: false
+      same_power_vector_as_control_required: true
+      fixed_association_buckets:
+        calibration:
+          role: train-like-calibration
+          evaluation_seed_set: [100, 200, 300, 400, 500]
+          trajectory_families:
+            - hold-current
+            - random-valid
+            - spread-valid
+        held-out:
+          role: held-out-validation
+          evaluation_seed_set: [600, 700, 800, 900, 1000]
+          trajectory_families:
+            - random-valid-heldout
+            - spread-valid-heldout
+            - load-skewed-heldout
+            - mobility-shift-heldout
+            - mixed-valid-heldout
+      min_active_beams: 2
+      max_active_beams: 8
+      target_users_per_active_beam: 16
+      load_cap_overflow_users: 2
+      max_one_active_beam_ratio_for_acceptance: 0.25
+      max_two_beam_overload_step_ratio: 0.10
+      max_moved_user_ratio: 0.20
+      max_moved_user_ratio_per_step: 0.18
+      p05_throughput_min_ratio_vs_control: 0.95
+      served_ratio_min_delta_vs_control: 0.0
+      outage_ratio_max_delta_vs_control: 0.0
+      candidate_max_demoted_beams: 3
+      candidate_step_p05_guardrail_margin: 0.005
+      p05_trim_max_moves: 6
+      local_search_max_moves: 8
+      dp_max_profile_count: 512
+      oracle_max_demoted_beams: 3
+      min_oracle_gap_closed_ratio: 0.20
+      catfish_disabled: true
+      multi_catfish_disabled: true
+      phase03c_continuation_disabled: true
+      old_ee_modqn_continuation: forbidden
+      frozen_baseline_mutation: forbidden
+      oracle_runtime_method: forbidden
+      runtime_decision_uses_oracle_labels: forbidden
+      runtime_decision_uses_future_outcomes: forbidden
+      runtime_decision_uses_held_out_answers: forbidden
+      scalar_reward_success_basis: false
+      per_user_EE_credit_success_basis: false
+      hobs_optimizer_claim: forbidden
+      physical_energy_saving_claim: forbidden
+      full_RA_EE_MODQN_claim: forbidden
+      claim_boundary: >
+        Slice 09A-09C proves only that an explicit RA-EE-09 config/metadata
+        namespace exists, resource accounting is opt-in, equal-share resource
+        allocation reproduces the current throughput formula, and offline
+        fixed-association control replay can audit per-beam resource sums
+        without changing association or the RA-EE-07 power boundary. No
+        resource-allocation effectiveness claim is authorized.

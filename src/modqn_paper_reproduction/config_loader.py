@@ -20,6 +20,7 @@ from .env.beam import BeamConfig
 from .env.channel import AtmosphericSignMode, ChannelConfig
 from .env.step import PowerSurfaceConfig, StepConfig, StepEnvironment
 from .runtime.trainer_spec import TrainerConfig
+from .runtime.trainer_spec import PHASE_04_B_SINGLE_CATFISH_KIND
 
 
 class ConfigValidationError(ValueError):
@@ -406,6 +407,23 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
     reward_calibration_scales = (1.0, 1.0, 1.0)
     reward_normalization_mode = "raw-unscaled"
     load_balance_calibration_mode = "baseline-paper-weight"
+    catfish_enabled = False
+    catfish_ablation = "none"
+    catfish_discount_factor = float(base.get("discount_factor", 0.9))
+    catfish_replay_capacity = 50_000
+    catfish_quality_weights = tuple(base.get("objective_weights", [0.5, 0.3, 0.2]))
+    catfish_quality_threshold_mode = "quantile"
+    catfish_quality_quantile = 0.8
+    catfish_quality_fixed_threshold = None
+    catfish_quality_threshold_window = 1_000
+    catfish_warmup_transitions = 256
+    catfish_warmup_trigger = "main-replay-size"
+    catfish_partition_mode = "duplicate-high-value"
+    catfish_intervention_enabled = False
+    catfish_intervention_period_updates = 1
+    catfish_intervention_catfish_ratio = 0.3
+    catfish_min_catfish_replay_size = 32
+    catfish_competitive_shaping_enabled = False
 
     if experiment_block:
         training_experiment_kind = str(
@@ -670,12 +688,257 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
                     ),
                 )
             )
+        elif training_experiment_kind == PHASE_04_B_SINGLE_CATFISH_KIND:
+            phase_block = _required_mapping_field(
+                experiment_block,
+                "phase_04_b_single_catfish",
+                context="training_experiment",
+            )
+            if not isinstance(phase_block, dict):
+                raise ConfigValidationError(
+                    "training_experiment.phase_04_b_single_catfish must be a mapping."
+                )
+            if method_family not in {"Catfish-MODQN", "MODQN-control"}:
+                raise ConfigValidationError(
+                    "Phase 04-B supports only method_family='Catfish-MODQN' "
+                    "or 'MODQN-control'."
+                )
+
+            comparison_role = str(
+                _required_mapping_field(
+                    phase_block,
+                    "comparison_role",
+                    context="training_experiment.phase_04_b_single_catfish",
+                )
+            )
+            r1_reward_mode = str(
+                _required_mapping_field(
+                    phase_block,
+                    "r1_reward_mode",
+                    context="training_experiment.phase_04_b_single_catfish",
+                )
+            )
+            r1_reward_label = str(phase_block.get("r1_label", r1_reward_mode))
+            r1_reward_provenance = str(
+                phase_block.get(
+                    "r1_provenance",
+                    "paper-backed MODQN throughput objective",
+                )
+            )
+            if r1_reward_mode != "throughput":
+                raise ConfigValidationError(
+                    "Phase 04-B keeps the original MODQN reward surface and "
+                    "requires r1_reward_mode='throughput'."
+                )
+
+            catfish_enabled = bool(
+                _required_mapping_field(
+                    phase_block,
+                    "enabled",
+                    context="training_experiment.phase_04_b_single_catfish",
+                )
+            )
+            if method_family == "Catfish-MODQN" and not catfish_enabled:
+                raise ConfigValidationError(
+                    "Phase 04-B Catfish-MODQN config requires "
+                    "phase_04_b_single_catfish.enabled=true."
+                )
+            if method_family == "MODQN-control" and catfish_enabled:
+                raise ConfigValidationError(
+                    "Phase 04-B MODQN-control config must keep Catfish disabled."
+                )
+
+            catfish_ablation = str(phase_block.get("ablation", "none"))
+            gamma_block = phase_block.get("gamma", {})
+            if not isinstance(gamma_block, dict):
+                raise ConfigValidationError(
+                    "training_experiment.phase_04_b_single_catfish.gamma "
+                    "must be a mapping."
+                )
+            catfish_discount_factor = float(
+                gamma_block.get("catfish_discount_factor", base.get("discount_factor", 0.9))
+            )
+
+            replay_block = phase_block.get("replay", {})
+            if not isinstance(replay_block, dict):
+                raise ConfigValidationError(
+                    "training_experiment.phase_04_b_single_catfish.replay "
+                    "must be a mapping."
+                )
+            quality_block = replay_block.get("quality_score", {})
+            threshold_block = replay_block.get("threshold", {})
+            if not isinstance(quality_block, dict) or not isinstance(
+                threshold_block, dict
+            ):
+                raise ConfigValidationError(
+                    "Phase 04-B replay.quality_score and replay.threshold "
+                    "must be mappings."
+                )
+            weights_block = _required_mapping_field(
+                quality_block,
+                "weights",
+                context="training_experiment.phase_04_b_single_catfish.replay.quality_score",
+            )
+            if not isinstance(weights_block, dict):
+                raise ConfigValidationError(
+                    "Phase 04-B replay.quality_score.weights must be a mapping."
+                )
+            catfish_quality_weights = (
+                float(
+                    _required_mapping_field(
+                        weights_block,
+                        "r1",
+                        context=(
+                            "training_experiment.phase_04_b_single_catfish."
+                            "replay.quality_score.weights"
+                        ),
+                    )
+                ),
+                float(
+                    _required_mapping_field(
+                        weights_block,
+                        "r2",
+                        context=(
+                            "training_experiment.phase_04_b_single_catfish."
+                            "replay.quality_score.weights"
+                        ),
+                    )
+                ),
+                float(
+                    _required_mapping_field(
+                        weights_block,
+                        "r3",
+                        context=(
+                            "training_experiment.phase_04_b_single_catfish."
+                            "replay.quality_score.weights"
+                        ),
+                    )
+                ),
+            )
+            catfish_replay_capacity = int(
+                _required_mapping_field(
+                    replay_block,
+                    "catfish_capacity",
+                    context="training_experiment.phase_04_b_single_catfish.replay",
+                )
+            )
+            catfish_partition_mode = str(
+                _required_mapping_field(
+                    replay_block,
+                    "partition_mode",
+                    context="training_experiment.phase_04_b_single_catfish.replay",
+                )
+            )
+            catfish_quality_threshold_mode = str(
+                _required_mapping_field(
+                    threshold_block,
+                    "mode",
+                    context=(
+                        "training_experiment.phase_04_b_single_catfish."
+                        "replay.threshold"
+                    ),
+                )
+            )
+            catfish_quality_quantile = float(threshold_block.get("quantile", 0.8))
+            fixed_threshold = threshold_block.get("fixed_threshold", None)
+            catfish_quality_fixed_threshold = (
+                None if fixed_threshold is None else float(fixed_threshold)
+            )
+            catfish_quality_threshold_window = int(
+                _required_mapping_field(
+                    threshold_block,
+                    "window",
+                    context=(
+                        "training_experiment.phase_04_b_single_catfish."
+                        "replay.threshold"
+                    ),
+                )
+            )
+
+            warmup_block = phase_block.get("warmup", {})
+            if not isinstance(warmup_block, dict):
+                raise ConfigValidationError(
+                    "training_experiment.phase_04_b_single_catfish.warmup "
+                    "must be a mapping."
+                )
+            catfish_warmup_trigger = str(
+                _required_mapping_field(
+                    warmup_block,
+                    "trigger",
+                    context="training_experiment.phase_04_b_single_catfish.warmup",
+                )
+            )
+            catfish_warmup_transitions = int(
+                _required_mapping_field(
+                    warmup_block,
+                    "main_replay_size",
+                    context="training_experiment.phase_04_b_single_catfish.warmup",
+                )
+            )
+
+            intervention_block = phase_block.get("intervention", {})
+            if not isinstance(intervention_block, dict):
+                raise ConfigValidationError(
+                    "training_experiment.phase_04_b_single_catfish.intervention "
+                    "must be a mapping."
+                )
+            catfish_intervention_enabled = bool(
+                _required_mapping_field(
+                    intervention_block,
+                    "enabled",
+                    context=(
+                        "training_experiment.phase_04_b_single_catfish."
+                        "intervention"
+                    ),
+                )
+            )
+            catfish_intervention_period_updates = int(
+                _required_mapping_field(
+                    intervention_block,
+                    "period_updates",
+                    context=(
+                        "training_experiment.phase_04_b_single_catfish."
+                        "intervention"
+                    ),
+                )
+            )
+            catfish_intervention_catfish_ratio = float(
+                _required_mapping_field(
+                    intervention_block,
+                    "catfish_ratio",
+                    context=(
+                        "training_experiment.phase_04_b_single_catfish."
+                        "intervention"
+                    ),
+                )
+            )
+            catfish_min_catfish_replay_size = int(
+                intervention_block.get("min_catfish_replay_size", 0)
+            )
+
+            shaping_block = phase_block.get("competitive_shaping", {})
+            if not isinstance(shaping_block, dict):
+                raise ConfigValidationError(
+                    "training_experiment.phase_04_b_single_catfish."
+                    "competitive_shaping must be a mapping."
+                )
+            catfish_competitive_shaping_enabled = bool(
+                _required_mapping_field(
+                    shaping_block,
+                    "enabled",
+                    context=(
+                        "training_experiment.phase_04_b_single_catfish."
+                        "competitive_shaping"
+                    ),
+                )
+            )
         else:
             raise ConfigValidationError(
                 "Only training_experiment.kind values 'reward-calibration', "
                 "'phase-03-objective-substitution', and "
                 "'phase-03b-objective-geometry', and "
-                "'phase-03c-c-power-mdp-pilot' are currently supported, "
+                "'phase-03c-c-power-mdp-pilot', and "
+                f"{PHASE_04_B_SINGLE_CATFISH_KIND!r} are currently supported, "
                 f"got {training_experiment_kind!r}."
             )
 
@@ -727,6 +990,23 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
         reward_calibration_scales=reward_calibration_scales,
         reward_normalization_mode=reward_normalization_mode,
         load_balance_calibration_mode=load_balance_calibration_mode,
+        catfish_enabled=catfish_enabled,
+        catfish_ablation=catfish_ablation,
+        catfish_discount_factor=catfish_discount_factor,
+        catfish_replay_capacity=catfish_replay_capacity,
+        catfish_quality_weights=catfish_quality_weights,
+        catfish_quality_threshold_mode=catfish_quality_threshold_mode,
+        catfish_quality_quantile=catfish_quality_quantile,
+        catfish_quality_fixed_threshold=catfish_quality_fixed_threshold,
+        catfish_quality_threshold_window=catfish_quality_threshold_window,
+        catfish_warmup_transitions=catfish_warmup_transitions,
+        catfish_warmup_trigger=catfish_warmup_trigger,
+        catfish_partition_mode=catfish_partition_mode,
+        catfish_intervention_enabled=catfish_intervention_enabled,
+        catfish_intervention_period_updates=catfish_intervention_period_updates,
+        catfish_intervention_catfish_ratio=catfish_intervention_catfish_ratio,
+        catfish_min_catfish_replay_size=catfish_min_catfish_replay_size,
+        catfish_competitive_shaping_enabled=catfish_competitive_shaping_enabled,
     )
 
 

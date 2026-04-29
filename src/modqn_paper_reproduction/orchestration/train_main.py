@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 import time
 from dataclasses import asdict
@@ -107,8 +108,25 @@ def run_train_command(
             "training rewards are calibrated in the trainer, while evaluation, "
             "logged r1/r2/r3, and checkpoint selection remain raw paper metrics"
         )
+    if trainer_cfg.catfish_enabled:
+        print(
+            "[modqn-train] catfish: "
+            f"ablation={trainer_cfg.catfish_ablation}, "
+            f"gamma_main={trainer_cfg.discount_factor}, "
+            f"gamma_catfish={trainer_cfg.catfish_discount_factor}, "
+            f"threshold={trainer_cfg.catfish_quality_threshold_mode}, "
+            f"q={trainer_cfg.catfish_quality_quantile}, "
+            f"warmup={trainer_cfg.catfish_warmup_transitions}, "
+            f"intervention={trainer_cfg.catfish_intervention_enabled}, "
+            f"ratio={trainer_cfg.catfish_intervention_catfish_ratio}"
+        )
 
-    trainer = MODQNTrainer(
+    trainer_cls = MODQNTrainer
+    if trainer_cfg.catfish_enabled:
+        from ..algorithms.catfish_modqn import CatfishMODQNTrainer
+
+        trainer_cls = CatfishMODQNTrainer
+    trainer = trainer_cls(
         env=env,
         config=trainer_cfg,
         train_seed=seeds["train_seed"],
@@ -282,5 +300,14 @@ def run_train_command(
         )
         metadata_path = write_run_metadata(artifact_paths.run_metadata_json, metadata)
         print(f"[modqn-train] metadata saved to {metadata_path}")
+
+        if hasattr(trainer, "catfish_diagnostics"):
+            diagnostics_payload = trainer.catfish_diagnostics()
+            diagnostics_path = out_dir / "catfish_diagnostics.json"
+            diagnostics_path.write_text(json.dumps(diagnostics_payload, indent=2))
+            print(
+                "[modqn-train] catfish diagnostics saved to "
+                f"{diagnostics_path}"
+            )
 
     return 0

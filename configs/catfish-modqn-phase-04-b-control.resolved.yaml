@@ -1,0 +1,103 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: phase-04-b
+  label: single-catfish-modqn-matched-control
+  method_family: MODQN-control
+  status: bounded-feasibility-control
+  purpose: >
+    Matched MODQN-control for Phase 04-B. It keeps the original reward,
+    seeds, episode budget, evaluation cadence, and checkpoint rule aligned
+    with the Catfish-MODQN primary run while keeping Catfish disabled.
+
+baseline:
+  episodes: 20
+  batch_size: 64
+
+resolved_assumptions:
+  target_update_cadence:
+    value:
+      target_update_every_episodes: 5
+  phase_04_b_catfish_local_assumptions:
+    assumption_id: LOCAL-CATFISH-MODQN-P04B-001
+    value:
+      config_defined_local_assumptions: true
+      fixed_phase_04_reward:
+        r1: throughput
+        r2: handover penalty
+        r3: load balance
+      intervention_cadence:
+        mode: disabled-control
+        period_updates: 1
+        configured_main_ratio: 1.0
+        configured_catfish_ratio: 0.0
+      warmup:
+        trigger: main-replay-size
+        main_replay_size: 256
+      high_value_threshold_definition:
+        score: "quality = 0.5*r1 + 0.3*r2 + 0.2*r3"
+        threshold_mode: quantile
+        quantile: 0.80
+        fixed_threshold: null
+      threshold_window:
+        mode: rolling
+        window: 1000
+      replay_partition_semantics:
+        main_replay: baseline-complete
+        catfish_replay: disabled-control
+        duplicate_high_value_vs_strict_partition: not-applicable
+      modqn_quality_score_adaptation:
+        source: config-defined local assumption for protocol alignment only
+        weights:
+          r1: 0.5
+          r2: 0.3
+          r3: 0.2
+
+training_experiment:
+  kind: phase-04-b-single-catfish-feasibility
+  experiment_id: P04B-MODQN-CONTROL
+  method_family: MODQN-control
+  phase: phase-04-b
+  phase_04_b_single_catfish:
+    enabled: false
+    ablation: matched-control
+    comparison_role: matched-control
+    r1_reward_mode: throughput
+    r1_label: throughput
+    r1_provenance: paper-backed original MODQN throughput objective
+    reward_surface:
+      r1: throughput
+      r2: handover penalty
+      r3: load balance
+    gamma:
+      main_discount_factor: 0.9
+      catfish_discount_factor: 0.9
+      asymmetric_gamma: disabled-control
+    replay:
+      main_partition: baseline-complete
+      partition_mode: duplicate-high-value
+      catfish_capacity: 50000
+      quality_score:
+        expression: "quality = 0.5*r1 + 0.3*r2 + 0.2*r3"
+        weights:
+          r1: 0.5
+          r2: 0.3
+          r3: 0.2
+      threshold:
+        mode: quantile
+        quantile: 0.80
+        fixed_threshold: null
+        window: 1000
+    warmup:
+      trigger: main-replay-size
+      main_replay_size: 256
+    intervention:
+      enabled: false
+      period_updates: 1
+      main_ratio: 1.0
+      catfish_ratio: 0.0
+      min_catfish_replay_size: 0
+    competitive_shaping:
+      enabled: false
+

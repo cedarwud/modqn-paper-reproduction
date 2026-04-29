@@ -336,6 +336,81 @@ class MODQNTrainer:
 
     # -- network update -----------------------------------------------------
 
+    def _update_from_arrays(
+        self,
+        *,
+        states: np.ndarray,
+        actions: np.ndarray,
+        rewards: np.ndarray,
+        next_states: np.ndarray,
+        next_masks: np.ndarray,
+        dones: np.ndarray,
+        discount_factor: float,
+        q_nets: nn.ModuleList | None = None,
+        target_nets: nn.ModuleList | None = None,
+        optimizers_: list[optim.Optimizer] | None = None,
+    ) -> tuple[tuple[float, float, float], dict[str, Any]]:
+        """Update one objective-network triplet from an explicit batch."""
+        active_q_nets = self.q_nets if q_nets is None else q_nets
+        active_target_nets = self.target_nets if target_nets is None else target_nets
+        active_optimizers = self.optimizers if optimizers_ is None else optimizers_
+
+        st = torch.tensor(states, dtype=torch.float32, device=self.device)
+        act = torch.tensor(actions, dtype=torch.long, device=self.device).unsqueeze(1)
+        ns = torch.tensor(next_states, dtype=torch.float32, device=self.device)
+        nm = torch.tensor(next_masks, dtype=torch.bool, device=self.device)
+        dn = torch.tensor(dones, dtype=torch.float32, device=self.device)
+
+        losses: list[float] = []
+        q_abs_max_values: list[float] = []
+        target_abs_max_values: list[float] = []
+        nan_detected = False
+        for obj_idx in range(3):
+            r = torch.tensor(
+                rewards[:, obj_idx], dtype=torch.float32, device=self.device
+            )
+
+            # Current Q(s, a)
+            q_current = active_q_nets[obj_idx](st).gather(1, act).squeeze(1)
+
+            # Target: r + gamma * max_a' Q_target(s', a') where a' valid
+            with torch.no_grad():
+                q_next_all = active_target_nets[obj_idx](ns)
+                # Mask invalid next-actions to large negative value
+                q_next_all = q_next_all.masked_fill(~nm, -1e9)
+                q_next_max = q_next_all.max(dim=1).values
+                target = r + discount_factor * q_next_max * (1.0 - dn)
+
+            loss = self._loss_fn(q_current, target)
+            finite_update = (
+                torch.isfinite(q_current).all()
+                and torch.isfinite(target).all()
+                and torch.isfinite(loss)
+            )
+            if not finite_update:
+                nan_detected = True
+                losses.append(float("nan"))
+                continue
+
+            active_optimizers[obj_idx].zero_grad()
+            loss.backward()
+            active_optimizers[obj_idx].step()
+
+            losses.append(loss.item())
+            q_abs_max_values.append(float(torch.max(torch.abs(q_current)).item()))
+            target_abs_max_values.append(float(torch.max(torch.abs(target)).item()))
+
+        diagnostics = {
+            "q_abs_max": (
+                max(q_abs_max_values) if q_abs_max_values else float("nan")
+            ),
+            "target_abs_max": (
+                max(target_abs_max_values) if target_abs_max_values else float("nan")
+            ),
+            "nan_detected": bool(nan_detected),
+        }
+        return (losses[0], losses[1], losses[2]), diagnostics
+
     def update(self) -> tuple[float, float, float]:
         """Sample a batch from replay and update all 3 DQNs.
 

@@ -1,0 +1,31 @@
+config_role: resolved-run-follow-on
+inherits_from: catfish-modqn-phase-04-b-primary-shaping-off.resolved.yaml
+
+track:
+  label: single-catfish-modqn-no-intervention-ablation
+  status: bounded-feasibility-ablation
+  purpose: >
+    Required Phase 04-B ablation. It keeps dual agents, high-value Catfish
+    replay, and asymmetric gamma, but disables mixed replay intervention.
+
+resolved_assumptions:
+  phase_04_b_catfish_local_assumptions:
+    value:
+      intervention_cadence:
+        mode: disabled-ablation
+        period_updates: 1
+        configured_main_ratio: 1.0
+        configured_catfish_ratio: 0.0
+
+training_experiment:
+  experiment_id: P04B-CATFISH-MODQN-NO-INTERVENTION
+  phase_04_b_single_catfish:
+    ablation: no-intervention
+    comparison_role: ablation-no-intervention
+    intervention:
+      enabled: false
+      period_updates: 1
+      main_ratio: 1.0
+      catfish_ratio: 0.0
+      min_catfish_replay_size: 0
+

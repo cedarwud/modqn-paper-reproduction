@@ -7,11 +7,15 @@
 ```text
 old EE-MODQN r1-substitution route: BLOCKED / STOP
 RA-EE fixed-association deployable power allocation: PASS, scoped
+RA-EE fixed-association RB / bandwidth candidate: AUDITABLE, NOT PROMOTED
 RA-EE learned association / hierarchical RL / full RA-EE-MODQN: BLOCKED
 Catfish for EE repair: BLOCKED
 ```
 
 請直接沿用上述結論，不要重新打開 Phase 03C 或 RA-EE association proposal route。
+RA-EE 的正面 claim 只限於 RA-EE-07 fixed-association deployable non-oracle
+finite-codebook power allocator 的 scoped simulated-EE result；不得用 Phase 04
+Catfish 支撐或修補這個 EE claim。
 
 目標：
 
@@ -28,7 +32,8 @@ RA-EE continuation。
 4. final Catfish-EE method
 5. Phase 03C rerun / selector tweak / reward retuning
 6. RA-EE learned association / hierarchical RL / association proposal refinement
-7. HOBS optimizer or physical energy saving claim
+7. RA-EE-09 bandwidth/resource-share tuning
+8. HOBS optimizer or physical energy saving claim
 
 保持原始 MODQN objective：
 
@@ -72,8 +77,22 @@ quality = 0.5*r1 + 0.3*r2 + 0.2*r3
    - intervention count
    - stability / collapse indicators
 5. competitive reward shaping 是否應先關掉或當 ablation？
-6. 什麼結果才值得進入 multi-catfish 或 EE phase？
+6. 什麼結果才值得進入 multi-catfish 設計？不要把 Phase 04 結果接成 EE repair。
 7. 如何確保任何正向結果都不是 EE / RA-EE claim？
+
+Phase 04-B implementation scope, if the result remains `NEEDS MORE EVIDENCE`
+but feasible:
+
+1. new method family: `Catfish-MODQN`
+2. new config/artifact namespace: `configs/catfish-modqn-*` and
+   `artifacts/catfish-modqn-*`
+3. main replay baseline-complete
+4. catfish replay high-value subset
+5. percentile-based high-value gating using the weighted quality score
+6. main gamma unchanged, catfish gamma may be larger
+7. fixed-period or fixed-update intervention into main update batches
+8. tests for baseline unchanged, namespace gating, routing, intervention batch
+   composition, metadata/log fields, and no EE reward mode
 
 Allowed claims:
 
@@ -91,8 +110,9 @@ Forbidden claims:
 3. 不 claim old EE-MODQN effectiveness。
 4. 不 claim HOBS optimizer or physical energy saving。
 5. 不把 Catfish 當 EE repair。
-6. 不用 scalar reward alone 宣稱 Catfish-MODQN 更好。
-7. 不宣稱 Catfish-EE-MODQN 或 Multi-Catfish-MODQN effectiveness。
+6. 不 claim RB / bandwidth allocation effectiveness。
+7. 不用 scalar reward alone 宣稱 Catfish-MODQN 更好。
+8. 不宣稱 Catfish-EE-MODQN 或 Multi-Catfish-MODQN effectiveness。
 
 請輸出繁體中文報告。
 
