@@ -1,7 +1,7 @@
 # Catfish / EE-MODQN Validation Master Plan
 
-**Date:** `2026-04-28`  
-**Status:** Phase-gated validation plan with execution handoff  
+**Date:** `2026-04-29`
+**Status:** Phase-gated validation plan with RA-EE closeout and execution handoff
 **Scope:** research-design validation only; no trainer, reward, config, or artifact contract changes are authorized by this note.
 
 ## Purpose
@@ -50,6 +50,23 @@ Catfish-EE-MODQN:
 
 No follow-on may silently replace the original MODQN baseline.
 
+## RA-EE Closeout Boundary
+
+The RA-EE follow-on is now closed at the current evidence boundary:
+
+```text
+old EE-MODQN r1-substitution route: BLOCKED / STOP
+RA-EE fixed-association deployable power allocation: PASS, scoped
+RA-EE learned association / hierarchical RL / full RA-EE-MODQN: BLOCKED
+Catfish for EE repair: BLOCKED
+```
+
+This closeout must not be read as a full `RA-EE-MODQN` result. The positive
+evidence is limited to fixed-association offline replay with a deployable
+non-oracle power allocator. Association proposal replay, learned association,
+hierarchical RL, joint association + power training, RB / bandwidth allocation,
+and final Catfish-EE claims remain blocked.
+
 ## Validation Parts
 
 | Phase | Validation question | Required before |
@@ -60,6 +77,7 @@ No follow-on may silently replace the original MODQN baseline.
 | `04` | Can Catfish training mechanics attach to original MODQN? | multi-catfish and final method |
 | `05` | Does objective-specialized multi-catfish add value beyond single Catfish? | multi-catfish claim |
 | `06` | Does Catfish improve EE-MODQN under the final claim boundary? | final method claim |
+| `RA-EE` | Does a resource-allocation EE route establish deployable power and association evidence? | any RA-EE-MODQN or Catfish-EE claim |
 
 ## Current Phase Decisions
 
@@ -71,6 +89,7 @@ No follow-on may silently replace the original MODQN baseline.
 | `04` | `NEEDS MORE EVIDENCE` | Single Catfish-MODQN is a reasonable feasibility design, but cannot be promoted until bounded pilots, replay/intervention diagnostics, and shaping-off primary results exist. See `reviews/04-single-catfish-modqn-feasibility.review.md`. |
 | `05` | `NEEDS MORE EVIDENCE` | Multi-catfish should start with 05A objective-specific multi-buffer validation; full three-agent validation is blocked until 05A and Phase 04 produce evidence. See `reviews/05-multi-catfish-modqn-validation.review.md`. |
 | `06` | `NEEDS MORE EVIDENCE` | Final Catfish-EE-MODQN comparison design is valid, but final-method claims are blocked until Phases 03-05 produce evidence. See `reviews/06-final-catfish-ee-modqn-validation.review.md`. |
+| `RA-EE` | `PASS, SCOPED / BLOCKED FOR ASSOCIATION` | RA-EE-04, RA-EE-05, and RA-EE-07 support only fixed-association deployable power allocation. RA-EE-06, RA-EE-06B, and RA-EE-08 block association proposal continuation because no proposal beats matched fixed association under the same deployable allocator. Do not reopen Phase `03C` or the RA-EE association proposal route without a new explicit design gate. |
 
 ## Current Execution Status
 
@@ -84,6 +103,7 @@ For implementation and experiment planning, distinguish review decisions from ex
 | `04` | Separate bounded branch | Can be planned after Phase `01`, but it is not the default next step for the EE route. Keep original MODQN reward. |
 | `05` | Blocked | Start only with `05A` multi-buffer validation after Phase `04` evidence exists. |
 | `06` | Blocked | Final-method validation waits for evidence from Phases `03`, `04`, and `05`. |
+| `RA-EE` | Documentation closeout recorded in `docs/ee-report.md`, this plan, and `execution-handoff.md` | Preserve the scoped fixed-association power-allocation claim. Stop learned association, hierarchical RL, joint association + power training, and full RA-EE-MODQN claims. |
 
 The current handoff for a new planning dialogue is `execution-handoff.md`.
 
@@ -111,6 +131,11 @@ Phase 06: Final Catfish-EE-MODQN validation
 
 Phase `04` can run after the Phase `03D` disposition if the immediate goal is only to prove that Catfish can attach to the MODQN backbone. It must then remain scoped as Catfish mechanism validation over the original MODQN reward and must not make any EE claim.
 
+After the RA-EE closeout, Phase `04` is the recommended next executable
+research prompt only if the goal is Catfish feasibility. It must not be framed
+as an EE repair path, a continuation of Phase `03C`, or a way to recover
+learned association.
+
 ## Source Anchors
 
 Use these local sources before proposing changes:
@@ -130,11 +155,19 @@ Use these local sources before proposing changes:
 13. `system-model-refs/paper-catalog-power-formula-report-2026-04-21.md`
 14. `system-model-refs/paper-catalog-strict-closed-form-power-audit-2026-04-21.md`
 15. `paper-catalog/catalog/PAP-2024-HOBS.json`
+16. `docs/research/catfish-ee-modqn/ra-ee-02-oracle-power-allocation-audit.execution-report.md`
+17. `docs/research/catfish-ee-modqn/ra-ee-04-bounded-power-allocator-pilot.execution-report.md`
+18. `docs/research/catfish-ee-modqn/ra-ee-05-fixed-association-robustness.execution-report.md`
+19. `docs/research/catfish-ee-modqn/ra-ee-06-association-counterfactual-oracle.execution-report.md`
+20. `docs/research/catfish-ee-modqn/ra-ee-06b-association-proposal-refinement.execution-report.md`
+21. `docs/research/catfish-ee-modqn/ra-ee-07-constrained-power-allocator-distillation.execution-report.md`
+22. `docs/research/catfish-ee-modqn/ra-ee-08-offline-association-reevaluation.execution-report.md`
+23. `docs/ee-report.md`
 
 ## Common Claim Rules
 
 1. `Catfish-MODQN` may claim only Catfish mechanism feasibility over the original MODQN objective.
-2. `EE-MODQN` may claim only objective substitution effects, not Catfish improvement.
+2. The current `EE-MODQN` r1-substitution route may not claim effectiveness; any future EE method must use a new explicit design gate and may claim only its own scoped objective-substitution or resource-allocation evidence.
 3. `Multi-Catfish-MODQN` may claim objective-specialized Catfish value only if compared against single Catfish.
 4. `Catfish-EE-MODQN` must be compared primarily against `EE-MODQN`, not only against original MODQN.
 5. Any per-user EE reward adapted from system-level HOBS EE must be disclosed as a modeling assumption.
@@ -145,6 +178,9 @@ Use these local sources before proposing changes:
 10. Phase `04` treats Catfish as a training strategy only; it must keep the original MODQN state, action, reward, and backbone fixed, with competitive shaping disabled in the primary run or isolated as an ablation.
 11. Phase `05` must not jump directly to full multi-agent training; it must first prove that objective-specific buffers capture meaningfully different experience under equal-budget comparison.
 12. Phase `06` must compare primarily against `EE-MODQN`; original MODQN is context only because it uses a different first objective.
+13. RA-EE fixed-association power allocation may be claimed only as a scoped offline replay result under the declared finite-codebook power contract.
+14. Do not claim full RA-EE-MODQN, learned association effectiveness, hierarchical RL effectiveness, joint association + power training, RB / bandwidth allocation, HOBS optimizer behavior, physical energy saving, or Catfish-EE effectiveness from RA-EE-02 through RA-EE-08.
+15. Do not use scalar reward alone, per-user EE credit, oracle rows, or diagnostic association rows as success evidence for an EE or RA-EE method claim.
 
 ## Agent / Review Workflow
 

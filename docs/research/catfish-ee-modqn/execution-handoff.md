@@ -1,7 +1,7 @@
 # Catfish / EE-MODQN Execution Handoff
 
-**Date:** `2026-04-28`  
-**Status:** handoff for a new plan-controller dialogue  
+**Date:** `2026-04-29`
+**Status:** handoff after RA-EE documentation closeout
 **Scope:** planning and execution control for the next Catfish / EE-MODQN research step. This document does not authorize code changes by itself.
 
 ## Current Conclusion
@@ -71,10 +71,32 @@ Catfish. The EE formula remains valid as a metric, but any renewed EE research
 must be opened as a new resource-allocation MDP design gate with a renamed
 method family. See `03d-ee-route-disposition.execution-report.md`.
 
+The RA-EE follow-on is now also closed at the current evidence boundary:
+
+```text
+old EE-MODQN r1-substitution route: BLOCKED / STOP
+RA-EE fixed-association deployable power allocation: PASS, scoped
+RA-EE learned association / hierarchical RL / full RA-EE-MODQN: BLOCKED
+Catfish for EE repair: BLOCKED
+```
+
+RA-EE-04 and RA-EE-05 established a bounded fixed-association centralized power
+allocator and held-out robustness result. RA-EE-07 then established a stronger
+deployable non-oracle power allocator under fixed association. That is the only
+positive RA-EE claim boundary.
+
+RA-EE-06, RA-EE-06B, and RA-EE-08 block the association path. The decisive
+RA-EE-08 comparison used matched fixed association + deployable stronger power
+allocator versus proposal association + the same deployable stronger power
+allocator. No proposal family had positive held-out `EE_system` delta, the
+predeclared primary proposal was also negative, and diagnostic oracle rows did
+not leave a meaningful deployable association gap. Do not reopen Phase `03C` or
+continue association proposal refinement as the next step.
+
 Phases `04` to `06` remain evidence-gated:
 
-1. Phase `04` is a separate single-Catfish feasibility branch and should not be
-   mixed into Phase `03`.
+1. Phase `04` is a separate single-Catfish feasibility branch over the original
+   MODQN reward and should not be mixed into Phase `03` or RA-EE.
 2. Phase `05` must not jump directly to three Catfish agents.
 3. Phase `06` cannot make final Catfish-EE-MODQN claims until Phases `03` to
    `05` produce evidence.
@@ -98,6 +120,14 @@ Read in this order when taking over the plan:
 13. `docs/research/catfish-ee-modqn/03c-b-power-mdp-audit.execution-report.md`
 14. `docs/research/catfish-ee-modqn/03c-c-power-mdp-pilot.execution-report.md`
 15. `docs/research/catfish-ee-modqn/03d-ee-route-disposition.execution-report.md`
+16. `docs/research/catfish-ee-modqn/ra-ee-02-oracle-power-allocation-audit.execution-report.md`
+17. `docs/research/catfish-ee-modqn/ra-ee-04-bounded-power-allocator-pilot.execution-report.md`
+18. `docs/research/catfish-ee-modqn/ra-ee-05-fixed-association-robustness.execution-report.md`
+19. `docs/research/catfish-ee-modqn/ra-ee-06-association-counterfactual-oracle.execution-report.md`
+20. `docs/research/catfish-ee-modqn/ra-ee-06b-association-proposal-refinement.execution-report.md`
+21. `docs/research/catfish-ee-modqn/ra-ee-07-constrained-power-allocator-distillation.execution-report.md`
+22. `docs/research/catfish-ee-modqn/ra-ee-08-offline-association-reevaluation.execution-report.md`
+23. `docs/ee-report.md`
 
 Use later phase reviews only as constraints unless the user explicitly asks to plan those phases.
 
@@ -220,6 +250,54 @@ throughput/service collapse. After Phase `03D`, that design correction is no
 longer treated as a Phase `03C` patch; it must be opened as a new
 resource-allocation MDP method family.
 
+## RA-EE Closeout Status
+
+RA-EE execution artifacts:
+
+1. `configs/ra-ee-02-oracle-power-allocation-audit.resolved.yaml`
+2. `configs/ra-ee-04-bounded-power-allocator-control.resolved.yaml`
+3. `configs/ra-ee-04-bounded-power-allocator-candidate.resolved.yaml`
+4. `configs/ra-ee-05-fixed-association-robustness.resolved.yaml`
+5. `configs/ra-ee-06-association-counterfactual-oracle.resolved.yaml`
+6. `configs/ra-ee-06b-association-proposal-refinement.resolved.yaml`
+7. `configs/ra-ee-07-constrained-power-allocator-distillation.resolved.yaml`
+8. `configs/ra-ee-08-offline-association-reevaluation.resolved.yaml`
+
+RA-EE artifact roots:
+
+1. `artifacts/ra-ee-02-oracle-power-allocation-audit/`
+2. `artifacts/ra-ee-04-bounded-power-allocator-control-pilot/`
+3. `artifacts/ra-ee-04-bounded-power-allocator-candidate-pilot/`
+4. `artifacts/ra-ee-05-fixed-association-robustness/`
+5. `artifacts/ra-ee-06-association-counterfactual-oracle/`
+6. `artifacts/ra-ee-06b-association-proposal-refinement/`
+7. `artifacts/ra-ee-07-constrained-power-allocator-distillation/`
+8. `artifacts/ra-ee-08-offline-association-reevaluation/`
+
+Scoped allowed RA-EE claim:
+
+```text
+Under fixed association and the declared finite-codebook power contract, a
+deployable non-oracle power allocator improved held-out simulated `EE_system`
+versus the matched fixed-association safe-greedy allocator while preserving the
+declared QoS, budget, per-beam, and inactive-power guardrails.
+```
+
+This is not a learned policy claim. It is not a full RA-EE-MODQN claim.
+
+Forbidden RA-EE claims:
+
+1. do not claim full RA-EE-MODQN,
+2. do not claim learned association or hierarchical RL effectiveness,
+3. do not claim joint association + power training,
+4. do not claim RB / bandwidth allocation,
+5. do not claim HOBS optimizer behavior,
+6. do not claim physical energy saving,
+7. do not claim old EE-MODQN effectiveness,
+8. do not use oracle rows as deployable runtime methods,
+9. do not use scalar reward alone or per-user EE credit as success evidence,
+10. do not use Catfish as an EE repair mechanism.
+
 ## What Not To Do Next
 
 Do not:
@@ -235,8 +313,14 @@ Do not:
 9. treat the Phase `03C-C` tiny `EE_system` delta as effectiveness evidence,
 10. rerun the same one-beam-collapsed route with more episodes as the next gate,
 11. continue Phase `03C` with selector tweaks or reward retuning,
-12. use Catfish as an EE repair mechanism before a resource-allocation MDP exists.
+12. use Catfish as an EE repair mechanism,
+13. reopen the RA-EE association proposal route by tuning RA-EE-06 / 06B / 08,
+14. claim learned association, hierarchical RL, joint association + power training, or full RA-EE-MODQN,
+15. claim HOBS optimizer behavior or physical energy saving,
+16. open RB / bandwidth allocation as an implemented claim rather than a separate design gate.
 
 ## Recommended Next Prompt
 
-Use `prompts/00-new-dialogue-controller.prompt.md` to start a new controller dialogue.
+Use `prompts/04-single-catfish-modqn-feasibility.prompt.md` only if the next
+task is Phase `04` Catfish feasibility under the original MODQN reward. Do not
+use that prompt for EE repair, RA-EE continuation, or Catfish-EE validation.

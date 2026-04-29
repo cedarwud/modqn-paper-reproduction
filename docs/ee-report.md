@@ -1,5 +1,102 @@
 # `modqn-paper-reproduction` EE 路線下一步評估報告
 
+## 2026-04-29 RA-EE closeout report section
+
+本節是 RA-EE-02 到 RA-EE-08 後的正式 closeout。後續 agent 應沿用這個
+claim boundary，不要重新打開 Phase 03C 或 RA-EE association proposal route。
+
+```text
+old EE-MODQN r1-substitution route: BLOCKED / STOP
+RA-EE fixed-association deployable power allocation: PASS, scoped
+RA-EE learned association / hierarchical RL / full RA-EE-MODQN: BLOCKED
+Catfish for EE repair: BLOCKED
+```
+
+### Current State
+
+目前可成立的 RA-EE 結論只有一個：在固定 association 軌跡上，使用明確
+finite-codebook power contract 的 deployable non-oracle power allocator，可以在
+held-out replay 中提升 simulated `EE_system`，同時維持既定 p05 throughput、
+served ratio、outage、total budget、per-beam power 與 inactive-beam-zero
+guardrails。
+
+這不是 learned association，不是 hierarchical RL，不是 joint association +
+power training，不是 RB / bandwidth allocation，也不是 full RA-EE-MODQN。
+
+### Evidence Summary
+
+| Gate | Result | Claim boundary |
+|---|---|---|
+| `03D` | `BLOCKED / STOP` | Current EE-MODQN `r1` substitution route stops; do not continue with more episodes, selector tweaks, reward tuning, or Catfish. |
+| `RA-EE-02` | `PASS to design` | Offline oracle / heuristic power-allocation upper-bound proof only. |
+| `RA-EE-04` | `PASS, scoped` | Fixed-association centralized safe-greedy power-allocation bounded pilot. |
+| `RA-EE-05` | `PASS, scoped` | Fixed-association robustness and held-out validation for the power allocator. |
+| `RA-EE-06` | `BLOCKED` | Association counterfactual does not authorize learned hierarchical association training. |
+| `RA-EE-06B` | `BLOCKED` | Proposal refinement / oracle distillation does not beat matched fixed association with the same safe-greedy allocator. |
+| `RA-EE-07` | `PASS, scoped` | Fixed-association deployable stronger power allocator beats matched fixed-association safe-greedy allocator on the held-out gate. |
+| `RA-EE-08` | `BLOCKED` | Fair association re-evaluation with the same stronger allocator shows no positive association proposal path. |
+
+The decisive split is RA-EE-07 versus RA-EE-08. RA-EE-07 supports a stronger
+fixed-association power allocator. RA-EE-08 then uses that same stronger
+allocator for fixed association and proposal association, and all proposal
+families remain negative on held-out `EE_system`. Therefore the association
+route should stop for now.
+
+### Allowed Claims
+
+Allowed wording:
+
+```text
+RA-EE currently provides scoped evidence that, under fixed association and a
+declared finite-codebook power contract, a deployable non-oracle power
+allocator can improve held-out simulated `EE_system` over a matched
+fixed-association safe-greedy power allocator while preserving the declared QoS
+and power guardrails.
+```
+
+Also allowed:
+
+1. `EE_system = sum_i R_i(t) / sum_active_beams P_b(t)` is the claim metric.
+2. RA-EE-04 / 05 / 07 are fixed-association deployable power-allocation
+   evidence.
+3. RA-EE-06 / 06B / 08 are negative association-route evidence.
+4. Phase 04 Catfish, if started, is only an independent original-MODQN reward
+   feasibility branch.
+
+### Forbidden Claims
+
+Do not claim:
+
+1. full RA-EE-MODQN,
+2. learned association effectiveness,
+3. hierarchical RL effectiveness,
+4. joint association + power training,
+5. old EE-MODQN effectiveness,
+6. HOBS optimizer behavior,
+7. physical energy saving,
+8. Catfish, Multi-Catfish, or Catfish-EE-MODQN effectiveness,
+9. RB / bandwidth allocation,
+10. per-user EE credit as system EE,
+11. scalar reward alone as success evidence,
+12. oracle rows as deployable runtime methods,
+13. full paper-faithful reproduction,
+14. Catfish as an EE repair mechanism.
+
+### Route Decision
+
+The next research step should be documentation closeout first. If execution
+continues after closeout, the recommended next prompt is Phase 04
+Single-Catfish-MODQN feasibility over the original MODQN reward only:
+
+```text
+r1 = throughput
+r2 = handover penalty
+r3 = load balance
+```
+
+That Phase 04 branch must not carry EE claims, must not reopen Phase 03C, and
+must not be framed as RA-EE association recovery.
+
 ## 2026-04-29 RA-EE-08 implementation update
 
 RA-EE-08 已實作為 **offline association re-evaluation gate**，仍是 offline
