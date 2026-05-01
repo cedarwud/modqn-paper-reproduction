@@ -1,0 +1,93 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: phase-07b
+  label: catfish-modqn-phase-07b-no-asymmetric-gamma
+  method_family: Catfish-MODQN
+  status: bounded-pilot-comparator
+  purpose: >
+    Phase 07B no-asymmetric-gamma comparator. It keeps single-Catfish replay
+    intervention but equalizes main and Catfish discount factors.
+
+baseline:
+  episodes: 20
+  batch_size: 64
+
+resolved_assumptions:
+  target_update_cadence:
+    value:
+      target_update_every_episodes: 5
+  phase_07b_catfish_utility_local_assumptions:
+    assumption_id: LOCAL-CATFISH-MODQN-P07B-001
+    value:
+      config_defined_local_assumptions: true
+      fixed_phase_07b_reward:
+        r1: throughput
+        r2: handover penalty
+        r3: load balance
+      eval_cadence_every_episodes: 5
+      eval_seed_set: [100, 200, 300, 400, 500]
+      bounded_run_budget_episodes: 20
+      seed_triplets:
+        - [42, 1337, 7]
+        - [43, 1338, 8]
+        - [44, 1339, 9]
+      catfish_total_share: 0.30
+      asymmetric_gamma: disabled
+      direct_phase_05b_continuation: forbidden
+      multi_catfish_redesign: deferred
+      ee_or_catfish_ee: forbidden
+
+training_experiment:
+  kind: phase-07-b-single-catfish-intervention-utility
+  experiment_id: P07B-NO-ASYMMETRIC-GAMMA
+  method_family: Catfish-MODQN
+  phase: phase-07b
+  phase_07b_catfish_utility:
+    enabled: true
+    variant: no-asymmetric-gamma
+    ablation: no-asymmetric-gamma
+    comparison_role: no-asymmetric-gamma
+    r1_reward_mode: throughput
+    r1_label: throughput
+    r1_provenance: paper-backed original MODQN throughput objective
+    seed_triplets:
+      - [42, 1337, 7]
+      - [43, 1338, 8]
+      - [44, 1339, 9]
+    reward_surface:
+      r1: throughput
+      r2: handover penalty
+      r3: load balance
+    gamma:
+      main_discount_factor: 0.9
+      catfish_discount_factor: 0.9
+    replay:
+      main_partition: baseline-complete
+      partition_mode: duplicate-high-value
+      catfish_capacity: 50000
+      lineage_tracking:
+        enabled: true
+      quality_score:
+        expression: "quality = 0.5*r1 + 0.3*r2 + 0.2*r3"
+        weights: {r1: 0.5, r2: 0.3, r3: 0.2}
+      threshold:
+        mode: quantile
+        quantile: 0.80
+        fixed_threshold: null
+        window: 1000
+    warmup:
+      trigger: main-replay-size
+      main_replay_size: 256
+    intervention:
+      enabled: true
+      source_mode: catfish-replay
+      period_updates: 1
+      main_ratio: 0.70
+      catfish_ratio: 0.30
+      min_catfish_replay_size: 32
+    challenger:
+      enabled: true
+    competitive_shaping:
+      enabled: false

@@ -72,6 +72,10 @@ RANDOM_WANDERING_MAX_TURN_RAD: float = math.pi / 4.0
 follow-on `random wandering` mobility rule. The paper names the mobility
 family but does not disclose the exact turn-law details."""
 
+_HOBS_ACTIVE_TX_EE_EPSILON_P_W: float = 1e-9
+"""Numerical stability denominator floor for the HOBS-style active-TX EE formula.
+Prevents 0/0 when all beams are inactive. Not a physical power floor."""
+
 HOBS_POWER_SURFACE_STATIC_CONFIG = "static-config"
 """Default baseline path: keep the paper Table I scalar transmit power."""
 
@@ -80,6 +84,12 @@ HOBS_POWER_SURFACE_ACTIVE_LOAD_CONCAVE = "active-load-concave"
 
 HOBS_POWER_SURFACE_PHASE_03C_B_POWER_CODEBOOK = "phase-03c-b-power-codebook"
 """Opt-in Phase 03C-B/C new-extension: centralized discrete power codebook."""
+
+HOBS_POWER_SURFACE_DPC_SIDECAR = "hobs-dpc-sidecar"
+"""Opt-in Route B: HOBS-inspired Dynamic Power Control sidecar.
+Each active beam's power evolves via P_b(t) = P_b(t-1) + xi_b(t-1) with
+xi sign-flipped when per-beam EE decreases. Creates time-varying denominator
+independent of interference or learning. Not a HOBS optimizer reproduction."""
 
 POWER_CODEBOOK_FIXED_PROFILES = {
     "fixed-low",
@@ -238,18 +248,55 @@ class PowerSurfaceConfig:
     power_codebook_profile: str = "fixed-mid"
     power_codebook_levels_w: tuple[float, ...] = (0.5, 1.0, 2.0)
     total_power_budget_w: float | None = 8.0
+    sinr_intra_satellite_interference: bool = False
+    """Route A audit opt-in: compute SINR with intra-satellite beam interference.
+
+    When enabled, each active beam's SNR is replaced by:
+        SINR_b = P_b * h_s / (I_intra_b + N0)
+    where I_intra_b = sum_{b' != b, b' active on s} P_{b'} * h_s.
+
+    Inactive beams contribute zero interference. Requires non-static
+    hobs_power_surface_mode (per-beam P_b). This is an audit surface only,
+    not a full HOBS SINR reproduction. Does not affect the static-config
+    baseline path."""
+
+    # -- Route B: HOBS-inspired DPC sidecar config fields --------------------
+    dpc_initial_power_w: float = 1.0
+    """Initial per-beam transmit power at episode reset (W)."""
+
+    dpc_step_size_w: float = 0.1
+    """Power adjustment magnitude per step (|xi|, W). HOBS-inspired."""
+
+    dpc_p_min_w: float = 0.1
+    """Minimum per-beam transmit power floor (W). Must be > 0."""
+
+    dpc_p_beam_max_w: float = 2.0
+    """Per-beam transmit power cap (W). Paper S10: 10 dBW = 10W; default 2W."""
+
+    dpc_p_sat_max_w: float | None = None
+    """Per-satellite aggregate transmit power cap (W). None = no cap."""
+
+    dpc_qos_thr_bps: float = 0.0
+    """Per-user throughput QoS guard threshold (bps). 0 = guard disabled.
+    When any served user on a beam has throughput below this threshold,
+    xi is forced positive (power increases) regardless of EE direction."""
+
+    dpc_epsilon_p_w: float = 1e-9
+    """Stability floor for per-beam EE denominator (W). Prevents 0/0."""
 
     def __post_init__(self) -> None:
         if self.hobs_power_surface_mode not in {
             HOBS_POWER_SURFACE_STATIC_CONFIG,
             HOBS_POWER_SURFACE_ACTIVE_LOAD_CONCAVE,
             HOBS_POWER_SURFACE_PHASE_03C_B_POWER_CODEBOOK,
+            HOBS_POWER_SURFACE_DPC_SIDECAR,
         }:
             raise ValueError(
                 "hobs_power_surface_mode must be one of "
                 f"{{{HOBS_POWER_SURFACE_STATIC_CONFIG!r}, "
                 f"{HOBS_POWER_SURFACE_ACTIVE_LOAD_CONCAVE!r}, "
-                f"{HOBS_POWER_SURFACE_PHASE_03C_B_POWER_CODEBOOK!r}}}, "
+                f"{HOBS_POWER_SURFACE_PHASE_03C_B_POWER_CODEBOOK!r}, "
+                f"{HOBS_POWER_SURFACE_DPC_SIDECAR!r}}}, "
                 f"got {self.hobs_power_surface_mode!r}"
             )
         if self.inactive_beam_policy not in {
@@ -322,6 +369,52 @@ class PowerSurfaceConfig:
             raise ValueError(
                 "phase-03c-b-power-codebook requires inactive_beam_policy='zero-w'."
             )
+        if (
+            self.sinr_intra_satellite_interference
+            and self.hobs_power_surface_mode == HOBS_POWER_SURFACE_STATIC_CONFIG
+        ):
+            raise ValueError(
+                "sinr_intra_satellite_interference requires a non-static "
+                "hobs_power_surface_mode (active-load-concave or "
+                "phase-03c-b-power-codebook). Static-config uses a fixed "
+                "scalar tx_power_w which cannot support meaningful per-beam "
+                "interference audit."
+            )
+        if self.hobs_power_surface_mode == HOBS_POWER_SURFACE_DPC_SIDECAR:
+            if self.inactive_beam_policy != "zero-w":
+                raise ValueError(
+                    "hobs-dpc-sidecar requires inactive_beam_policy='zero-w'."
+                )
+            if self.dpc_initial_power_w <= 0:
+                raise ValueError(
+                    f"dpc_initial_power_w must be > 0, got {self.dpc_initial_power_w}"
+                )
+            if self.dpc_step_size_w <= 0:
+                raise ValueError(
+                    f"dpc_step_size_w must be > 0, got {self.dpc_step_size_w}"
+                )
+            if self.dpc_p_min_w <= 0:
+                raise ValueError(
+                    f"dpc_p_min_w must be > 0, got {self.dpc_p_min_w}"
+                )
+            if self.dpc_p_beam_max_w < self.dpc_p_min_w:
+                raise ValueError(
+                    f"dpc_p_beam_max_w must be >= dpc_p_min_w, "
+                    f"got max={self.dpc_p_beam_max_w} < min={self.dpc_p_min_w}"
+                )
+            if self.dpc_initial_power_w > self.dpc_p_beam_max_w:
+                raise ValueError(
+                    f"dpc_initial_power_w must be <= dpc_p_beam_max_w, "
+                    f"got {self.dpc_initial_power_w} > {self.dpc_p_beam_max_w}"
+                )
+            if self.dpc_qos_thr_bps < 0:
+                raise ValueError(
+                    f"dpc_qos_thr_bps must be >= 0, got {self.dpc_qos_thr_bps}"
+                )
+            if self.dpc_epsilon_p_w <= 0:
+                raise ValueError(
+                    f"dpc_epsilon_p_w must be > 0, got {self.dpc_epsilon_p_w}"
+                )
 
 
 # ---------------------------------------------------------------------------
@@ -391,6 +484,9 @@ class RewardComponents:
     r3_load_balance: float
     r1_energy_efficiency_credit: float = 0.0
     r1_beam_power_efficiency_credit: float = 0.0
+    r1_hobs_active_tx_ee: float = 0.0
+    """HOBS-style active-TX system EE: sum_u(R_u) / (sum_active_b(P_b) + eps).
+    Same value for all users in the step. Opt-in feasibility gate only."""
 
 
 @dataclass
@@ -496,6 +592,18 @@ class StepEnvironment:
         self._diagnostics_emitted: bool = False
         self._last_diagnostics: DiagnosticsReport | None = None
 
+        # DPC sidecar state (only used when mode == HOBS_POWER_SURFACE_DPC_SIDECAR)
+        self._dpc_power_w: np.ndarray = np.zeros(0, dtype=np.float64)
+        self._dpc_xi_w: np.ndarray = np.zeros(0, dtype=np.float64)
+        self._dpc_prev_ee_b: np.ndarray = np.zeros(0, dtype=np.float64)
+        self._dpc_pprev_ee_b: np.ndarray = np.zeros(0, dtype=np.float64)
+        self._dpc_prev_user_throughput: np.ndarray = np.zeros(0, dtype=np.float64)
+        self._dpc_step_count: int = 0
+        self._dpc_sign_flip_count: int = 0
+        self._dpc_qos_guard_count: int = 0
+        self._dpc_per_beam_cap_violations: int = 0
+        self._dpc_sat_cap_violations: int = 0
+
     # -- properties -----------------------------------------------------------
 
     @property
@@ -537,6 +645,20 @@ class StepEnvironment:
     def current_user_positions(self) -> list[tuple[float, float]]:
         """Current user geodetic positions."""
         return list(self._user_positions)
+
+    def get_dpc_diagnostics(self) -> dict:
+        """Return cumulative DPC sidecar diagnostic counters.
+
+        Only meaningful when hobs_power_surface_mode == 'hobs-dpc-sidecar'.
+        Counters accumulate from the last reset() call.
+        """
+        return {
+            "dpc_step_count": self._dpc_step_count,
+            "dpc_sign_flip_count": self._dpc_sign_flip_count,
+            "dpc_qos_guard_count": self._dpc_qos_guard_count,
+            "dpc_per_beam_cap_violations": self._dpc_per_beam_cap_violations,
+            "dpc_sat_cap_violations": self._dpc_sat_cap_violations,
+        }
 
     def current_satellites(self):
         """Current satellite snapshots in stable index order."""
@@ -595,6 +717,22 @@ class StepEnvironment:
         # Initial assignment: each user to their nearest visible beam.
         self._assignments = self._initial_assignments()
 
+        # Initialize DPC sidecar state before first _build_states_and_masks call.
+        if self._power_surface_cfg.hobs_power_surface_mode == HOBS_POWER_SURFACE_DPC_SIDECAR:
+            LK = self._num_beams_total
+            U = self._step_cfg.num_users
+            cfg = self._power_surface_cfg
+            self._dpc_power_w = np.full(LK, cfg.dpc_initial_power_w, dtype=np.float64)
+            self._dpc_xi_w = np.full(LK, cfg.dpc_step_size_w, dtype=np.float64)
+            self._dpc_prev_ee_b = np.zeros(LK, dtype=np.float64)
+            self._dpc_pprev_ee_b = np.zeros(LK, dtype=np.float64)
+            self._dpc_prev_user_throughput = np.zeros(U, dtype=np.float64)
+            self._dpc_step_count = 0
+            self._dpc_sign_flip_count = 0
+            self._dpc_qos_guard_count = 0
+            self._dpc_per_beam_cap_violations = 0
+            self._dpc_sat_cap_violations = 0
+
         # Build state and masks
         states, masks, _beam_thr, _user_thr, _beam_loads, _beam_power_w, _profile = (
             self._build_states_and_masks(rng)
@@ -649,6 +787,12 @@ class StepEnvironment:
         # Apply actions (respecting mask — caller should mask before choosing)
         self._assignments = actions.astype(np.int32)
 
+        # DPC sidecar: apply power update BEFORE computing SNR for this step.
+        # The update uses previous-step EE/throughput stored in DPC state.
+        if self._power_surface_cfg.hobs_power_surface_mode == HOBS_POWER_SURFACE_DPC_SIDECAR:
+            prelim_loads = self._compute_beam_loads_from_assignments()
+            self._dpc_apply_update(prelim_loads)
+
         # Compute state and masks for the new time
         (
             states,
@@ -659,6 +803,10 @@ class StepEnvironment:
             beam_power_w,
             selected_power_profile,
         ) = self._build_states_and_masks(rng)
+
+        # DPC sidecar: update EE/throughput state AFTER computing results.
+        if self._power_surface_cfg.hobs_power_surface_mode == HOBS_POWER_SURFACE_DPC_SIDECAR:
+            self._dpc_update_state(beam_throughputs, beam_loads, user_throughputs)
 
         # Build reachable-beam mask: union of all users' action masks.
         # A beam is "reachable" if at least one user can see its satellite.
@@ -756,11 +904,18 @@ class StepEnvironment:
             if 0 <= beam_idx < LK:
                 beam_loads[beam_idx] += 1
 
-        beam_transmit_power_w, selected_power_profile = _beam_transmit_power_decision(
-            beam_loads,
-            channel_tx_power_w=self._channel_cfg.tx_power_w,
-            power_surface_config=self._power_surface_cfg,
-        )
+        # DPC sidecar: use pre-updated DPC power instead of _beam_transmit_power_decision.
+        if self._power_surface_cfg.hobs_power_surface_mode == HOBS_POWER_SURFACE_DPC_SIDECAR:
+            # _dpc_power_w was already updated in step() before this call.
+            # Inactive beams are already 0 W (set by _dpc_apply_update).
+            beam_transmit_power_w = self._dpc_power_w.copy()
+            selected_power_profile = HOBS_POWER_SURFACE_DPC_SIDECAR
+        else:
+            beam_transmit_power_w, selected_power_profile = _beam_transmit_power_decision(
+                beam_loads,
+                channel_tx_power_w=self._channel_cfg.tx_power_w,
+                power_surface_config=self._power_surface_cfg,
+            )
 
         states: list[UserState] = []
         masks: list[ActionMask] = []
@@ -801,12 +956,17 @@ class StepEnvironment:
             # should be revisited if independent per-user fading streams
             # are needed (e.g. for variance-sensitive ablation).
             snr_arr = np.zeros(LK, dtype=np.float64)
+            # channel_gain_per_sat: captured for opt-in SINR interference (Route A).
+            # Each satellite's channel gain h = FSPL * A(d) * eta is per-satellite.
+            channel_gain_per_sat = np.zeros(L, dtype=np.float64)
+            # static_power_mode is a config property — define before vis_all loop
+            # so the SINR post-processing check is always valid.
+            static_power_mode = (
+                self._power_surface_cfg.hobs_power_surface_mode
+                == HOBS_POWER_SURFACE_STATIC_CONFIG
+            )
             for vr in vis_all:
                 if vr.is_visible and vr.slant_range_km > 0:
-                    static_power_mode = (
-                        self._power_surface_cfg.hobs_power_surface_mode
-                        == HOBS_POWER_SURFACE_STATIC_CONFIG
-                    )
                     ch = compute_channel(
                         slant_range_km=vr.slant_range_km,
                         altitude_km=self._orbit.config.altitude_km,
@@ -815,6 +975,7 @@ class StepEnvironment:
                         fading=True,
                         tx_power_w=None if static_power_mode else 1.0,
                     )
+                    channel_gain_per_sat[vr.sat_index] = ch.channel_gain
                     base = vr.sat_index * K
                     # All beams of a visible satellite share the same
                     # slant-range-based SNR. The paper does not model
@@ -833,6 +994,21 @@ class StepEnvironment:
                                 if tx_power_w <= 0.0
                                 else (tx_power_w * ch.channel_gain) / ch.noise_power_w
                             )
+
+            # Route A opt-in: replace SNR with SINR using intra-satellite interference.
+            # Only applied in non-static (HOBS) power-surface mode.
+            if (
+                not static_power_mode
+                and self._power_surface_cfg.sinr_intra_satellite_interference
+            ):
+                snr_arr = _apply_intra_satellite_sinr_interference(
+                    snr_arr,
+                    beam_transmit_power_w,
+                    beam_loads,
+                    L, K,
+                    channel_gain_per_sat,
+                    self._channel_cfg.noise_power_w,
+                )
 
             # -- beam offsets Γ(t): local-tangent (east, north) km --
             offsets = np.zeros((LK, 2), dtype=np.float64)
@@ -915,6 +1091,18 @@ class StepEnvironment:
         phi1 = self._step_cfg.phi1
         phi2 = self._step_cfg.phi2
 
+        # HOBS-style active-TX EE: computed once per step, same for all users.
+        # eta = sum_u(R_u) / (sum_{active b}(P_b) + eps)
+        # Inactive beams (beam_loads == 0) contribute zero power — enforced by mask.
+        _total_user_thr = float(np.sum(user_throughputs, dtype=np.float64))
+        _active_beam_mask = beam_loads > 0.0
+        _total_active_power_w = float(
+            np.sum(beam_transmit_power_w[_active_beam_mask], dtype=np.float64)
+        )
+        _system_ee_active_tx = _total_user_thr / (
+            _total_active_power_w + _HOBS_ACTIVE_TX_EE_EPSILON_P_W
+        )
+
         # r3 load balance gap: max-min over reachable beams.
         # Reachable beams with no users have throughput 0, which pulls
         # the min down and exposes the imbalance.
@@ -959,9 +1147,126 @@ class StepEnvironment:
                 r3_load_balance=r3,
                 r1_energy_efficiency_credit=float(r1_ee_credit),
                 r1_beam_power_efficiency_credit=float(r1_beam_ee_credit),
+                r1_hobs_active_tx_ee=float(_system_ee_active_tx),
             ))
 
         return rewards
+
+    # -- internal: DPC sidecar ------------------------------------------------
+
+    def _compute_beam_loads_from_assignments(self) -> np.ndarray:
+        """Pre-compute beam loads from current assignments for DPC update."""
+        LK = self._num_beams_total
+        beam_loads = np.zeros(LK, dtype=np.float32)
+        for uid in range(self._step_cfg.num_users):
+            beam_idx = int(self._assignments[uid])
+            if 0 <= beam_idx < LK:
+                beam_loads[beam_idx] += 1
+        return beam_loads
+
+    def _dpc_apply_update(self, beam_loads: np.ndarray) -> None:
+        """Apply one DPC power step using previous-step EE/throughput state.
+
+        Called at start of step() BEFORE _build_states_and_masks so that the
+        updated power drives SNR computation for this step.
+
+        DPC rule (HOBS-inspired, not a HOBS optimizer reproduction):
+          if EE_b(t-1) <= EE_b(t-2) and t >= 2: xi_b = -xi_b  (sign flip)
+          if any served user on b had throughput < qos_thr last step: xi_b = abs(xi_b)
+          P_b(t) = clip(P_b(t-1) + xi_b, P_min, P_beam_max)
+          Inactive beams: P_b = 0
+          Then: per-satellite cap enforcement if configured.
+        """
+        LK = self._num_beams_total
+        L = self._orbit.num_satellites
+        K = self._beam.num_beams
+        U = self._step_cfg.num_users
+        cfg = self._power_surface_cfg
+        active = beam_loads > 0.0
+
+        for b in range(LK):
+            if not active[b]:
+                self._dpc_power_w[b] = 0.0
+                # Reset xi to positive step for next activation
+                self._dpc_xi_w[b] = cfg.dpc_step_size_w
+                continue
+
+            xi = float(self._dpc_xi_w[b])
+
+            # Sign flip: if per-beam EE decreased from (t-2) to (t-1)
+            if (
+                self._dpc_step_count >= 2
+                and self._dpc_pprev_ee_b[b] > 0.0
+                and self._dpc_prev_ee_b[b] <= self._dpc_pprev_ee_b[b]
+            ):
+                xi = -xi
+                self._dpc_sign_flip_count += 1
+
+            # QoS guard: if any currently served user had low throughput last step,
+            # force xi positive (increase power regardless of EE direction)
+            if cfg.dpc_qos_thr_bps > 0.0:
+                for u in range(U):
+                    if int(self._assignments[u]) == b:
+                        if float(self._dpc_prev_user_throughput[u]) < cfg.dpc_qos_thr_bps:
+                            if xi < 0.0:
+                                xi = abs(xi)
+                                self._dpc_qos_guard_count += 1
+                            break
+
+            self._dpc_xi_w[b] = xi
+
+            # Power update with per-beam cap
+            candidate = float(self._dpc_power_w[b]) + xi
+            if candidate < cfg.dpc_p_min_w or candidate > cfg.dpc_p_beam_max_w:
+                self._dpc_per_beam_cap_violations += 1
+            self._dpc_power_w[b] = float(
+                np.clip(candidate, cfg.dpc_p_min_w, cfg.dpc_p_beam_max_w)
+            )
+
+        # Per-satellite aggregate cap enforcement
+        if cfg.dpc_p_sat_max_w is not None:
+            sat_cap = float(cfg.dpc_p_sat_max_w)
+            for s in range(L):
+                base = s * K
+                sat_total = float(np.sum(self._dpc_power_w[base: base + K], dtype=np.float64))
+                if sat_total > sat_cap:
+                    scale = sat_cap / sat_total
+                    self._dpc_power_w[base: base + K] *= scale
+                    self._dpc_sat_cap_violations += 1
+
+    def _dpc_update_state(
+        self,
+        beam_throughputs: np.ndarray,
+        beam_loads: np.ndarray,
+        user_throughputs: np.ndarray,
+    ) -> None:
+        """Update DPC EE/throughput history from current step's results.
+
+        Called AFTER _build_states_and_masks. Stores per-beam EE and
+        per-user throughput for the next step's DPC update decisions.
+        """
+        LK = self._num_beams_total
+        cfg = self._power_surface_cfg
+        active = beam_loads > 0.0
+
+        # Shift EE history: (t-2) ← (t-1)
+        np.copyto(self._dpc_pprev_ee_b, self._dpc_prev_ee_b)
+
+        # Compute per-beam EE for this step: EE_b = thr_b / P_b
+        for b in range(LK):
+            if active[b] and float(self._dpc_power_w[b]) > 0.0:
+                self._dpc_prev_ee_b[b] = (
+                    float(beam_throughputs[b])
+                    / max(float(self._dpc_power_w[b]), cfg.dpc_epsilon_p_w)
+                )
+            else:
+                self._dpc_prev_ee_b[b] = 0.0
+
+        # Store per-user throughput for next step's QoS guard
+        for u in range(self._step_cfg.num_users):
+            self._dpc_prev_user_throughput[u] = float(user_throughputs[u])
+
+        self._dpc_step_count += 1
 
     # -- internal: initial assignments ----------------------------------------
 
@@ -1164,6 +1469,66 @@ class StepEnvironment:
 # ---------------------------------------------------------------------------
 
 
+def _apply_intra_satellite_sinr_interference(
+    snr_arr: np.ndarray,
+    beam_power_w: np.ndarray,
+    beam_loads: np.ndarray,
+    L: int,
+    K: int,
+    channel_gain_per_sat: np.ndarray,
+    noise_power_w: float,
+) -> np.ndarray:
+    """Replace per-beam SNR with SINR by adding intra-satellite beam interference.
+
+    For each active beam b of satellite s visible to a user u:
+
+        SINR_{s,b,u} = P_{s,b} * h_{s,u} / (I_intra_{s,b,u} + N0)
+
+    where:
+        I_intra_{s,b,u} = sum_{b' != b, b' active on s} P_{s,b'} * h_{s,u}
+        h_{s,u} = channel_gain_per_sat[s]   (per-satellite, per-user fading draw)
+        N0 = noise_power_w                  (from ChannelConfig)
+
+    Inactive beams (beam_loads == 0) contribute zero interference.
+
+    With a single active beam: I_intra = 0 → SINR = P_b * h / N0 = SNR_b.
+    With multiple active beams: I_intra > 0 → SINR < SNR_b.
+
+    Route A audit surface only. Not a full HOBS SINR reproduction.
+    Does not model inter-satellite interference (I_inter).
+    """
+    sinr_arr = snr_arr.copy()
+    active = beam_loads > 0.0
+
+    for s in range(L):
+        h_s = float(channel_gain_per_sat[s])
+        if h_s <= 0.0:
+            continue
+        base = s * K
+        sat_active_mask = active[base: base + K]
+        sat_powers = beam_power_w[base: base + K]
+        # Total transmit power of all active beams on this satellite
+        total_sat_active_power = float(np.sum(sat_powers[sat_active_mask]))
+
+        if not np.any(sat_active_mask):
+            continue
+
+        for local_b in range(K):
+            beam_idx = base + local_b
+            if not sat_active_mask[local_b]:
+                sinr_arr[beam_idx] = 0.0
+                continue
+            P_b = float(sat_powers[local_b])
+            if P_b <= 0.0:
+                sinr_arr[beam_idx] = 0.0
+                continue
+            # I_intra = sum of powers of all OTHER active beams on same satellite * h
+            I_intra = (total_sat_active_power - P_b) * h_s
+            sinr_arr[beam_idx] = (P_b * h_s) / (I_intra + noise_power_w)
+
+    return sinr_arr
+
+
 def _reachable_beam_mask(masks: list[ActionMask]) -> np.ndarray:
     """Union of all users' action masks → reachable-beam boolean array.
 
@@ -1216,6 +1581,17 @@ def _beam_transmit_power_decision(
             ),
             HOBS_POWER_SURFACE_STATIC_CONFIG,
         )
+
+    if power_surface_config.hobs_power_surface_mode == HOBS_POWER_SURFACE_DPC_SIDECAR:
+        # DPC sidecar mode: _build_states_and_masks bypasses this function.
+        # If called from diagnostics or other paths, return initial-power proxy.
+        active = beam_loads > 0.0
+        powers = np.where(
+            active,
+            float(power_surface_config.dpc_initial_power_w),
+            0.0,
+        ).astype(np.float64)
+        return powers, HOBS_POWER_SURFACE_DPC_SIDECAR
 
     if (
         power_surface_config.hobs_power_surface_mode

@@ -9,6 +9,8 @@ import time
 from dataclasses import asdict
 from pathlib import Path
 
+from ..config_loader import ConfigValidationError
+
 
 def run_train_command(
     args: argparse.Namespace,
@@ -37,6 +39,11 @@ def run_train_command(
         get_seeds,
         load_training_yaml,
     )
+    from ..runtime.trainer_spec import (
+        PHASE_05_B_MULTI_CATFISH_KIND,
+        PHASE_07_B_SINGLE_CATFISH_UTILITY_KIND,
+        PHASE_07_D_R2_GUARDED_ROBUSTNESS_KIND,
+    )
 
     print(f"[modqn-train] paper={paper_id} version={package_version}")
     print(f"[modqn-train] config={args.config}")
@@ -46,6 +53,39 @@ def run_train_command(
         env = build_environment(cfg)
         trainer_cfg = build_trainer_config(cfg)
         seeds = get_seeds(cfg)
+        if getattr(args, "phase05b_seed_triplet", None):
+            if trainer_cfg.training_experiment_kind != PHASE_05_B_MULTI_CATFISH_KIND:
+                raise ConfigValidationError(
+                    "--phase05b-seed-triplet is only allowed for Phase 05B configs."
+                )
+            seeds = _seeds_with_phase05b_triplet(
+                seeds,
+                raw_triplet=args.phase05b_seed_triplet,
+            )
+        if getattr(args, "phase07b_seed_triplet", None):
+            if (
+                trainer_cfg.training_experiment_kind
+                != PHASE_07_B_SINGLE_CATFISH_UTILITY_KIND
+            ):
+                raise ConfigValidationError(
+                    "--phase07b-seed-triplet is only allowed for Phase 07B configs."
+                )
+            seeds = _seeds_with_phase07b_triplet(
+                seeds,
+                raw_triplet=args.phase07b_seed_triplet,
+            )
+        if getattr(args, "phase07d_seed_triplet", None):
+            if (
+                trainer_cfg.training_experiment_kind
+                != PHASE_07_D_R2_GUARDED_ROBUSTNESS_KIND
+            ):
+                raise ConfigValidationError(
+                    "--phase07d-seed-triplet is only allowed for Phase 07D configs."
+                )
+            seeds = _seeds_with_phase07d_triplet(
+                seeds,
+                raw_triplet=args.phase07d_seed_triplet,
+            )
     except ConfigValidationError as exc:
         print(f"[modqn-train] ERROR: {exc}", file=sys.stderr)
         return 2
@@ -118,11 +158,28 @@ def run_train_command(
             f"q={trainer_cfg.catfish_quality_quantile}, "
             f"warmup={trainer_cfg.catfish_warmup_transitions}, "
             f"intervention={trainer_cfg.catfish_intervention_enabled}, "
-            f"ratio={trainer_cfg.catfish_intervention_catfish_ratio}"
+            f"ratio={trainer_cfg.catfish_intervention_catfish_ratio}, "
+            f"source={trainer_cfg.catfish_intervention_source_mode}, "
+            f"challenger={trainer_cfg.catfish_challenger_enabled}"
         )
+        if trainer_cfg.catfish_r2_guard_enabled:
+            print(
+                "[modqn-train] catfish-r2-guard: "
+                f"variant={trainer_cfg.catfish_phase07d_variant}, "
+                f"admission={trainer_cfg.catfish_r2_admission_guard_enabled}, "
+                f"intervention={trainer_cfg.catfish_r2_intervention_guard_enabled}, "
+                f"strict-no-ho={trainer_cfg.catfish_r2_strict_no_handover_sample_guard}, "
+                f"spike-skip={trainer_cfg.catfish_handover_spike_guard_enabled}"
+            )
 
     trainer_cls = MODQNTrainer
-    if trainer_cfg.catfish_enabled:
+    if trainer_cfg.training_experiment_kind == PHASE_05_B_MULTI_CATFISH_KIND and (
+        trainer_cfg.method_family == "Multi-Catfish-MODQN"
+    ):
+        from ..algorithms.multi_catfish_modqn import MultiCatfishMODQNTrainer
+
+        trainer_cls = MultiCatfishMODQNTrainer
+    elif trainer_cfg.catfish_enabled:
         from ..algorithms.catfish_modqn import CatfishMODQNTrainer
 
         trainer_cls = CatfishMODQNTrainer
@@ -311,3 +368,72 @@ def run_train_command(
             )
 
     return 0
+
+
+def _seeds_with_phase05b_triplet(
+    seeds: dict,
+    *,
+    raw_triplet: str,
+) -> dict:
+    parts = [part.strip() for part in raw_triplet.split(",")]
+    if len(parts) != 3 or any(not part for part in parts):
+        raise ConfigValidationError(
+            "--phase05b-seed-triplet must be formatted as train,environment,mobility."
+        )
+    try:
+        train_seed, environment_seed, mobility_seed = (int(part) for part in parts)
+    except ValueError as exc:
+        raise ConfigValidationError(
+            "--phase05b-seed-triplet must contain integer seeds."
+        ) from exc
+    updated = dict(seeds)
+    updated["train_seed"] = train_seed
+    updated["environment_seed"] = environment_seed
+    updated["mobility_seed"] = mobility_seed
+    return updated
+
+
+def _seeds_with_phase07b_triplet(
+    seeds: dict,
+    *,
+    raw_triplet: str,
+) -> dict:
+    parts = [part.strip() for part in raw_triplet.split(",")]
+    if len(parts) != 3 or any(not part for part in parts):
+        raise ConfigValidationError(
+            "--phase07b-seed-triplet must be formatted as train,environment,mobility."
+        )
+    try:
+        train_seed, environment_seed, mobility_seed = (int(part) for part in parts)
+    except ValueError as exc:
+        raise ConfigValidationError(
+            "--phase07b-seed-triplet must contain integer seeds."
+        ) from exc
+    updated = dict(seeds)
+    updated["train_seed"] = train_seed
+    updated["environment_seed"] = environment_seed
+    updated["mobility_seed"] = mobility_seed
+    return updated
+
+
+def _seeds_with_phase07d_triplet(
+    seeds: dict,
+    *,
+    raw_triplet: str,
+) -> dict:
+    parts = [part.strip() for part in raw_triplet.split(",")]
+    if len(parts) != 3 or any(not part for part in parts):
+        raise ConfigValidationError(
+            "--phase07d-seed-triplet must be formatted as train,environment,mobility."
+        )
+    try:
+        train_seed, environment_seed, mobility_seed = (int(part) for part in parts)
+    except ValueError as exc:
+        raise ConfigValidationError(
+            "--phase07d-seed-triplet must contain integer seeds."
+        ) from exc
+    updated = dict(seeds)
+    updated["train_seed"] = train_seed
+    updated["environment_seed"] = environment_seed
+    updated["mobility_seed"] = mobility_seed
+    return updated

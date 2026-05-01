@@ -40,6 +40,7 @@ OBJECTIVE_NAMES = ("r1", "r2", "r3")
 SCALAR_BUFFER_NAME = "scalar_phase04_high_value"
 DUPLICATION_JACCARD_WARNING_THRESHOLD = 0.80
 MIN_DISTINCT_SHARE_FOR_INTERVENTION = 0.10
+DEGENERATE_TOP_BUFFER_SHARE_THRESHOLD = 0.50
 
 
 @dataclass(frozen=True)
@@ -199,7 +200,7 @@ def analyze_phase05a_samples(
             sample_ids=ids,
             rewards=rewards,
             all_sample_ids=sample_ids,
-            all_objective_sets=objective_sets,
+            objective_top_quantile=objective_top_quantile,
         )
 
     scalar_ids = {
@@ -448,11 +449,14 @@ def _buffer_payload(
     sample_ids: set[int],
     rewards: np.ndarray,
     all_sample_ids: np.ndarray,
-    all_objective_sets: dict[str, set[int]],
+    objective_top_quantile: float,
 ) -> dict[str, Any]:
+    admission_share = _safe_ratio(len(sample_ids), len(all_sample_ids))
     return {
         "objective": objective,
         "size": int(len(sample_ids)),
+        "admission_share": admission_share,
+        "expected_top_share_without_tie_expansion": float(1.0 - objective_top_quantile),
         "selection_rule": (
             "objective-wise percentile/rank; scalar reward is not used for "
             "objective buffer admission"
@@ -546,6 +550,24 @@ def _warnings(
                     }
                 )
         contribution = buffer_summaries[objective]["distinct_sample_contribution"]
+        admission_share = buffer_summaries[objective]["admission_share"]
+        if (
+            admission_share is not None
+            and admission_share > DEGENERATE_TOP_BUFFER_SHARE_THRESHOLD
+        ):
+            warnings.append(
+                {
+                    "code": "degenerate-objective-tie-admission",
+                    "buffer": objective,
+                    "admission_share": admission_share,
+                    "threshold": DEGENERATE_TOP_BUFFER_SHARE_THRESHOLD,
+                    "detail": (
+                        "Objective percentile threshold admitted more than half "
+                        "of all samples, usually because the objective has too "
+                        "few distinct values for a bounded top buffer."
+                    ),
+                }
+            )
         if not contribution["would_contribute_distinct_intervention_samples"]:
             warnings.append(
                 {
@@ -595,6 +617,19 @@ def _stop_conditions(
             {
                 "code": "diagnostics-cannot-prove-distinct-sample-types",
                 "detail": "At least one objective buffer duplicates scalar or r1 top samples.",
+            }
+        )
+    if any(
+        warning["code"] == "degenerate-objective-tie-admission"
+        for warning in warnings
+    ):
+        stops.append(
+            {
+                "code": "objective-percentile-degenerated",
+                "detail": (
+                    "At least one objective-wise top buffer admitted a majority "
+                    "of samples, so it is not a bounded high-value subset."
+                ),
             }
         )
 

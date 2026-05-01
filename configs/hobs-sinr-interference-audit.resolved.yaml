@@ -1,0 +1,59 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: hobs-sinr-interference-audit
+  label: route-a-sinr-interference-audit-gate
+  method_family: HOBS-SINR-audit
+  status: route-a-audit-only
+  purpose: >
+    Route A: HOBS-style intra-satellite SINR interference audit gate.
+    Namespace: hobs-sinr-interference-audit.
+
+    Adds intra-satellite beam interference to the channel model on an
+    opt-in basis:
+
+        SINR_{s,b,u} = P_{s,b} * h_{s,u} / (I_intra_{s,b,u} + N0)
+
+    where I_intra_{s,b,u} = sum_{b' != b, active on s} P_{s,b'} * h_{s,u}.
+
+    This breaks the hobs-active-tx-ee ≡ per-user-ee-credit equivalence
+    that caused Route D to be BLOCKED under SNR-only channel. With SINR,
+    different active beam patterns produce different per-beam signal quality,
+    making the system EE reward genuinely distinct from a throughput rescaling.
+
+    Limitations of this audit:
+    - At the current operating SNR (~-56 dB), I_intra/N0 ~ 1e-5: structurally
+      present but numerically negligible. A synthetic high-channel-gain test
+      proves the structural formula is correct.
+    - This is NOT a full HOBS SINR model (no per-beam off-axis gain, no I_inter).
+    - This is NOT a reproduction of the HOBS paper optimizer.
+    - Baseline static-config is unchanged.
+    - No training is run from this config.
+
+    Catfish is out of scope. Frozen baseline must remain unchanged.
+    Do not claim EE-MODQN effectiveness from this audit.
+
+resolved_assumptions:
+  hobs_power_surface:
+    assumption_id: ASSUME-MODQN-REP-024
+    value:
+      mode: active-load-concave
+      inactive_beam_policy: zero-w
+      active_base_power_w: 0.25
+      load_scale_power_w: 0.35
+      load_exponent: 0.5
+      max_power_w: 2.0
+      units: linear-w
+      sinr_intra_satellite_interference: true
+      sinr_model_note: >
+        Route A audit: adds I_intra = sum_{b'!=b,active} P_{b'} * h_sat
+        to the SNR denominator. All beams of a satellite share h_sat
+        (per-satellite channel gain, no per-beam off-axis model).
+        Inactive beams (beam_loads=0) contribute zero interference.
+        Not a full HOBS SINR reproduction.
+      provenance: >
+        Phase 02B active-load-concave synthesized allocation proxy, extended
+        with Route A intra-satellite SINR interference audit. Power surface
+        is not paper-backed HOBS power control. SINR interference is a
+        structural audit surface, not a HOBS optimizer.

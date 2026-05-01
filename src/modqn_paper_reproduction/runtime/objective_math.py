@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 
 from .trainer_spec import (
+    R1_REWARD_MODE_HOBS_ACTIVE_TX_EE,
     R1_REWARD_MODE_PER_USER_BEAM_EE_CREDIT,
     R1_REWARD_MODE_PER_USER_EE_CREDIT,
     R1_REWARD_MODE_THROUGHPUT,
@@ -53,6 +54,7 @@ def select_r1_reward_value(
     throughput_bps: float,
     per_user_ee_credit_bps_per_w: float,
     per_user_beam_ee_credit_bps_per_w: float = 0.0,
+    hobs_active_tx_ee_bps_per_w: float = 0.0,
     config: TrainerConfig,
 ) -> float:
     """Return the configured first-objective value.
@@ -60,6 +62,10 @@ def select_r1_reward_value(
     ``per-user-ee-credit`` is a Phase 03 credit-assignment assumption. It is
     not a system-level EE metric; final reporting must still compute
     ``EE_system`` from aggregate throughput and active beam power.
+
+    ``hobs-active-tx-ee`` is the HOBS-style active-TX system EE feasibility
+    gate value: sum_u(R_u) / (sum_active_b(P_b) + eps). Same value for all
+    users in the step. Opt-in via hobs-active-tx-ee-modqn-feasibility kind.
     """
     if config.r1_reward_mode == R1_REWARD_MODE_THROUGHPUT:
         return float(throughput_bps)
@@ -67,4 +73,6 @@ def select_r1_reward_value(
         return float(per_user_ee_credit_bps_per_w)
     if config.r1_reward_mode == R1_REWARD_MODE_PER_USER_BEAM_EE_CREDIT:
         return float(per_user_beam_ee_credit_bps_per_w)
+    if config.r1_reward_mode == R1_REWARD_MODE_HOBS_ACTIVE_TX_EE:
+        return float(hobs_active_tx_ee_bps_per_w)
     raise ValueError(f"Unsupported r1_reward_mode={config.r1_reward_mode!r}")

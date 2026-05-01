@@ -1,0 +1,21 @@
+config_role: resolved-run-follow-on
+inherits_from: catfish-modqn-phase-05b-primary-multi-catfish-shaping-off.resolved.yaml
+
+track:
+  phase: phase-05b
+  label: catfish-modqn-phase-05b-multi-buffer-single-learner
+  method_family: Multi-Catfish-MODQN
+  status: bounded-pilot-ablation
+  purpose: >
+    Phase 05B ablation using the same guarded-residual r1/r2/r3 buffers and
+    70/10/10/10 main intervention mix, but only one Catfish learner.
+
+training_experiment:
+  experiment_id: P05B-MULTI-BUFFER-SINGLE-LEARNER
+  method_family: Multi-Catfish-MODQN
+  phase_05b_multi_catfish:
+    variant: multi-buffer-single-learner
+    ablation: multi-buffer-single-learner
+    comparison_role: multi-buffer-single-learner
+    specialists:
+      mode: single-learner

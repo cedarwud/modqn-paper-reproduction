@@ -1,0 +1,20 @@
+config_role: resolved-run-follow-on
+inherits_from: catfish-modqn-phase-07d-r2-guarded-primary-shaping-off.resolved.yaml
+
+track:
+  label: catfish-modqn-phase-07d-replay-only-single-learner
+  status: bounded-pilot-comparator
+  purpose: >
+    Phase 07D replay-only single learner comparator. It applies the same r2
+    guard to Catfish replay and injection but does not instantiate a challenger.
+
+training_experiment:
+  experiment_id: P07D-REPLAY-ONLY-SINGLE-LEARNER
+  phase_07d_r2_guarded_robustness:
+    variant: replay-only-single-learner
+    ablation: replay-only-single-learner
+    comparison_role: replay-only-single-learner
+    gamma:
+      catfish_discount_factor: 0.9
+    challenger:
+      enabled: false

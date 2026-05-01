@@ -1,0 +1,54 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: hobs-dpc-sidecar-denominator-gate
+  label: route-b-dpc-sidecar-denominator-gate
+  method_family: HOBS-DPC-sidecar
+  status: route-b-denominator-gate-only
+  purpose: >
+    Route B: HOBS-inspired DPC sidecar denominator gate.
+
+    Adds a time-varying per-beam power controller that makes the active
+    transmit-power denominator vary over time, independent of learned policy
+    or interference strength. This directly addresses the denominator-fixed
+    failure mode that blocked Route D.
+
+    DPC rule (HOBS-inspired, not a HOBS optimizer reproduction):
+      - Each active beam's power evolves: P_b(t) = P_b(t-1) + xi_b(t-1)
+      - Sign flip: if EE_b(t-1) <= EE_b(t-2), xi_b is reversed
+      - QoS guard: if any served user throughput < threshold, xi forced positive
+      - Per-beam cap: P_b clipped to [dpc_p_min_w, dpc_p_beam_max_w]
+      - Per-satellite cap: optional aggregate cap enforced after beam updates
+      - Inactive beams: P_b = 0 (enforced by active mask)
+
+    This gate checks only that denominator variability is achieved under a
+    non-learned hold-current heuristic policy. No training is run.
+
+    Source: DPC rule directly from HOBS paper eq. for dynamic power control.
+    Label: HOBS-inspired new extension, not MODQN paper-backed.
+    Frozen baseline: unchanged.
+    Catfish: out of scope.
+    EE-MODQN effectiveness: not claimed.
+
+resolved_assumptions:
+  hobs_power_surface:
+    assumption_id: ASSUME-MODQN-REP-024
+    value:
+      mode: hobs-dpc-sidecar
+      inactive_beam_policy: zero-w
+      # DPC sidecar parameters (HOBS-inspired, extension not in MODQN paper)
+      dpc_initial_power_w: 1.0
+      dpc_step_size_w: 0.1
+      dpc_p_min_w: 0.1
+      dpc_p_beam_max_w: 2.0
+      dpc_p_sat_max_w: null
+      dpc_qos_thr_bps: 0.0
+      dpc_epsilon_p_w: 1.0e-9
+      units: linear-w
+      provenance: >
+        Route B DPC sidecar denominator gate. HOBS-inspired dynamic power
+        control: each active beam's power oscillates by step_size_w per step,
+        with direction reversed when per-beam EE decreases. Not a HOBS
+        optimizer reproduction. Not paper-backed for MODQN. Used only to
+        demonstrate that denominator can vary under a non-learned policy.

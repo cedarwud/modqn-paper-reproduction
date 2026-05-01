@@ -1,0 +1,38 @@
+config_role: resolved-run-follow-on
+inherits_from: catfish-modqn-phase-07d-r2-guarded-primary-shaping-off.resolved.yaml
+
+track:
+  label: catfish-modqn-phase-07d-modqn-control
+  method_family: MODQN-control
+  status: bounded-pilot-comparator
+  purpose: >
+    Phase 07D matched MODQN control with Catfish disabled.
+
+training_experiment:
+  experiment_id: P07D-MODQN-CONTROL
+  method_family: MODQN-control
+  phase_07d_r2_guarded_robustness:
+    enabled: false
+    variant: modqn-control
+    ablation: modqn-control
+    comparison_role: matched-modqn-control
+    gamma:
+      catfish_discount_factor: 0.9
+    replay:
+      lineage_tracking:
+        enabled: false
+    intervention:
+      enabled: false
+      source_mode: disabled
+      main_ratio: 1.00
+      catfish_ratio: 0.00
+      min_catfish_replay_size: 0
+    r2_handover_guard:
+      enabled: false
+      admission_guard_enabled: false
+      intervention_guard_enabled: false
+      strict_no_handover_sample_guard: false
+      handover_spike_skip:
+        enabled: false
+    challenger:
+      enabled: false

@@ -1,0 +1,57 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: hobs-dpc-denominator-check
+  label: hobs-dpc-denominator-check-control
+  method_family: MODQN-control
+  status: tiny-matched-pilot-control
+  purpose: >
+    Route D tiny matched denominator-check pilot — CONTROL arm.
+    Throughput r1 + HOBS-inspired DPC sidecar.
+    Same power surface, seeds, episodes, eval schedule as candidate.
+    5-episode budget only. No large training.
+    Primary question: does learned greedy eval have denominator_varies_in_eval=true?
+
+    Matched pair: hobs-dpc-denominator-check-candidate.resolved.yaml
+    Difference: r1_reward_mode only (throughput vs hobs-active-tx-ee)
+
+    Do not claim EE-MODQN effectiveness.
+    Do not claim old Phase 03 failures are overturned.
+    Do not claim DPC is MODQN-paper-backed.
+    Frozen baseline unchanged. Catfish out of scope.
+
+baseline:
+  episodes: 5
+
+training_experiment:
+  kind: hobs-active-tx-ee-modqn-feasibility
+  experiment_id: HOBS-DPC-DENOMINATOR-CHECK-CONTROL
+  method_family: MODQN-control
+  phase: hobs-dpc-denominator-check
+  hobs_active_tx_ee_feasibility:
+    enabled: true
+    r1_reward_mode: throughput
+    r1_label: throughput (matched control for DPC denominator check)
+    r1_provenance: >
+      Standard MODQN throughput r1. Matched control for the DPC denominator
+      check candidate. Same DPC power surface, seeds, episodes, eval schedule.
+    comparison_role: matched-control
+
+resolved_assumptions:
+  hobs_power_surface:
+    assumption_id: ASSUME-MODQN-REP-024
+    value:
+      mode: hobs-dpc-sidecar
+      inactive_beam_policy: zero-w
+      dpc_initial_power_w: 1.0
+      dpc_step_size_w: 0.1
+      dpc_p_min_w: 0.1
+      dpc_p_beam_max_w: 2.0
+      dpc_p_sat_max_w: null
+      dpc_qos_thr_bps: 0.0
+      dpc_epsilon_p_w: 1.0e-9
+      units: linear-w
+      provenance: >
+        HOBS-inspired DPC sidecar. Same parameters as candidate.
+        Not paper-backed for MODQN. Not a HOBS optimizer reproduction.

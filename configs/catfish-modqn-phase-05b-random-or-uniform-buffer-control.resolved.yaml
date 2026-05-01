@@ -1,0 +1,29 @@
+config_role: resolved-run-follow-on
+inherits_from: catfish-modqn-phase-05b-primary-multi-catfish-shaping-off.resolved.yaml
+
+track:
+  phase: phase-05b
+  label: catfish-modqn-phase-05b-random-or-uniform-buffer-control
+  method_family: Multi-Catfish-MODQN
+  status: bounded-pilot-random-control
+  purpose: >
+    Phase 05B random/uniform equal-budget buffer control. It preserves the same
+    total Catfish share, per-buffer replay injection counts, seeds, evaluation
+    cadence, and checkpoint rules, but removes objective-based admission.
+
+training_experiment:
+  experiment_id: P05B-RANDOM-OR-UNIFORM-BUFFER-CONTROL
+  method_family: Multi-Catfish-MODQN
+  phase_05b_multi_catfish:
+    variant: random-or-uniform-buffer-control
+    ablation: random-or-uniform-buffer-control
+    comparison_role: random-or-uniform-buffer-control
+    replay:
+      partition_mode: random-uniform-buffer-control
+      objective_admission:
+        rule: random-uniform-buffer-control
+        tie_policy: not-applicable
+        random_control:
+          admission_probability_per_buffer: 0.15
+    specialists:
+      mode: three-specialists

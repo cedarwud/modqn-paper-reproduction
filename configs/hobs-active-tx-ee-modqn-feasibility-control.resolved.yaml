@@ -1,0 +1,64 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: hobs-active-tx-ee-modqn-feasibility
+  label: hobs-active-tx-ee-integration-gate-control
+  method_family: MODQN-control
+  status: feasibility-gate-matched-control
+  purpose: >
+    Matched control for the HOBS-style active-TX EE r1 integration feasibility
+    gate. Uses throughput r1 with the SAME active-load-concave power surface,
+    seeds, episodes, and objective weights as the candidate config.
+    This is the CONTROL for isolating the r1 effect in a matched pilot design.
+
+    Design gate note (2026-05-01):
+    Mathematical analysis shows that under active-load-concave + SNR-only
+    channel, hobs-active-tx-ee == per-user-ee-credit numerically. This is
+    because all beams of a satellite share the same SNR (no per-beam
+    interference), and the active-TX EE formula reduces to bw*log2(1+SNR)/P_b
+    — identical to the Phase 03 per-user EE credit. Phase 03B already showed
+    that this setup produces denominator_varies_in_eval=false under greedy eval.
+    Therefore Route D (tiny pilot) with this power surface is predicted to
+    reproduce Phase 03 collapse.
+
+    For a meaningful D gate, Route A (SINR interference) must be implemented
+    first to break the numerical equivalence and create genuine per-beam
+    differentiation. This control config is retained for the future A+D
+    matched pilot design.
+
+    Catfish is out of scope. Frozen baseline must remain unchanged.
+
+baseline:
+  episodes: 5
+
+training_experiment:
+  kind: hobs-active-tx-ee-modqn-feasibility
+  experiment_id: HOBS-ACTIVE-TX-EE-FEASIBILITY-GATE-CONTROL
+  method_family: MODQN-control
+  phase: hobs-active-tx-ee-modqn-feasibility
+  hobs_active_tx_ee_feasibility:
+    enabled: true
+    r1_reward_mode: throughput
+    r1_label: throughput (matched control for active-TX EE feasibility gate)
+    r1_provenance: >
+      Standard MODQN throughput reward. Matched control for the
+      hobs-active-tx-ee-modqn-feasibility candidate, using the same
+      active-load-concave power surface, seeds, and objective weights.
+    comparison_role: matched-control
+
+resolved_assumptions:
+  hobs_power_surface:
+    assumption_id: ASSUME-MODQN-REP-024
+    value:
+      mode: active-load-concave
+      inactive_beam_policy: zero-w
+      active_base_power_w: 0.25
+      load_scale_power_w: 0.35
+      load_exponent: 0.5
+      max_power_w: 2.0
+      units: linear-w
+      provenance: >
+        Phase 02B synthesized allocation proxy. Matched to the candidate
+        config to isolate the r1 reward effect from the power surface effect.
+        Not a HOBS-paper-backed power-control optimizer.

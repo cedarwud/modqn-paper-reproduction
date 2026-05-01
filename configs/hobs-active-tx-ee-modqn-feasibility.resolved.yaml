@@ -1,0 +1,63 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: hobs-active-tx-ee-modqn-feasibility
+  label: hobs-active-tx-ee-integration-gate
+  method_family: HOBS-Active-TX-EE-feasibility
+  status: feasibility-gate-only
+  purpose: >
+    HOBS-style active-TX EE r1 integration feasibility gate.
+    Namespace: hobs-active-tx-ee-modqn-feasibility.
+    Wires eta_EE,active-TX = sum_u(R_u^t) / (sum_b z_{s,b}^t p_{s,b}^t + eps)
+    as the r1 reward for opt-in diagnostic evaluation only.
+    This config must not be used to claim EE-MODQN effectiveness,
+    physical energy saving, RA-EE-MODQN, learned association,
+    or any result that overturns the Phase 03 / 03C-C failure record.
+    Old failure conditions remain as guardrails:
+      - denominator_varies_in_eval=false
+      - one-active-beam collapse
+      - active power single-point distribution
+      - throughput-vs-EE correlation near 1
+      - scalar reward alone as success evidence
+    Catfish is out of scope. Frozen baseline must remain unchanged.
+
+baseline:
+  episodes: 5
+
+training_experiment:
+  kind: hobs-active-tx-ee-modqn-feasibility
+  experiment_id: HOBS-ACTIVE-TX-EE-FEASIBILITY-GATE-R1
+  method_family: HOBS-Active-TX-EE-feasibility
+  phase: hobs-active-tx-ee-modqn-feasibility
+  hobs_active_tx_ee_feasibility:
+    enabled: true
+    r1_reward_mode: hobs-active-tx-ee
+    r1_label: HOBS-style active-TX system EE
+    r1_provenance: >
+      eta_EE,active-TX = sum_u(R_u^t) / (sum_b z_{s,b}^t p_{s,b}^t + epsilon_P).
+      Numerator: delivered user throughput from HOBS-style SINR.
+      Denominator: sum of active-beam transmit powers in linear W.
+      Inactive beams contribute zero (enforced by active_beam_mask).
+      epsilon_P = 1e-9 W (numerical stability floor, not physical).
+      Feasibility gate only — not full HOBS-style dynamic power control.
+    comparison_role: feasibility-candidate
+
+resolved_assumptions:
+  hobs_power_surface:
+    assumption_id: ASSUME-MODQN-REP-024
+    value:
+      mode: active-load-concave
+      inactive_beam_policy: zero-w
+      active_base_power_w: 0.25
+      load_scale_power_w: 0.35
+      load_exponent: 0.5
+      max_power_w: 2.0
+      units: linear-w
+      provenance: >
+        Phase 02B synthesized allocation proxy, reused for the HOBS-style
+        active-TX EE feasibility gate. This surface assigns explicit linear-W
+        beam powers driven by beam load, with inactive beams at 0 W. It is not
+        a HOBS-paper-backed power-control optimizer. The feasibility gate checks
+        whether the formula wires cleanly into the reward path; it does not claim
+        that this power surface produces energy-aware learned behavior.

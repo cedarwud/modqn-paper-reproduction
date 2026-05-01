@@ -494,6 +494,7 @@ class MODQNTrainer:
             per_user_beam_ee_credit_bps_per_w=(
                 rw.r1_beam_power_efficiency_credit
             ),
+            hobs_active_tx_ee_bps_per_w=rw.r1_hobs_active_tx_ee,
             config=self.config,
         )
         return np.array(

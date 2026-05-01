@@ -49,6 +49,33 @@ def train_main(argv: list[str] | None = None) -> int:
         "--resume-from", type=str, default=None,
         help="Optional checkpoint file to load before training.",
     )
+    parser.add_argument(
+        "--phase05b-seed-triplet",
+        type=str,
+        default=None,
+        help=(
+            "Phase 05B only: override train/environment/mobility seeds as "
+            "train,environment,mobility for matched bounded triplet runs."
+        ),
+    )
+    parser.add_argument(
+        "--phase07b-seed-triplet",
+        type=str,
+        default=None,
+        help=(
+            "Phase 07B only: override train/environment/mobility seeds as "
+            "train,environment,mobility for matched bounded triplet runs."
+        ),
+    )
+    parser.add_argument(
+        "--phase07d-seed-triplet",
+        type=str,
+        default=None,
+        help=(
+            "Phase 07D only: override train/environment/mobility seeds as "
+            "train,environment,mobility for matched bounded triplet runs."
+        ),
+    )
     args = parser.parse_args(argv)
 
     from .orchestration.train_main import run_train_command

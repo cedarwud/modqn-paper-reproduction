@@ -1,0 +1,62 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: hobs-dpc-denominator-check
+  label: hobs-dpc-denominator-check-candidate
+  method_family: HOBS-Active-TX-EE-DPC-denominator-check
+  status: tiny-matched-pilot-candidate
+  purpose: >
+    Route D tiny matched denominator-check pilot - CANDIDATE arm.
+    HOBS-style active-TX EE r1 + HOBS-inspired DPC sidecar.
+    Same power surface, seeds, episodes, eval schedule as control.
+    5-episode budget only. No large training.
+    Primary question: does learned greedy eval have denominator_varies_in_eval=true?
+
+    Matched pair: hobs-dpc-denominator-check-control.resolved.yaml
+    Difference: r1_reward_mode only (throughput vs hobs-active-tx-ee).
+
+    This is not an effectiveness pilot.
+    Do not claim EE-MODQN effectiveness.
+    Do not claim old Phase 03 failures are overturned.
+    Do not claim DPC is MODQN-paper-backed.
+    Do not claim physical energy saving.
+    Frozen baseline unchanged. Catfish out of scope.
+
+baseline:
+  episodes: 5
+
+training_experiment:
+  kind: hobs-active-tx-ee-modqn-feasibility
+  experiment_id: HOBS-DPC-DENOMINATOR-CHECK-CANDIDATE
+  method_family: HOBS-Active-TX-EE-DPC-denominator-check
+  phase: hobs-dpc-denominator-check
+  hobs_active_tx_ee_feasibility:
+    enabled: true
+    r1_reward_mode: hobs-active-tx-ee
+    r1_label: HOBS-style active-TX system EE (DPC denominator check)
+    r1_provenance: >
+      eta_EE,active-TX = sum_u(R_u^t) /
+      (sum_b z_{s,b}^t p_{s,b}^t + epsilon_P). The DPC sidecar supplies
+      time-varying active-beam transmit powers using the same parameters as
+      the matched control. This pilot checks only learned greedy denominator
+      behavior; it is not an effectiveness claim.
+    comparison_role: matched-candidate
+
+resolved_assumptions:
+  hobs_power_surface:
+    assumption_id: ASSUME-MODQN-REP-024
+    value:
+      mode: hobs-dpc-sidecar
+      inactive_beam_policy: zero-w
+      dpc_initial_power_w: 1.0
+      dpc_step_size_w: 0.1
+      dpc_p_min_w: 0.1
+      dpc_p_beam_max_w: 2.0
+      dpc_p_sat_max_w: null
+      dpc_qos_thr_bps: 0.0
+      dpc_epsilon_p_w: 1.0e-9
+      units: linear-w
+      provenance: >
+        HOBS-inspired DPC sidecar. Same parameters as control.
+        Not paper-backed for MODQN. Not a HOBS optimizer reproduction.

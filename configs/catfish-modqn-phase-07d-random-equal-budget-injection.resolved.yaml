@@ -1,0 +1,36 @@
+config_role: resolved-run-follow-on
+inherits_from: catfish-modqn-phase-07d-r2-guarded-primary-shaping-off.resolved.yaml
+
+track:
+  label: catfish-modqn-phase-07d-random-equal-budget-injection
+  status: bounded-pilot-comparator
+  purpose: >
+    Phase 07D random/equal-budget injection comparator with a matched 0.30
+    injected replay budget from the main replay and no challenger learner.
+
+training_experiment:
+  experiment_id: P07D-RANDOM-EQUAL-BUDGET-INJECTION
+  phase_07d_r2_guarded_robustness:
+    variant: random-equal-budget-injection
+    ablation: random-equal-budget-injection
+    comparison_role: random-equal-budget-injection
+    gamma:
+      catfish_discount_factor: 0.9
+    replay:
+      lineage_tracking:
+        enabled: false
+    intervention:
+      enabled: true
+      source_mode: random-main-replay
+      main_ratio: 0.70
+      catfish_ratio: 0.30
+      min_catfish_replay_size: 0
+    r2_handover_guard:
+      enabled: false
+      admission_guard_enabled: false
+      intervention_guard_enabled: false
+      strict_no_handover_sample_guard: false
+      handover_spike_skip:
+        enabled: false
+    challenger:
+      enabled: false

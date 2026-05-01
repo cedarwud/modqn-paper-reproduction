@@ -1,0 +1,18 @@
+config_role: resolved-run-follow-on
+inherits_from: catfish-modqn-phase-07d-r2-guarded-primary-shaping-off.resolved.yaml
+
+track:
+  label: catfish-modqn-phase-07d-no-asymmetric-gamma
+  status: bounded-pilot-comparator
+  purpose: >
+    Phase 07D no-asymmetric-gamma comparator. It keeps the guarded
+    intervention surface but equalizes main and Catfish discount factors.
+
+training_experiment:
+  experiment_id: P07D-NO-ASYMMETRIC-GAMMA
+  phase_07d_r2_guarded_robustness:
+    variant: no-asymmetric-gamma
+    ablation: no-asymmetric-gamma
+    comparison_role: no-asymmetric-gamma
+    gamma:
+      catfish_discount_factor: 0.9

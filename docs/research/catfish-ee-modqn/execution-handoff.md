@@ -1,7 +1,7 @@
 # Catfish / EE-MODQN Execution Handoff
 
-**Date:** `2026-04-29`
-**Status:** handoff after RA-EE-09 matched replay closeout
+**Date:** `2026-05-01`
+**Status:** handoff after HOBS active-TX EE Route D learned-policy denominator-check block
 **Scope:** planning and execution control for the next Catfish / EE-MODQN research step. This document does not authorize code changes by itself.
 
 ## Current Conclusion
@@ -71,6 +71,28 @@ Catfish. The EE formula remains valid as a metric, but any renewed EE research
 must be opened as a new resource-allocation MDP design gate with a renamed
 method family. See `03d-ee-route-disposition.execution-report.md`.
 
+The post-`03D` HOBS active-TX EE feasibility chain has now also run. It should
+be treated as a new scoped feasibility check, not as a reversal of Phase `03D`.
+
+```text
+HOBS active-TX EE formula / reward wiring: PASS, scoped
+SINR structural audit: PASS, but negligible at current MODQN operating point
+channel-regime / antenna-gain path: BLOCK as a paper-backed MODQN continuation
+HOBS-inspired DPC sidecar denominator gate: PASS
+Route D tiny learned-policy denominator check: BLOCK
+EE-MODQN effectiveness: NOT PROMOTED / BLOCKED
+```
+
+The key update is precise: the denominator can now vary under the opt-in
+HOBS-inspired DPC sidecar, and same-policy throughput-vs-EE ranking can
+separate. The hard stop is now learned beam-selection collapse. In Route `D`,
+both matched control and candidate evaluated all `50` greedy steps with one
+active beam (`all_evaluated_steps_one_active_beam=true`). Candidate scalar
+reward increased only because `r1` was rescored as HOBS active-TX EE; throughput
+metrics were identical under the tiny matched check. Do not scale this route
+with more episodes by default. See
+`hobs-active-tx-ee-modqn-feasibility.execution-report.md`.
+
 The RA-EE follow-on is now also closed at the current evidence boundary:
 
 ```text
@@ -100,11 +122,17 @@ Phases `04` to `06` remain evidence-gated:
    not be mixed into Phase `03` or RA-EE. Phase `04-B` runnable evidence and
    Phase `04C` bounded attribution are complete, but Catfish-MODQN effectiveness
    is not promoted.
-2. Phase `05` must not jump directly to three Catfish agents. `05A`
-   multi-buffer validation may be planned only as a separate bounded design
-   gate.
-3. Phase `06` cannot make final Catfish-EE-MODQN claims until Phases `03` to
-   `05` produce evidence.
+2. Phase `05` must not jump directly to three Catfish agents. Phase `05A`
+   multi-buffer validation is complete and blocks escalation: objective-specific
+   buffers were not meaningfully distinct, so Phase `05B` and full
+   multi-Catfish agents remain blocked. The only allowed continuation is
+   Phase `05R`, a planning / diagnostic-only objective-buffer-redesign gate.
+   Phase `05R` has since passed, Phase `05B` planning passed, and the bounded
+   Phase `05B` pilot has now completed. Runnable evidence passed, but
+   acceptance / effectiveness failed. Phase `05C` closes the current
+   Multi-Catfish route as not promoted.
+3. Phase `06` cannot make final Catfish-EE-MODQN claims. The current evidence
+   has no promoted EE-MODQN route and no promoted Multi-Catfish route.
 
 RA-EE-09 is recorded in `ra-ee-09-completion-design-gate.md` as the design
 history for a concrete fixed-association RB / bandwidth allocation pilot. That
@@ -121,6 +149,61 @@ was `-46.64859074452477`, the predeclared resource-efficiency delta was
 `0.9016412169223311 < 0.95`. RA-EE-09 is therefore an auditable negative result
 for the tested RB / bandwidth candidate, not a promoted resource-allocation
 method.
+
+Phase `07A` read-only recovery gate is complete:
+
+```text
+Phase 07A read-only recovery gate: PASS
+Phase 07B implementation/training from Phase 07A alone: NOT AUTHORIZED
+Direct Phase 05B continuation: BLOCK
+Multi-Catfish promotion: BLOCK
+Phase 06 / Catfish-EE-MODQN: BLOCK
+```
+
+The Phase `05B` failure model is not implementation failure as the primary
+explanation and not simple budget insufficiency / longer training. The strongest
+working explanation is that intervention utility was not proven beyond
+equal-budget controls; replay starvation is an observed confounder and stop
+trigger. The next R&D route is single-Catfish intervention utility / causal
+diagnostics, not Multi-Catfish tuning. See
+`07a-catfish-recovery-gate.execution-report.md`.
+
+Phase `07B` has since completed as a separately authorized bounded
+single-Catfish intervention-utility pilot, and Phase `07C` has recorded the
+post-07B disposition:
+
+```text
+Phase 07B bounded single-Catfish utility evidence: PASS
+Broader Catfish-MODQN effectiveness promotion: NOT PROMOTED
+Multi-Catfish reopening: BLOCKED / DEFERRED
+Phase 06 / Catfish-EE-MODQN: BLOCK
+```
+
+The primary shaping-off single-Catfish branch beat matched MODQN,
+no-intervention, random / equal-budget injection, and replay-only single learner
+under the bounded protocol, but `r2` / handovers worsened and asymmetric gamma
+was not supported as an active mechanism. See
+`07c-catfish-intervention-utility-disposition.execution-report.md` and
+`artifacts/catfish-modqn-phase-07b-bounded-pilot-summary/phase07b_bounded_pilot_summary.json`.
+
+Phase `07D` then completed the r2 / handover-guarded single-Catfish robustness
+pilot:
+
+```text
+Phase 07D bounded implementation / runs / diagnostics: PASS
+Phase 07D acceptance / recovery promotion: FAIL
+Broader Catfish-MODQN effectiveness: NOT PROMOTED
+Multi-Catfish reopening: BLOCKED
+Phase 06 / Catfish-EE-MODQN: BLOCKED
+```
+
+The primary guarded branch still beat matched MODQN, no-intervention,
+random / equal-budget, and replay-only on scalar, but the predeclared
+non-inferiority gate failed versus matched MODQN: `r2_delta=-0.051667 < -0.02`
+and `handover_delta=+10.333333 > +5`. The summary also reports
+`starvation_stop_trigger_absent=false`. See
+`07d-r2-guarded-single-catfish-robustness.execution-report.md` and
+`artifacts/catfish-modqn-phase-07d-r2-guarded-robustness-summary/phase07d_r2_guarded_robustness_summary.json`.
 
 ## Authority Files
 
@@ -142,16 +225,29 @@ Read in this order when taking over the plan:
 14. `docs/research/catfish-ee-modqn/03c-c-power-mdp-pilot.execution-report.md`
 15. `docs/research/catfish-ee-modqn/03d-ee-route-disposition.execution-report.md`
 16. `docs/research/catfish-ee-modqn/04c-single-catfish-ablation-attribution.execution-report.md`
-17. `docs/research/catfish-ee-modqn/ra-ee-02-oracle-power-allocation-audit.execution-report.md`
-18. `docs/research/catfish-ee-modqn/ra-ee-04-bounded-power-allocator-pilot.execution-report.md`
-19. `docs/research/catfish-ee-modqn/ra-ee-05-fixed-association-robustness.execution-report.md`
-20. `docs/research/catfish-ee-modqn/ra-ee-06-association-counterfactual-oracle.execution-report.md`
-21. `docs/research/catfish-ee-modqn/ra-ee-06b-association-proposal-refinement.execution-report.md`
-22. `docs/research/catfish-ee-modqn/ra-ee-07-constrained-power-allocator-distillation.execution-report.md`
-22. `docs/research/catfish-ee-modqn/ra-ee-08-offline-association-reevaluation.execution-report.md`
-23. `docs/research/catfish-ee-modqn/ra-ee-09-completion-design-gate.md`
-24. `docs/research/catfish-ee-modqn/ra-ee-09-fixed-association-rb-bandwidth.execution-report.md`
-25. `docs/ee-report.md`
+17. `docs/research/catfish-ee-modqn/05a-multi-buffer-validation.execution-report.md`
+18. `docs/research/catfish-ee-modqn/05r-objective-buffer-redesign-gate.execution-report.md`
+19. `docs/research/catfish-ee-modqn/prompts/05b-multi-catfish-planning.prompt.md`
+20. `docs/research/catfish-ee-modqn/05b-multi-catfish-planning.execution-report.md`
+21. `docs/research/catfish-ee-modqn/prompts/05b-multi-catfish-implementation-draft.prompt.md`
+22. `docs/research/catfish-ee-modqn/05b-multi-catfish-bounded-pilot.execution-report.md`
+23. `docs/research/catfish-ee-modqn/05c-multi-catfish-route-disposition.execution-report.md`
+24. `docs/research/catfish-ee-modqn/07a-catfish-recovery-gate.execution-report.md`
+25. `docs/research/catfish-ee-modqn/07c-catfish-intervention-utility-disposition.execution-report.md`
+26. `artifacts/catfish-modqn-phase-07b-bounded-pilot-summary/phase07b_bounded_pilot_summary.json`
+27. `docs/research/catfish-ee-modqn/07d-r2-guarded-single-catfish-robustness.execution-report.md`
+28. `artifacts/catfish-modqn-phase-07d-r2-guarded-robustness-summary/phase07d_r2_guarded_robustness_summary.json`
+29. `docs/research/catfish-ee-modqn/ra-ee-02-oracle-power-allocation-audit.execution-report.md`
+30. `docs/research/catfish-ee-modqn/ra-ee-04-bounded-power-allocator-pilot.execution-report.md`
+31. `docs/research/catfish-ee-modqn/ra-ee-05-fixed-association-robustness.execution-report.md`
+32. `docs/research/catfish-ee-modqn/ra-ee-06-association-counterfactual-oracle.execution-report.md`
+33. `docs/research/catfish-ee-modqn/ra-ee-06b-association-proposal-refinement.execution-report.md`
+34. `docs/research/catfish-ee-modqn/ra-ee-07-constrained-power-allocator-distillation.execution-report.md`
+35. `docs/research/catfish-ee-modqn/ra-ee-08-offline-association-reevaluation.execution-report.md`
+36. `docs/research/catfish-ee-modqn/ra-ee-09-completion-design-gate.md`
+37. `docs/research/catfish-ee-modqn/ra-ee-09-fixed-association-rb-bandwidth.execution-report.md`
+38. `docs/research/catfish-ee-modqn/hobs-active-tx-ee-modqn-feasibility.execution-report.md`
+39. `docs/ee-report.md`
 
 Use later phase reviews only as constraints unless the user explicitly asks to plan those phases.
 
@@ -412,6 +508,288 @@ seed / `20` episodes, best-eval rows are effectively tied, primary and
 no-asymmetric-gamma are identical on the final training row, and intervention
 attribution remains weak.
 
+## Phase 05A Scope And Result
+
+Phase `05A` bounded multi-buffer validation is complete:
+
+1. diagnostic report: `docs/research/catfish-ee-modqn/05a-multi-buffer-validation.execution-report.md`,
+2. config: `configs/catfish-modqn-phase-05a-multi-buffer-primary.resolved.yaml`,
+3. artifact: `artifacts/catfish-modqn-phase-05a-multi-buffer-primary-20ep/`.
+
+Result:
+
+```text
+Phase 05A bounded diagnostic completion: PASS
+Objective-specific buffer distinctness: FAIL
+Phase 05B full multi-agent validation planning: BLOCK
+```
+
+Reasons:
+
+1. `r1` high-value replay almost duplicated scalar/high-throughput replay,
+2. `r2` percentile admission degenerated to all samples on the bounded surface,
+3. diagnostics could not prove distinct intervention sample types,
+4. no EE reward/objective or full multi-Catfish agents were introduced.
+
+Do not start `catfish-r1`, `catfish-r2`, or `catfish-r3` learners from this
+buffer construction. Any future Phase `05` work needs a new bounded design gate
+that fixes objective admission/selectivity before full multi-agent validation.
+
+## Phase 05R Result And Phase 05B Boundary
+
+Phase `05R` has completed as an objective-buffer-redesign gate:
+
+```text
+Phase 05R: objective-buffer-redesign gate
+Result: PASS for later Phase 05B planning draft only
+Forbidden result: Multi-Catfish effectiveness claim
+```
+
+Report and artifact:
+
+1. `docs/research/catfish-ee-modqn/05r-objective-buffer-redesign-gate.execution-report.md`,
+2. `artifacts/catfish-modqn-phase-05r-objective-buffer-redesign-gate/phase05r_objective_buffer_redesign_diagnostics.json`.
+
+The `guarded-residual-objective-admission` candidate produced bounded distinct
+buffers:
+
+1. admission shares: `r1 = 0.10`, `r2 = 0.1417`, `r3 = 0.20305`,
+2. pairwise objective-buffer Jaccards stayed low,
+3. scalar-replay duplicate risk was reduced,
+4. fixed `70 main + 10 r1 + 10 r2 + 10 r3` composition improved expected
+   `r1`, `r2`, and `r3` means without significant non-target damage.
+
+This only allows drafting a Phase `05B` plan.
+
+Forbidden:
+
+1. no long training,
+2. no full multi-Catfish agents,
+3. no `catfish-r1`, `catfish-r2`, or `catfish-r3` learners,
+4. no frozen baseline mutation,
+5. no original MODQN reward / state / action / backbone change,
+6. no EE reward, EE objective, EE-MODQN, or Catfish-EE-MODQN claim,
+7. no scalar reward alone as success evidence,
+8. no random tie-breaking to manufacture objective-buffer distinctness.
+
+Phase `05B` planning must still define the bounded pilot, matched comparator,
+critical ablations, diagnostics, acceptance criteria, stop conditions, and
+forbidden claims before any implementation can be authorized.
+
+## Phase 05B Planning Result
+
+Phase `05B` planning is complete:
+
+```text
+Phase 05B planning boundary: PASS
+Future implementation prompt draft: ALLOWED AFTER REVIEW
+Phase 05B implementation now: FORBIDDEN
+Training now: FORBIDDEN
+Artifact generation now: FORBIDDEN
+Full Multi-Catfish agents now: FORBIDDEN
+```
+
+Report:
+
+1. `docs/research/catfish-ee-modqn/05b-multi-catfish-planning.execution-report.md`.
+
+The accepted bounded implementation plan, if later authorized, is:
+
+1. `20` episodes,
+2. `3` matched seed triplets minimum,
+3. evaluation seeds `[100, 200, 300, 400, 500]`,
+4. eval cadence every `5` episodes and final,
+5. total Catfish share fixed at `0.30`,
+6. primary mix `70 main + 10 r1 + 10 r2 + 10 r3`,
+7. guarded-residual admission rules from Phase `05R`,
+8. matched MODQN, single-Catfish, multi-buffer / single-learner, and random /
+   uniform equal-budget controls,
+9. primary run shaping off.
+
+The draft implementation prompt is:
+
+1. `docs/research/catfish-ee-modqn/prompts/05b-multi-catfish-implementation-draft.prompt.md`.
+
+Do not execute that draft unless the user explicitly authorizes Phase `05B`
+implementation / bounded training.
+
+## Phase 05B Bounded Pilot Result
+
+Phase `05B` bounded pilot is complete:
+
+```text
+Phase 05B bounded runnable evidence: PASS
+Phase 05B acceptance / effectiveness: FAIL
+Multi-Catfish-MODQN promotion: BLOCK
+```
+
+Report and summary:
+
+1. `docs/research/catfish-ee-modqn/05b-multi-catfish-bounded-pilot.execution-report.md`,
+2. `artifacts/catfish-modqn-phase-05b-bounded-pilot-summary/phase05b_bounded_pilot_summary.json`.
+
+Completed protocol:
+
+1. `5` comparators × `3` matched seed triplets = `15` runs,
+2. `20` episodes per run,
+3. evaluation seeds `[100, 200, 300, 400, 500]`,
+4. actual Catfish ratio `0.296875`.
+
+Core outcome:
+
+1. single Catfish final mean scalar: `609.209311`,
+2. primary Multi-Catfish final mean scalar: `608.037110`,
+3. multi-buffer / single-learner final mean scalar: `608.293825`,
+4. random / uniform buffer control final mean scalar: `609.128592`,
+5. primary improved `r2` only; `r1` and `r3` did not improve,
+6. no NaN or action collapse was detected,
+7. replay starvation counters were nonzero,
+8. multi-buffer / single-learner and random-buffer controls matched or
+   explained away primary.
+
+Do not continue Phase `05B` by default with longer training, shaping-on
+primary, ratio tuning, or specialist tweaks. Treat this as a bounded negative
+result unless a new explicit design gate is opened.
+
+## Phase 05C Disposition
+
+Phase `05C` read-only route disposition and claim synthesis is complete:
+
+```text
+Phase 05C read-only disposition and claim synthesis: PASS
+Phase 05B runnable evidence: PASS
+Phase 05B effectiveness: FAIL
+Multi-Catfish promotion: FAIL / BLOCK
+Phase 06 / Catfish-EE-MODQN final claim: FAIL / BLOCKED
+```
+
+Report:
+
+1. `docs/research/catfish-ee-modqn/05c-multi-catfish-route-disposition.execution-report.md`.
+
+Default next action is paper-section synthesis only: claim boundary,
+limitations, and negative-results narrative from the current evidence. No new
+run, tuning, implementation, or Phase `06` execution should be opened without a
+new explicit design gate.
+
+## Phase 07A Recovery Gate
+
+Phase `07A` read-only recovery gate is complete:
+
+```text
+Phase 07A read-only recovery gate: PASS
+Phase 07B implementation/training from Phase 07A alone: NOT AUTHORIZED
+Direct Phase 05B continuation: BLOCK
+Multi-Catfish promotion: BLOCK
+Phase 06 / Catfish-EE-MODQN: BLOCK
+```
+
+Report:
+
+1. `docs/research/catfish-ee-modqn/07a-catfish-recovery-gate.execution-report.md`.
+
+The gate preserves the Phase `05C` negative boundary and narrows any future
+recovery route. Current evidence does not support implementation failure as the
+primary explanation and does not justify simple budget insufficiency / longer
+training. The strongest working explanation is that intervention utility was
+not proven beyond equal-budget controls. Replay starvation is an observed
+confounder and stop trigger.
+
+Future Phase `07B`, if separately authorized, must be single-Catfish-first and
+must compare against no-intervention, random/equal-budget replay injection,
+replay-only single learner, no-asymmetric-gamma, and matched MODQN control.
+
+Future Phase `07B` must keep original MODQN reward semantics:
+
+1. `r1 = throughput`,
+2. `r2 = handover penalty`,
+3. `r3 = load balance`,
+4. no EE,
+5. no Catfish-EE,
+6. no frozen baseline mutation,
+7. primary shaping-off,
+8. scalar reward is not enough.
+
+## Phase 07B / 07C Single-Catfish Utility Disposition
+
+Phase `07B` bounded pilot is complete:
+
+```text
+Phase 07B bounded implementation / diagnostics / pilot: PASS
+Bounded single-Catfish intervention utility evidence: PASS
+Broader Catfish-MODQN effectiveness promotion: NOT PROMOTED
+Multi-Catfish reopening: BLOCKED / DEFERRED
+Phase 06 / Catfish-EE-MODQN: BLOCKED
+```
+
+Report and summary:
+
+1. `docs/research/catfish-ee-modqn/07c-catfish-intervention-utility-disposition.execution-report.md`,
+2. `artifacts/catfish-modqn-phase-07b-bounded-pilot-summary/phase07b_bounded_pilot_summary.json`.
+
+Completed protocol:
+
+1. `18 / 18` mandatory bounded runs completed,
+2. `20` episodes per run,
+3. `3` matched seed triplets,
+4. evaluation seeds `[100, 200, 300, 400, 500]`,
+5. actual primary injected ratio `0.296875`,
+6. no NaN, action collapse, or starvation stop trigger.
+
+Core outcome:
+
+1. primary shaping-off single Catfish final mean scalar: `609.209311`,
+2. matched MODQN control: `608.359098`,
+3. no-intervention: `608.294631`,
+4. random / equal-budget injection: `608.683775`,
+5. replay-only single learner: `608.486224`,
+6. primary improved `r1` and `r3` versus key controls,
+7. primary worsened `r2` / handovers,
+8. primary and no-asymmetric-gamma were identical on aggregate metrics.
+
+Use this as bounded single-Catfish intervention utility evidence only. Do not
+promote broader Catfish-MODQN effectiveness. Do not claim asymmetric gamma as
+the supported active mechanism. Do not claim handover / `r2` improvement.
+
+At Phase `07C`, the next valid gate was Phase `07D` r2-guarded
+single-Catfish robustness planning. Phase `07D` has now run and failed its
+acceptance gate, so it must not reopen Multi-Catfish or Phase `06`.
+
+## Phase 07D R2-Guarded Robustness Result
+
+Phase `07D` bounded pilot is complete:
+
+```text
+Phase 07D bounded implementation / runs / diagnostics: PASS
+Phase 07D acceptance / recovery promotion: FAIL
+Broader Catfish-MODQN effectiveness: NOT PROMOTED
+Multi-Catfish reopening: BLOCKED
+Phase 06 / Catfish-EE-MODQN: BLOCKED
+```
+
+Report and summary:
+
+1. `docs/research/catfish-ee-modqn/07d-r2-guarded-single-catfish-robustness.execution-report.md`,
+2. `artifacts/catfish-modqn-phase-07d-r2-guarded-robustness-summary/phase07d_r2_guarded_robustness_summary.json`.
+
+Core outcome:
+
+1. required roles complete: `9` roles x `3` matched seed triplets = `27` runs,
+2. primary guarded final mean scalar: `608.988400`,
+3. primary scalar deltas remained positive versus matched MODQN
+   (`+0.629302`), no-intervention (`+0.693769`), random / equal-budget
+   (`+0.304625`), and replay-only (`+0.382683`),
+4. r2 / handover non-inferiority failed versus matched MODQN:
+   `r2_delta=-0.051667 < -0.02` and `handover_delta=+10.333333 > +5`,
+5. summary reports `starvation_stop_trigger_absent=false`,
+6. no EE / RA-EE / Catfish-EE / Phase `06` claim was made,
+7. no Multi-Catfish reopening was performed.
+
+Treat Phase `07D` as a bounded negative result for Catfish recovery promotion.
+Phase `07B` remains bounded intervention utility evidence only. Do not continue
+guard tuning by default; default next action is paper synthesis /
+claim-boundary writing.
+
 Stop if implementation requires changing the original reward, state, action, or
 backbone; if shaping is needed for the primary result; if catfish replay
 starves; if intervention does not affect main updates; if Q / loss instability
@@ -424,7 +802,7 @@ Do not:
 
 1. claim EE-MODQN effectiveness from the bounded Phase `03` pilot,
 2. start Catfish-MODQN while interpreting Phase `03`,
-3. create three Catfish agents,
+3. create three Catfish agents or objective-specialist learners,
 4. compare final Catfish-EE-MODQN directly against original MODQN as the sole proof,
 5. claim full paper-faithful reproduction,
 6. use scalar reward alone as the comparison result,
@@ -438,20 +816,60 @@ Do not:
 14. claim learned association, hierarchical RL, joint association + power training, or full RA-EE-MODQN,
 15. claim HOBS optimizer behavior or physical energy saving,
 16. claim RB / bandwidth allocation effectiveness from RA-EE-09,
-17. continue tuning the tested RA-EE-09 bounded QoS-slack allocator by default.
+17. continue tuning the tested RA-EE-09 bounded QoS-slack allocator by default,
+18. treat Phase `05R` as Phase `05B`,
+19. use Phase `05A` diagnostic completion as evidence that full multi-Catfish is ready,
+20. use Phase `05R` PASS as permission to implement Phase `05B`,
+21. use Phase `05B` planning PASS as permission to implement Phase `05B`,
+22. claim Multi-Catfish effectiveness from the bounded Phase `05B` pilot,
+23. continue Phase `05B` with longer training by default after the failed
+    acceptance gate,
+24. start Phase `06` validation from the current evidence,
+25. attach Catfish as an EE repair mechanism after the Phase `05C` closeout,
+26. treat Phase `07A` as authorization to implement or train Phase `07B`,
+27. create a Phase `07B` implementation prompt without separate authorization,
+28. continue Phase `05B` directly instead of opening single-Catfish causal
+    diagnostics,
+29. treat Phase `07B` as broad Catfish-MODQN effectiveness,
+30. claim asymmetric gamma as the supported active Phase `07B` mechanism,
+31. claim handover / `r2` improvement from Phase `07B`,
+32. reopen Multi-Catfish or Phase `06` from Phase `07B` alone,
+33. claim Phase `07D` recovered broader Catfish-MODQN effectiveness,
+34. continue Phase `07D` guard tuning by default after the failed
+    non-inferiority gate,
+35. use Phase `07D` scalar gains to override the r2 / handover failure,
+36. claim HOBS active-TX EE Route `D` recovered EE-MODQN effectiveness,
+37. treat DPC denominator variability alone as energy-aware learning,
+38. treat Route `D` scalar reward gain as success evidence,
+39. scale Route `D` training before the one-active-beam collapse is addressed,
+40. use Catfish or Multi-Catfish as the immediate repair for the HOBS active-TX
+    EE one-beam-collapse blocker.
 
 ## Recommended Next Prompt
 
-Default next action is report / paper-section synthesis, not more RA-EE
-implementation. The paper synthesis should preserve the scoped simulated-EE
-claim above and keep Catfish as future work unless the user explicitly opens
-Phase `04`. Use
+Default next research action is paper-section synthesis / claim-boundary
+writing. Treat Phase `05B` as a bounded Multi-Catfish negative result, Phase
+`07B` as bounded single-Catfish intervention utility evidence, Phase `07D` as a
+bounded negative result for recovery promotion, RA-EE-09 as a negative tested
+RB / bandwidth result, and HOBS active-TX EE Route `D` as a formula / DPC
+denominator feasibility pass but learned-policy block.
+
+If the explicit goal is to continue EE-MODQN, the next prompt must be a new
+anti-collapse / capacity / assignment design gate. It must not ask for more
+Route `D` training, Catfish repair, reward retuning, or Phase `03C`
+continuation. The design gate must first specify how one-active-beam collapse
+will be prevented, penalized, or made infeasible under learned greedy
+evaluation.
+
+Do not use `prompts/05-multi-catfish-modqn-validation.prompt.md` to authorize
+full multi-agent implementation from the current Phase `05A` / `05R` evidence.
+Do not use `prompts/04-single-catfish-modqn-feasibility.prompt.md` for EE
+repair, RA-EE continuation, Multi-Catfish escalation, or Catfish-EE validation.
+Do not create a Multi-Catfish or Phase `06` implementation prompt from Phase
+`07B` evidence alone.
+
+For RA-EE synthesis, use
 `ra-ee-09-fixed-association-rb-bandwidth.execution-report.md` as the RA-EE-09
 result authority and `ra-ee-09-completion-design-gate.md` as design history.
 Any new RB / bandwidth design must be opened as a new explicit gate with a new
 claim boundary; do not tune the failed RA-EE-09 candidate in place.
-
-Use `prompts/04-single-catfish-modqn-feasibility.prompt.md` only if the task
-explicitly switches to Phase `04` Catfish feasibility under the original MODQN
-reward. Do not use the Phase `04` prompt for EE repair, RA-EE continuation, or
-Catfish-EE validation.

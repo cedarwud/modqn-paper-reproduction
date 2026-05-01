@@ -1,0 +1,48 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: hobs-sinr-channel-regime-audit
+  label: route-a2-channel-regime-audit
+  method_family: HOBS-SINR-channel-audit
+  status: route-a2-audit-only
+  purpose: >
+    Route A2: Channel-regime audit to determine whether any paper-defensible
+    or sensitivity-defensible parameter set makes intra-satellite SINR
+    interference observable (I_intra/N0 >= 0.1).
+
+    This config exists for documentation and config-loading tests only.
+    No training is run from this config. The channel-regime sweep is
+    executed analytically in hobs_sinr_channel_regime_audit.py, not
+    through environment steps.
+
+    Key finding documented here:
+    - MODQN paper exact (2W, 20GHz, 500MHz, 780km): I/N0 = 1.06e-5 (negligible)
+    - S10 per-beam 10W: I/N0 = 5.3e-5 (still negligible)
+    - Adding 40dBi antenna gain (model extension, not MODQN paper): I/N0 = 0.106 (just observable)
+    - Interference observable threshold requires 38.5 dBi antenna gain
+    - MODQN paper has no antenna gain term — adding it is a model extension
+    - Path 1 (channel regime): BLOCK
+    - Path 2 (DPC sidecar): PASS — recommended next gate
+
+    Catfish is out of scope. Frozen baseline unchanged.
+    No EE-MODQN effectiveness claim.
+
+resolved_assumptions:
+  hobs_power_surface:
+    assumption_id: ASSUME-MODQN-REP-024
+    value:
+      mode: active-load-concave
+      inactive_beam_policy: zero-w
+      active_base_power_w: 0.25
+      load_scale_power_w: 0.35
+      load_exponent: 0.5
+      max_power_w: 2.0
+      units: linear-w
+      sinr_intra_satellite_interference: false
+      provenance: >
+        Route A2 audit config. Uses active-load-concave to allow per-beam
+        power variation. SINR interference disabled because the channel
+        regime audit shows interference is negligible at this operating
+        point — enabling it would add numerical complexity without
+        meaningful differentiation.

@@ -1,0 +1,102 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: phase-05b
+  label: catfish-modqn-phase-05b-primary-multi-catfish-shaping-off
+  method_family: Multi-Catfish-MODQN
+  status: bounded-pilot-primary
+  purpose: >
+    Phase 05B primary Multi-Catfish-MODQN bounded pilot using only Phase 05R
+    guarded-residual objective admission, complete threshold ties, shaping off,
+    and total Catfish share 0.30.
+
+baseline:
+  episodes: 20
+  batch_size: 64
+
+resolved_assumptions:
+  target_update_cadence:
+    value:
+      target_update_every_episodes: 5
+  phase_05b_multi_catfish_local_assumptions:
+    assumption_id: LOCAL-CATFISH-MODQN-P05B-001
+    value:
+      fixed_phase_05b_reward:
+        r1: throughput
+        r2: handover penalty
+        r3: load balance
+      eval_cadence_every_episodes: 5
+      eval_seed_set: [100, 200, 300, 400, 500]
+      bounded_run_budget_episodes: 20
+      seed_triplets:
+        - [42, 1337, 7]
+        - [43, 1338, 8]
+        - [44, 1339, 9]
+      catfish_total_share: 0.30
+      primary_mix: "70 main + 10 r1 + 10 r2 + 10 r3"
+      admission_rule: guarded-residual-objective-admission
+      tie_policy: complete-threshold-ties
+      claim_boundary:
+        ee_or_catfish_ee: forbidden
+        full_paper_faithful_reproduction: forbidden
+
+training_experiment:
+  kind: phase-05-b-multi-catfish-bounded-pilot
+  experiment_id: P05B-PRIMARY-MULTI-CATFISH-SHAPING-OFF
+  method_family: Multi-Catfish-MODQN
+  phase: phase-05b
+  phase_05b_multi_catfish:
+    enabled: true
+    variant: primary-multi-catfish-shaping-off
+    ablation: none
+    comparison_role: primary-multi-catfish-shaping-off
+    r1_reward_mode: throughput
+    r1_label: throughput
+    r1_provenance: paper-backed original MODQN throughput objective
+    seed_triplets:
+      - [42, 1337, 7]
+      - [43, 1338, 8]
+      - [44, 1339, 9]
+    reward_surface:
+      r1: throughput
+      r2: handover penalty
+      r3: load balance
+    gamma:
+      main_discount_factor: 0.9
+      catfish_discount_factor: 0.99
+    replay:
+      main_partition: baseline-complete
+      partition_mode: guarded-residual-objective-admission
+      catfish_capacity: 50000
+      quality_score:
+        expression: "quality = 0.5*r1 + 0.3*r2 + 0.2*r3"
+        weights: {r1: 0.5, r2: 0.3, r3: 0.2}
+      threshold:
+        mode: quantile
+        quantile: 0.80
+        fixed_threshold: null
+        window: 1000
+      objective_admission:
+        rule: guarded-residual-objective-admission
+        tie_policy: complete-threshold-ties
+        thresholds:
+          r1_threshold: 131.66555786132812
+          r1_r3_guardrail: -2.155817623138428
+          r2_best_value: 0.0
+          r3_threshold: -1.4955613708496094
+          r3_r1_guardrail: 96.77507400512695
+    warmup:
+      trigger: main-replay-size
+      main_replay_size: 256
+    intervention:
+      enabled: true
+      period_updates: 1
+      main_ratio: 0.70
+      total_catfish_ratio: 0.30
+      buffer_ratios: {r1: 0.10, r2: 0.10, r3: 0.10}
+      min_catfish_replay_size: 6
+    specialists:
+      mode: three-specialists
+    competitive_shaping:
+      enabled: false

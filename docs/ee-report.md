@@ -1,5 +1,131 @@
 # `modqn-paper-reproduction` EE 路線下一步評估報告
 
+## 2026-05-01 HOBS active-TX EE / DPC feasibility update
+
+本節同步最新的 HOBS active-TX EE objective-substitution feasibility chain。
+它不是 RA-EE，也不是 Catfish，也不是 full EE-MODQN effectiveness claim。
+
+最新結論是：
+
+```text
+HOBS active-TX EE formula / reward wiring: PASS, scoped
+SINR structural audit: PASS, but negligible at current MODQN operating point
+channel-regime / antenna-gain path: BLOCK as paper-backed MODQN continuation
+HOBS-inspired DPC sidecar denominator gate: PASS
+tiny learned-policy Route D denominator check: BLOCK
+EE-MODQN effectiveness: NOT PROMOTED / BLOCKED
+```
+
+### Formula Boundary
+
+目前最安全的主指標是 active-beam transmit-power EE，而不是 total spacecraft
+EE：
+
+```text
+r1_hobs_active_tx_ee(t)
+  = sum_u R_u(t) / (sum_active_beams z_b(t) * p_b(t) + epsilon)
+```
+
+其中 `R_u(t)` 是 simulator 內的 user throughput，`z_b(t)` 是 active-beam
+indicator，`p_b(t)` 是 active beam 的 transmit power in linear W。Inactive
+beam 必須貢獻 `0 W`。這個 metric 可以稱為 transmission-side EE / active-TX
+EE，不可寫成 physical spacecraft energy saving。
+
+Composite denominator、circuit/static/processing overhead、handover-aware EE、
+utility-form EE 都只能當 sensitivity / ablation，除非後續有新的
+LEO-specific parameter evidence 和明確 assumption disclosure。
+
+### What Passed
+
+HOBS active-TX EE 公式可以乾淨接進 MODQN：
+
+1. `active_beam_mask`、`beam_transmit_power_w`、`total_active_beam_power_w`
+   與 throughput 都已在 reward-computation 時可用。
+2. `hobs-active-tx-ee` 是 opt-in reward mode，baseline default 仍是
+   `r1=throughput`。
+3. Formula wiring 不需要改 frozen baseline。
+4. HOBS-inspired DPC sidecar 可以讓 denominator 在 eval 中變動；Route `B`
+   的 denominator gate 有 `denominator_varies_in_eval=true`、
+   `active_power_single_point_distribution=false`、`power_control_activity_rate=1.0`
+   與 zero power-guardrail violations。
+
+這表示先前最擔心的「EE 分母只能是常數」已經被縮小：在 opt-in DPC surface
+下，分母可以變動。
+
+### What Still Failed
+
+Route `D` 的 tiny matched learned-policy denominator check 仍是 **BLOCK**。
+Matched boundary 是 PASS：control / candidate 使用相同 DPC sidecar、相同
+seeds `100, 200, 300, 400, 500`、相同 `5` episodes、相同 evaluation
+schedule、相同 checkpoint rule、相同 environment / weights / hyperparameters；
+唯一差異是：
+
+```text
+control:   r1 = throughput
+candidate: r1 = hobs-active-tx-ee
+```
+
+Candidate learned greedy eval 的關鍵結果：
+
+```text
+denominator_varies_in_eval: true
+all_evaluated_steps_one_active_beam: true
+active_beam_count_distribution: {"1.0": 50}
+active_power_single_point_distribution: false
+throughput_vs_ee_pearson: 0.19303453314619476
+same-policy throughput-vs-EE rescore ranking change: true
+served_ratio: 1.0
+handover_count: 423
+```
+
+所以最新狀態不是「分母固定導致 EE 沒意義」。新的 blocker 是：即使 DPC 讓
+分母變動、且 throughput-vs-EE ranking 可以分離，learned MODQN beam-selection
+policy 仍然在所有 evaluated steps collapse 到 one active beam。
+
+### Decision
+
+HOBS active-TX EE 公式本身與 MODQN wiring 是可行的。DPC sidecar 也證明分母
+可以變動。但目前不能 claim EE-MODQN effectiveness，因為 learned policy 仍然
+觸發 one-active-beam collapse hard stop。
+
+下一步若繼續 EE-MODQN，不應該直接加長 Route `D` training，也不應該用 Catfish
+當 repair。需要先另開 anti-collapse / capacity / assignment design gate，明確
+處理 learned greedy policy 為什麼不能或不該把所有 users 壓到同一個 active
+beam。可能方向包括 capacity-aware action masking、active-beam diversity /
+load-spread constraints、overload penalty、centralized assignment constraint，
+或重新命名的新 resource-allocation MDP。
+
+### Allowed Claims
+
+目前可說：
+
+1. HOBS active-TX EE 可以作為 opt-in MODQN reward / metric 被計算。
+2. DPC sidecar 可以讓 active transmit-power denominator 變動。
+3. Route `D` 顯示 denominator variability 與 throughput-vs-EE ranking separation
+   可以同時出現。
+4. Route `D` 也顯示 learned policy 仍 one-active-beam collapse，因此 current
+   EE-MODQN effectiveness 未成立。
+
+### Forbidden Claims
+
+不可 claim：
+
+1. EE-MODQN effectiveness,
+2. Phase `03D` failure 已被推翻,
+3. physical spacecraft energy saving,
+4. HOBS optimizer reproduction,
+5. DPC 是 MODQN paper-backed,
+6. Catfish / Multi-Catfish / Catfish-EE effectiveness,
+7. scalar reward as success evidence,
+8. denominator variability alone proves energy-aware learning,
+9. more Route `D` training is the default next gate.
+
+Authority report:
+
+```text
+docs/research/catfish-ee-modqn/hobs-active-tx-ee-modqn-feasibility.execution-report.md
+```
+
 ## 2026-04-29 RA-EE closeout report section
 
 本節是 RA-EE-02 到 RA-EE-09 後的正式 closeout。後續 agent 應沿用這個

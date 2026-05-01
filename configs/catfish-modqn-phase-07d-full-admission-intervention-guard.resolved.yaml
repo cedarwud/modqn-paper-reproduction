@@ -1,0 +1,23 @@
+config_role: resolved-run-follow-on
+inherits_from: catfish-modqn-phase-07d-r2-guarded-primary-shaping-off.resolved.yaml
+
+track:
+  label: catfish-modqn-phase-07d-full-admission-intervention-guard
+  status: bounded-pilot-ablation
+  purpose: >
+    Phase 07D full guard ablation. It applies both r2 admission and
+    intervention batch-composition guards under the original MODQN reward.
+
+training_experiment:
+  experiment_id: P07D-FULL-ADMISSION-INTERVENTION-GUARD
+  phase_07d_r2_guarded_robustness:
+    variant: full-admission-intervention-guard
+    ablation: full-admission-intervention-guard
+    comparison_role: full-admission-intervention-guard
+    r2_handover_guard:
+      enabled: true
+      admission_guard_enabled: true
+      intervention_guard_enabled: true
+      strict_no_handover_sample_guard: false
+      handover_spike_skip:
+        enabled: true
