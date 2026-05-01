@@ -313,11 +313,14 @@ Use these local sources before proposing changes:
 38. `docs/research/catfish-ee-modqn/ra-ee-09-fixed-association-rb-bandwidth.execution-report.md`
 39. `docs/research/catfish-ee-modqn/prompts/ra-ee-09-completion-design-gate.prompt.md`
 40. `docs/research/catfish-ee-modqn/hobs-active-tx-ee-modqn-feasibility.execution-report.md`
-41. `docs/research/catfish-ee-modqn/energy-efficient/README.md`
-42. `docs/research/catfish-ee-modqn/energy-efficient/ee-formula-final-review-with-codex-2026-05-01.md`
-43. `docs/research/catfish-ee-modqn/energy-efficient/modqn-r1-to-hobs-active-tx-ee-design-2026-05-01.md`
-44. `docs/research/catfish-ee-modqn/repository-curation-2026-05-01.md`
-45. `docs/ee-report.md`
+41. `docs/research/catfish-ee-modqn/ee-modqn-anti-collapse-controller-plan-2026-05-01.md`
+42. `docs/research/catfish-ee-modqn/prompts/ee-modqn-anti-collapse-controller.prompt.md`
+43. `docs/research/catfish-ee-modqn/prompts/ee-modqn-anti-collapse-worker.prompt.md`
+44. `docs/research/catfish-ee-modqn/energy-efficient/README.md`
+45. `docs/research/catfish-ee-modqn/energy-efficient/ee-formula-final-review-with-codex-2026-05-01.md`
+46. `docs/research/catfish-ee-modqn/energy-efficient/modqn-r1-to-hobs-active-tx-ee-design-2026-05-01.md`
+47. `docs/research/catfish-ee-modqn/repository-curation-2026-05-01.md`
+48. `docs/ee-report.md`
 
 ## Common Claim Rules
 
