@@ -124,6 +124,8 @@ Authority report:
 
 ```text
 docs/research/catfish-ee-modqn/hobs-active-tx-ee-modqn-feasibility.execution-report.md
+docs/research/catfish-ee-modqn/energy-efficient/ee-formula-final-review-with-codex-2026-05-01.md
+docs/research/catfish-ee-modqn/energy-efficient/modqn-r1-to-hobs-active-tx-ee-design-2026-05-01.md
 ```
 
 ## 2026-04-29 RA-EE closeout report section

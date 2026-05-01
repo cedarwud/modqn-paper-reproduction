@@ -247,7 +247,11 @@ Read in this order when taking over the plan:
 36. `docs/research/catfish-ee-modqn/ra-ee-09-completion-design-gate.md`
 37. `docs/research/catfish-ee-modqn/ra-ee-09-fixed-association-rb-bandwidth.execution-report.md`
 38. `docs/research/catfish-ee-modqn/hobs-active-tx-ee-modqn-feasibility.execution-report.md`
-39. `docs/ee-report.md`
+39. `docs/research/catfish-ee-modqn/energy-efficient/README.md`
+40. `docs/research/catfish-ee-modqn/energy-efficient/ee-formula-final-review-with-codex-2026-05-01.md`
+41. `docs/research/catfish-ee-modqn/energy-efficient/modqn-r1-to-hobs-active-tx-ee-design-2026-05-01.md`
+42. `docs/research/catfish-ee-modqn/repository-curation-2026-05-01.md`
+43. `docs/ee-report.md`
 
 Use later phase reviews only as constraints unless the user explicitly asks to plan those phases.
 
