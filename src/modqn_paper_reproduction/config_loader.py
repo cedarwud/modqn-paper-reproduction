@@ -18,16 +18,29 @@ import yaml
 from .env.orbit import OrbitConfig
 from .env.beam import BeamConfig
 from .env.channel import AtmosphericSignMode, ChannelConfig
-from .env.step import PowerSurfaceConfig, StepConfig, StepEnvironment
+from .env.step import (
+    HOBS_POWER_SURFACE_NON_CODEBOOK_CONTINUOUS_POWER,
+    PowerSurfaceConfig,
+    StepConfig,
+    StepEnvironment,
+)
 from .runtime.trainer_spec import TrainerConfig
 from .runtime.trainer_spec import (
+    HOBS_ACTIVE_TX_EE_ANTI_COLLAPSE_KIND,
     HOBS_ACTIVE_TX_EE_MODQN_FEASIBILITY_KIND,
+    HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_BOUNDED_PILOT_KIND,
+    HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_IMPLEMENTATION_READINESS_KIND,
+    HOBS_ACTIVE_TX_EE_QOS_STICKY_BROADER_EFFECTIVENESS_KIND,
     PHASE_04_B_SINGLE_CATFISH_KIND,
     PHASE_05_B_MULTI_CATFISH_KIND,
     PHASE_07_B_SINGLE_CATFISH_UTILITY_KIND,
     PHASE_07_D_R2_GUARDED_ROBUSTNESS_KIND,
     R1_REWARD_MODE_HOBS_ACTIVE_TX_EE,
     R1_REWARD_MODE_THROUGHPUT,
+)
+
+CONTINUOUS_POWER_NAMESPACE_PREFIX = (
+    "hobs-active-tx-ee-non-codebook-continuous-power"
 )
 
 
@@ -131,6 +144,34 @@ def _required_mapping_field(
     if key not in mapping:
         raise ConfigValidationError(f"{context} is missing required field '{key}'.")
     return mapping[key]
+
+
+def _require_continuous_power_namespace(cfg: dict[str, Any]) -> None:
+    track = cfg.get("track", {})
+    track = track if isinstance(track, dict) else {}
+    phase = str(track.get("phase", ""))
+    label = str(track.get("label", ""))
+    experiment = cfg.get("training_experiment", {})
+    experiment = experiment if isinstance(experiment, dict) else {}
+    kind = str(experiment.get("kind", ""))
+
+    allowed_kinds = {
+        HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_IMPLEMENTATION_READINESS_KIND,
+        HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_BOUNDED_PILOT_KIND,
+    }
+
+    if (
+        not phase.startswith(CONTINUOUS_POWER_NAMESPACE_PREFIX)
+        or not label.startswith(CONTINUOUS_POWER_NAMESPACE_PREFIX)
+        or kind not in allowed_kinds
+    ):
+        raise ConfigValidationError(
+            "hobs_power_surface.mode='non-codebook-continuous-power' is "
+            "namespace-gated to configs whose track phase and label start with "
+            f"{CONTINUOUS_POWER_NAMESPACE_PREFIX!r} and whose "
+            "training_experiment.kind is one of "
+            f"{sorted(allowed_kinds)!r}."
+        )
 
 
 def _parse_seed_triplets(raw: Any, *, phase_label: str) -> tuple[tuple[int, int, int], ...]:
@@ -351,10 +392,13 @@ def build_power_surface_config(cfg: dict[str, Any]) -> PowerSurfaceConfig:
     """Build the opt-in HOBS power surface config from resolved YAML."""
     power_val = _resolved_assumption_value(cfg, "hobs_power_surface")
     power_val = power_val if isinstance(power_val, dict) else {}
+    mode = str(power_val.get("mode", "static-config"))
+    if mode == HOBS_POWER_SURFACE_NON_CODEBOOK_CONTINUOUS_POWER:
+        _require_continuous_power_namespace(cfg)
     levels = power_val.get("power_codebook_levels_w", (0.5, 1.0, 2.0))
 
     return PowerSurfaceConfig(
-        hobs_power_surface_mode=power_val.get("mode", "static-config"),
+        hobs_power_surface_mode=mode,
         inactive_beam_policy=power_val.get(
             "inactive_beam_policy",
             "excluded-from-active-beams",
@@ -390,6 +434,14 @@ def build_power_surface_config(cfg: dict[str, Any]) -> PowerSurfaceConfig:
         ),
         dpc_qos_thr_bps=float(power_val.get("dpc_qos_thr_bps", 0.0)),
         dpc_epsilon_p_w=float(power_val.get("dpc_epsilon_p_w", 1e-9)),
+        continuous_p_active_lo_w=float(power_val.get("p_active_lo_w", 0.05)),
+        continuous_p_active_hi_w=float(power_val.get("p_active_hi_w", 0.25)),
+        continuous_alpha=float(power_val.get("alpha", 0.85)),
+        continuous_beta=float(power_val.get("beta", 0.35)),
+        continuous_kappa=float(power_val.get("kappa", 0.60)),
+        continuous_bias=float(power_val.get("bias", -2.0)),
+        continuous_q_ref=float(power_val.get("q_ref", 0.0)),
+        continuous_n_qos=float(power_val.get("n_qos", 50.0)),
     )
 
 
@@ -491,6 +543,15 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
     catfish_handover_spike_margin = 0.10
     catfish_handover_spike_min_windows = 3
     catfish_phase07d_seed_triplets: tuple[tuple[int, int, int], ...] = ()
+    anti_collapse_action_constraint_enabled = False
+    anti_collapse_constraint_mode = "disabled"
+    anti_collapse_max_users_per_beam = 0
+    anti_collapse_min_active_beams_target = 0
+    anti_collapse_assignment_order = "user-index"
+    anti_collapse_overload_threshold_users_per_beam = 0
+    anti_collapse_qos_ratio_min = 0.95
+    anti_collapse_allow_nonsticky_moves = False
+    anti_collapse_nonsticky_move_budget = 0
 
     if experiment_block:
         training_experiment_kind = str(
@@ -795,6 +856,283 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
             )
             comparison_role = str(
                 feasibility_block.get("comparison_role", comparison_role)
+            )
+        elif training_experiment_kind == HOBS_ACTIVE_TX_EE_ANTI_COLLAPSE_KIND:
+            gate_block = _required_mapping_field(
+                experiment_block,
+                "hobs_active_tx_ee_anti_collapse",
+                context="training_experiment",
+            )
+            if not isinstance(gate_block, dict):
+                raise ConfigValidationError(
+                    "training_experiment.hobs_active_tx_ee_anti_collapse "
+                    "must be a mapping."
+                )
+            if not bool(gate_block.get("enabled", False)):
+                raise ConfigValidationError(
+                    "training_experiment.hobs_active_tx_ee_anti_collapse.enabled "
+                    "must be true for anti-collapse gate configs."
+                )
+            r1_reward_mode = str(
+                _required_mapping_field(
+                    gate_block,
+                    "r1_reward_mode",
+                    context="training_experiment.hobs_active_tx_ee_anti_collapse",
+                )
+            )
+            if r1_reward_mode != R1_REWARD_MODE_HOBS_ACTIVE_TX_EE:
+                raise ConfigValidationError(
+                    "training_experiment.hobs_active_tx_ee_anti_collapse."
+                    "r1_reward_mode must be 'hobs-active-tx-ee' for both "
+                    "matched arms."
+                )
+            r1_reward_label = str(gate_block.get("r1_label", r1_reward_mode))
+            r1_reward_provenance = str(
+                gate_block.get("r1_provenance", "unspecified")
+            )
+            comparison_role = str(gate_block.get("comparison_role", comparison_role))
+
+            constraint_block = gate_block.get("anti_collapse_action_constraint", {})
+            if not isinstance(constraint_block, dict):
+                raise ConfigValidationError(
+                    "training_experiment.hobs_active_tx_ee_anti_collapse."
+                    "anti_collapse_action_constraint must be a mapping."
+                )
+            anti_collapse_action_constraint_enabled = bool(
+                _required_mapping_field(
+                    constraint_block,
+                    "enabled",
+                    context=(
+                        "training_experiment.hobs_active_tx_ee_anti_collapse."
+                        "anti_collapse_action_constraint"
+                    ),
+                )
+            )
+            anti_collapse_constraint_mode = str(
+                constraint_block.get(
+                    "mode",
+                    (
+                        "capacity-aware-greedy-assignment"
+                        if anti_collapse_action_constraint_enabled
+                        else "disabled"
+                    ),
+                )
+            )
+            anti_collapse_max_users_per_beam = int(
+                constraint_block.get("max_users_per_beam", 0)
+            )
+            anti_collapse_min_active_beams_target = int(
+                constraint_block.get("min_active_beams_target", 0)
+            )
+            anti_collapse_assignment_order = str(
+                constraint_block.get("assignment_order", "user-index")
+            )
+            anti_collapse_overload_threshold_users_per_beam = int(
+                constraint_block.get("overload_threshold_users_per_beam", 0)
+            )
+            anti_collapse_qos_ratio_min = float(
+                constraint_block.get("qos_ratio_min", 0.95)
+            )
+            anti_collapse_allow_nonsticky_moves = bool(
+                constraint_block.get("allow_nonsticky_moves", False)
+            )
+            anti_collapse_nonsticky_move_budget = int(
+                constraint_block.get("nonsticky_move_budget", 0)
+            )
+        elif (
+            training_experiment_kind
+            == HOBS_ACTIVE_TX_EE_QOS_STICKY_BROADER_EFFECTIVENESS_KIND
+        ):
+            gate_block = _required_mapping_field(
+                experiment_block,
+                "hobs_active_tx_ee_qos_sticky_broader_effectiveness",
+                context="training_experiment",
+            )
+            if not isinstance(gate_block, dict):
+                raise ConfigValidationError(
+                    "training_experiment."
+                    "hobs_active_tx_ee_qos_sticky_broader_effectiveness "
+                    "must be a mapping."
+                )
+            if not bool(gate_block.get("enabled", False)):
+                raise ConfigValidationError(
+                    "training_experiment."
+                    "hobs_active_tx_ee_qos_sticky_broader_effectiveness.enabled "
+                    "must be true for broader-effectiveness gate configs."
+                )
+            r1_reward_mode = str(
+                _required_mapping_field(
+                    gate_block,
+                    "r1_reward_mode",
+                    context=(
+                        "training_experiment."
+                        "hobs_active_tx_ee_qos_sticky_broader_effectiveness"
+                    ),
+                )
+            )
+            if r1_reward_mode not in {
+                R1_REWARD_MODE_HOBS_ACTIVE_TX_EE,
+                R1_REWARD_MODE_THROUGHPUT,
+            }:
+                raise ConfigValidationError(
+                    "training_experiment."
+                    "hobs_active_tx_ee_qos_sticky_broader_effectiveness."
+                    "r1_reward_mode must be 'hobs-active-tx-ee' or "
+                    f"'throughput', got {r1_reward_mode!r}."
+                )
+            r1_reward_label = str(gate_block.get("r1_label", r1_reward_mode))
+            r1_reward_provenance = str(
+                gate_block.get("r1_provenance", "unspecified")
+            )
+            comparison_role = str(gate_block.get("comparison_role", comparison_role))
+
+            constraint_block = gate_block.get("anti_collapse_action_constraint", {})
+            if not isinstance(constraint_block, dict):
+                raise ConfigValidationError(
+                    "training_experiment."
+                    "hobs_active_tx_ee_qos_sticky_broader_effectiveness."
+                    "anti_collapse_action_constraint must be a mapping."
+                )
+            anti_collapse_action_constraint_enabled = bool(
+                _required_mapping_field(
+                    constraint_block,
+                    "enabled",
+                    context=(
+                        "training_experiment."
+                        "hobs_active_tx_ee_qos_sticky_broader_effectiveness."
+                        "anti_collapse_action_constraint"
+                    ),
+                )
+            )
+            anti_collapse_constraint_mode = str(
+                constraint_block.get(
+                    "mode",
+                    (
+                        "qos-sticky-overflow-reassignment"
+                        if anti_collapse_action_constraint_enabled
+                        else "disabled"
+                    ),
+                )
+            )
+            anti_collapse_max_users_per_beam = int(
+                constraint_block.get("max_users_per_beam", 0)
+            )
+            anti_collapse_min_active_beams_target = int(
+                constraint_block.get("min_active_beams_target", 0)
+            )
+            anti_collapse_assignment_order = str(
+                constraint_block.get("assignment_order", "user-index")
+            )
+            anti_collapse_overload_threshold_users_per_beam = int(
+                constraint_block.get("overload_threshold_users_per_beam", 0)
+            )
+            anti_collapse_qos_ratio_min = float(
+                constraint_block.get("qos_ratio_min", 0.95)
+            )
+            anti_collapse_allow_nonsticky_moves = bool(
+                constraint_block.get("allow_nonsticky_moves", False)
+            )
+            anti_collapse_nonsticky_move_budget = int(
+                constraint_block.get("nonsticky_move_budget", 0)
+            )
+        elif (
+            training_experiment_kind
+            in {
+                HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_IMPLEMENTATION_READINESS_KIND,
+                HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_BOUNDED_PILOT_KIND,
+            }
+        ):
+            gate_block = _required_mapping_field(
+                experiment_block,
+                "hobs_active_tx_ee_non_codebook_continuous_power",
+                context="training_experiment",
+            )
+            if not isinstance(gate_block, dict):
+                raise ConfigValidationError(
+                    "training_experiment."
+                    "hobs_active_tx_ee_non_codebook_continuous_power "
+                    "must be a mapping."
+                )
+            if not bool(gate_block.get("enabled", False)):
+                raise ConfigValidationError(
+                    "training_experiment."
+                    "hobs_active_tx_ee_non_codebook_continuous_power.enabled "
+                    "must be true for CP-base continuous-power configs."
+                )
+            r1_reward_mode = str(
+                _required_mapping_field(
+                    gate_block,
+                    "r1_reward_mode",
+                    context=(
+                        "training_experiment."
+                        "hobs_active_tx_ee_non_codebook_continuous_power"
+                    ),
+                )
+            )
+            if r1_reward_mode not in {
+                R1_REWARD_MODE_HOBS_ACTIVE_TX_EE,
+                R1_REWARD_MODE_THROUGHPUT,
+            }:
+                raise ConfigValidationError(
+                    "training_experiment."
+                    "hobs_active_tx_ee_non_codebook_continuous_power."
+                    "r1_reward_mode must be 'hobs-active-tx-ee' or "
+                    f"'throughput', got {r1_reward_mode!r}."
+                )
+            r1_reward_label = str(gate_block.get("r1_label", r1_reward_mode))
+            r1_reward_provenance = str(
+                gate_block.get("r1_provenance", "unspecified")
+            )
+            comparison_role = str(gate_block.get("comparison_role", comparison_role))
+
+            constraint_block = gate_block.get("anti_collapse_action_constraint", {})
+            if not isinstance(constraint_block, dict):
+                raise ConfigValidationError(
+                    "training_experiment."
+                    "hobs_active_tx_ee_non_codebook_continuous_power."
+                    "anti_collapse_action_constraint must be a mapping."
+                )
+            anti_collapse_action_constraint_enabled = bool(
+                _required_mapping_field(
+                    constraint_block,
+                    "enabled",
+                    context=(
+                        "training_experiment."
+                        "hobs_active_tx_ee_non_codebook_continuous_power."
+                        "anti_collapse_action_constraint"
+                    ),
+                )
+            )
+            anti_collapse_constraint_mode = str(
+                constraint_block.get(
+                    "mode",
+                    (
+                        "qos-sticky-overflow-reassignment"
+                        if anti_collapse_action_constraint_enabled
+                        else "disabled"
+                    ),
+                )
+            )
+            anti_collapse_max_users_per_beam = int(
+                constraint_block.get("max_users_per_beam", 0)
+            )
+            anti_collapse_min_active_beams_target = int(
+                constraint_block.get("min_active_beams_target", 0)
+            )
+            anti_collapse_assignment_order = str(
+                constraint_block.get("assignment_order", "user-index")
+            )
+            anti_collapse_overload_threshold_users_per_beam = int(
+                constraint_block.get("overload_threshold_users_per_beam", 0)
+            )
+            anti_collapse_qos_ratio_min = float(
+                constraint_block.get("qos_ratio_min", 0.95)
+            )
+            anti_collapse_allow_nonsticky_moves = bool(
+                constraint_block.get("allow_nonsticky_moves", False)
+            )
+            anti_collapse_nonsticky_move_budget = int(
+                constraint_block.get("nonsticky_move_budget", 0)
             )
         elif training_experiment_kind == PHASE_04_B_SINGLE_CATFISH_KIND:
             phase_block = _required_mapping_field(
@@ -1828,7 +2166,10 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
                 f"{PHASE_05_B_MULTI_CATFISH_KIND!r}, and "
                 f"{PHASE_07_B_SINGLE_CATFISH_UTILITY_KIND!r}, and "
                 f"{PHASE_07_D_R2_GUARDED_ROBUSTNESS_KIND!r}, and "
-                f"{HOBS_ACTIVE_TX_EE_MODQN_FEASIBILITY_KIND!r} are currently supported, "
+                f"{HOBS_ACTIVE_TX_EE_MODQN_FEASIBILITY_KIND!r}, and "
+                f"{HOBS_ACTIVE_TX_EE_ANTI_COLLAPSE_KIND!r}, and "
+                f"{HOBS_ACTIVE_TX_EE_QOS_STICKY_BROADER_EFFECTIVENESS_KIND!r} "
+                "are currently supported, "
                 f"got {training_experiment_kind!r}."
             )
 
@@ -1930,6 +2271,19 @@ def build_trainer_config(cfg: dict[str, Any]) -> TrainerConfig:
         catfish_handover_spike_margin=catfish_handover_spike_margin,
         catfish_handover_spike_min_windows=catfish_handover_spike_min_windows,
         catfish_phase07d_seed_triplets=catfish_phase07d_seed_triplets,
+        anti_collapse_action_constraint_enabled=(
+            anti_collapse_action_constraint_enabled
+        ),
+        anti_collapse_constraint_mode=anti_collapse_constraint_mode,
+        anti_collapse_max_users_per_beam=anti_collapse_max_users_per_beam,
+        anti_collapse_min_active_beams_target=anti_collapse_min_active_beams_target,
+        anti_collapse_assignment_order=anti_collapse_assignment_order,
+        anti_collapse_overload_threshold_users_per_beam=(
+            anti_collapse_overload_threshold_users_per_beam
+        ),
+        anti_collapse_qos_ratio_min=anti_collapse_qos_ratio_min,
+        anti_collapse_allow_nonsticky_moves=anti_collapse_allow_nonsticky_moves,
+        anti_collapse_nonsticky_move_budget=anti_collapse_nonsticky_move_budget,
     )
 
 

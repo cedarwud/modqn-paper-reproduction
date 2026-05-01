@@ -1,0 +1,73 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: hobs-active-tx-ee-qos-sticky-robustness
+  label: hobs-active-tx-ee-qos-sticky-robustness-threshold-55
+  robustness_role: threshold-sensitivity-55
+  method_family: HOBS-Active-TX-EE-anti-collapse-robustness-gate
+  status: bounded-threshold-ablation
+  purpose: >
+    Nearby higher-threshold sensitivity ablation for the QoS-sticky overflow
+    reassignment mechanism.
+
+baseline:
+  episodes: 5
+
+robustness_protocol:
+  enabled: true
+  seed_triplets:
+    - [42, 1337, 7]
+    - [43, 1338, 8]
+    - [44, 1339, 9]
+  evaluation_seed_set: [100, 200, 300, 400, 500]
+  bounded_episode_budget: 5
+  role_count: 6
+  scalar_reward_diagnostic_only: true
+
+training_experiment:
+  kind: hobs-active-tx-ee-anti-collapse-design-gate
+  experiment_id: HOBS-ACTIVE-TX-EE-QOS-STICKY-ROBUSTNESS-THRESHOLD-55
+  method_family: HOBS-Active-TX-EE-anti-collapse-robustness-gate
+  phase: hobs-active-tx-ee-qos-sticky-robustness
+  hobs_active_tx_ee_anti_collapse:
+    enabled: true
+    r1_reward_mode: hobs-active-tx-ee
+    r1_label: HOBS-style active-TX system EE with threshold-55 QoS-sticky overflow ablation
+    r1_provenance: >
+      Same HOBS active-TX EE formula and DPC sidecar as primary. The only
+      intended difference from primary is raising the overload threshold from
+      50 to 55 users per beam.
+    comparison_role: matched-candidate
+    anti_collapse_action_constraint:
+      enabled: true
+      mode: qos-sticky-overflow-reassignment
+      max_users_per_beam: 0
+      min_active_beams_target: 0
+      assignment_order: user-index
+      overload_threshold_users_per_beam: 55
+      qos_ratio_min: 0.95
+      allow_nonsticky_moves: false
+      nonsticky_move_budget: 0
+      provenance: >
+        Higher-threshold sensitivity ablation. This tests whether the primary
+        PASS disappears when overflow intervention is delayed by a nearby
+        threshold.
+
+resolved_assumptions:
+  hobs_power_surface:
+    assumption_id: ASSUME-MODQN-REP-024
+    value:
+      mode: hobs-dpc-sidecar
+      inactive_beam_policy: zero-w
+      dpc_initial_power_w: 1.0
+      dpc_step_size_w: 0.1
+      dpc_p_min_w: 0.1
+      dpc_p_beam_max_w: 2.0
+      dpc_p_sat_max_w: null
+      dpc_qos_thr_bps: 0.0
+      dpc_epsilon_p_w: 1.0e-9
+      units: linear-w
+      provenance: >
+        HOBS-inspired DPC sidecar. Same parameters as every robustness role.
+        Not paper-backed for MODQN. Not a HOBS optimizer reproduction.

@@ -1,7 +1,7 @@
 # Catfish / EE-MODQN Execution Handoff
 
-**Date:** `2026-05-01`
-**Status:** handoff after HOBS active-TX EE Route D learned-policy denominator-check block
+**Date:** `2026-05-02`
+**Status:** handoff after HOBS active-TX EE QoS-sticky broader-effectiveness block and CP-base bounded matched pilot BLOCK
 **Scope:** planning and execution control for the next Catfish / EE-MODQN research step. This document does not authorize code changes by itself.
 
 ## Current Conclusion
@@ -80,7 +80,12 @@ SINR structural audit: PASS, but negligible at current MODQN operating point
 channel-regime / antenna-gain path: BLOCK as a paper-backed MODQN continuation
 HOBS-inspired DPC sidecar denominator gate: PASS
 Route D tiny learned-policy denominator check: BLOCK
-EE-MODQN effectiveness: NOT PROMOTED / BLOCKED
+capacity-aware anti-collapse assignment gate: BLOCK
+QoS-sticky overflow anti-collapse gate: PASS, scoped
+QoS-sticky robustness / attribution gate: PASS, scoped
+QoS-sticky broader-effectiveness gate: BLOCK
+CP-base bounded matched pilot: BLOCK
+EE-MODQN effectiveness: NOT PROMOTED / STOP CURRENT QOS-STICKY AND CP-BASE EE OBJECTIVE ROUTES
 ```
 
 The key update is precise: the denominator can now vary under the opt-in
@@ -92,6 +97,118 @@ reward increased only because `r1` was rescored as HOBS active-TX EE; throughput
 metrics were identical under the tiny matched check. Do not scale this route
 with more episodes by default. See
 `hobs-active-tx-ee-modqn-feasibility.execution-report.md`.
+
+The first anti-collapse gate has also completed and is **blocked**. It tested a
+minimal `capacity-aware-greedy-assignment` constraint under new
+`hobs-active-tx-ee-anti-collapse-*` config and artifact namespaces. The matched
+boundary passed, and the candidate removed one-active-beam collapse
+(`active_beam_count_distribution={"2.0": 50}`) while retaining
+`denominator_varies_in_eval=true` and
+`active_power_single_point_distribution=false`. Acceptance still failed because
+the candidate violated predeclared QoS and handover / `r2` guardrails:
+`p05_throughput_ratio_vs_control=0.28501578600107075 < 0.95`,
+`handover_delta=+495 > +25`, and `r2_delta=-0.4949999999999999 < -0.05`.
+Scalar reward improved only as a diagnostic and does not rescue the gate. See
+`hobs-active-tx-ee-anti-collapse-design-gate.execution-report.md`.
+
+The QoS- and stickiness-preserving follow-up gate has since completed and
+**passed as a bounded anti-collapse gate only**. It tested
+`qos-sticky-overflow-reassignment` under
+`hobs-active-tx-ee-qos-sticky-anti-collapse-*` configs and artifacts. The
+candidate first computed normal learned greedy actions, intervened only on
+overloaded beams, used QoS-safe sticky overrides, kept non-sticky moves disabled,
+and did not use a forced `min_active_beams_target`. The matched boundary passed.
+The candidate removed one-active-beam collapse
+(`active_beam_count_distribution={"7.0": 50}`), preserved denominator
+variability, and passed the QoS / handover / `r2` guardrails:
+`p05_throughput_ratio_vs_control=2.522568929129207`,
+`handover_delta=-211`, and `r2_delta=+0.21100000000000002`.
+This does not promote EE-MODQN effectiveness. See
+`hobs-active-tx-ee-qos-sticky-anti-collapse-design-gate.execution-report.md`.
+
+The robustness / mechanism-attribution gate has also completed and **passed as
+scoped robustness evidence only**. It tested `primary-qos-sticky` plus
+`no-qos-guard`, `stricter-qos`, and nearby threshold ablations across `3`
+matched training seed triplets. The primary role passed in aggregate and every
+seed triplet, with
+`active_beam_count_distribution={"7.0": 150}`,
+`p05_throughput_ratio_vs_control=3.105617320531727`,
+`handover_delta=-292.00000000000006`, and
+`r2_delta=+0.29200000000000004`. Threshold `45` and `55` ablations also passed.
+The QoS-ratio guard did not bind in this bounded run because relaxed-QoS and
+stricter-QoS produced identical aggregate results; attribution is therefore to
+sticky overflow reassignment under non-sticky / handover protections. See
+`hobs-active-tx-ee-qos-sticky-robustness-gate.execution-report.md`.
+
+The bounded broader-effectiveness gate has since completed and is **blocked**.
+It compared four matched roles: DPC-matched throughput control,
+HOBS-EE no-anti-collapse control, QoS-sticky EE candidate, and
+anti-collapse-throughput control. The candidate still passed the scoped
+anti-collapse basics (`all_evaluated_steps_one_active_beam=false`,
+`active_beam_count_distribution={"7.0": 150}`,
+`denominator_varies_in_eval=true`, zero power/accounting violations), but it did
+not establish EE objective contribution beyond anti-collapse alone. Versus the
+anti-collapse-throughput control, the candidate had
+`EE_system_delta=-0.32138238121922313`, `handover_delta=+83.33333333333331`,
+and `r2_delta=-0.08333333333333334`. The useful gain boundary is explained by
+the anti-collapse hook, not by the HOBS active-TX EE objective. This is the
+stop-loss point for the current QoS-sticky EE objective-contribution route; the
+remaining positive claim is scoped anti-collapse evidence only. See
+`hobs-active-tx-ee-qos-sticky-broader-effectiveness-gate.execution-report.md`.
+
+The non-codebook continuous-power design gate has since completed and **passed
+as design-only**. It proposed `CP-base-EE-MODQN`, a base EE-MODQN method family
+with an analytic continuous `p_b(t)` sidecar computed during rollout after
+policy action / shared structural guard and before SINR, throughput, reward,
+and EE metrics. The decisive future comparison is intentionally narrow:
+
+```text
+candidate:
+  r1 = hobs-active-tx-ee
+  same continuous power surface
+  same opt-in anti-collapse guard
+
+control:
+  r1 = throughput
+  same continuous power surface
+  same opt-in anti-collapse guard
+```
+
+This gate is not implementation authorization, not pilot training, not
+Catfish-EE readiness, and not EE-MODQN effectiveness. The next allowed worker
+step is only an implementation-readiness / boundary-audit slice that proves
+config gating, frozen-baseline preservation, rollout-time continuous power
+wiring, shared candidate/control power boundary, and metadata showing `r1` as
+the only intended role difference. See
+`hobs-active-tx-ee-non-codebook-continuous-power-design-gate.execution-report.md`
+and
+`prompts/hobs-active-tx-ee-non-codebook-continuous-power-implementation-readiness.prompt.md`.
+
+The CP-base implementation-readiness / boundary-audit slice has also completed
+and **passed as readiness-only**. It implemented the opt-in
+`non-codebook-continuous-power` mode, added namespace-gated configs, wired
+continuous active-beam power during rollout before throughput / reward / EE
+metrics, and generated a deterministic boundary-audit artifact. The artifact
+reports `matched_boundary_pass=true`, `same_power_vector_for_candidate_and_control=true`,
+`candidate_control_only_r1_differs=true`, and `pilot_training_authorized=false`.
+Focused CP-base tests, HOBS/DPC/anti-collapse/broader-effectiveness regressions,
+Phase `03C`, RA-EE-07/08, and MODQN smoke regressions were reported passing.
+This still does not authorize pilot training or any effectiveness claim. See
+`hobs-active-tx-ee-non-codebook-continuous-power-implementation-readiness.execution-report.md`.
+
+The CP-base bounded matched pilot has now completed and is **blocked**. The
+matched boundary passed: `throughput-control` and `ee-candidate` shared the same
+non-codebook continuous power surface, QoS-sticky structural guard, seed
+triplets, eval seeds, episode budget, checkpoint protocol, and trainer
+hyperparameters; only `r1_reward_mode` differed. The EE candidate lost
+`EE_system` to throughput + same guard + same continuous power
+(`-1.057740305239463`), exceeded the handover guardrail (`+77.33333333333331`),
+failed the `r2` guardrail (`-0.07733333333333334`), and only won scalar reward.
+All three per-seed EE deltas were negative. This blocks CP-base effectiveness
+and does not authorize tuning reruns. See
+`hobs-active-tx-ee-non-codebook-continuous-power-bounded-pilot.execution-report.md`
+and
+`artifacts/hobs-active-tx-ee-non-codebook-continuous-power-bounded-pilot-summary/summary.json`.
 
 The RA-EE follow-on is now also closed at the current evidence boundary:
 
@@ -247,14 +364,24 @@ Read in this order when taking over the plan:
 36. `docs/research/catfish-ee-modqn/ra-ee-09-completion-design-gate.md`
 37. `docs/research/catfish-ee-modqn/ra-ee-09-fixed-association-rb-bandwidth.execution-report.md`
 38. `docs/research/catfish-ee-modqn/hobs-active-tx-ee-modqn-feasibility.execution-report.md`
-39. `docs/research/catfish-ee-modqn/ee-modqn-anti-collapse-controller-plan-2026-05-01.md`
-40. `docs/research/catfish-ee-modqn/prompts/ee-modqn-anti-collapse-controller.prompt.md`
-41. `docs/research/catfish-ee-modqn/prompts/ee-modqn-anti-collapse-worker.prompt.md`
-42. `docs/research/catfish-ee-modqn/energy-efficient/README.md`
-43. `docs/research/catfish-ee-modqn/energy-efficient/ee-formula-final-review-with-codex-2026-05-01.md`
-44. `docs/research/catfish-ee-modqn/energy-efficient/modqn-r1-to-hobs-active-tx-ee-design-2026-05-01.md`
-45. `docs/research/catfish-ee-modqn/repository-curation-2026-05-01.md`
-46. `docs/ee-report.md`
+39. `docs/research/catfish-ee-modqn/hobs-active-tx-ee-anti-collapse-design-gate.execution-report.md`
+40. `docs/research/catfish-ee-modqn/hobs-active-tx-ee-qos-sticky-anti-collapse-design-gate.execution-report.md`
+41. `docs/research/catfish-ee-modqn/hobs-active-tx-ee-qos-sticky-robustness-gate.execution-report.md`
+42. `docs/research/catfish-ee-modqn/hobs-active-tx-ee-qos-sticky-broader-effectiveness-gate.execution-report.md`
+43. `docs/research/catfish-ee-modqn/hobs-active-tx-ee-non-codebook-continuous-power-design-gate.execution-report.md`
+44. `docs/research/catfish-ee-modqn/hobs-active-tx-ee-non-codebook-continuous-power-implementation-readiness.execution-report.md`
+45. `docs/research/catfish-ee-modqn/prompts/hobs-active-tx-ee-non-codebook-continuous-power-implementation-readiness.prompt.md`
+46. `docs/research/catfish-ee-modqn/prompts/hobs-active-tx-ee-non-codebook-continuous-power-bounded-pilot.prompt.md`
+47. `docs/research/catfish-ee-modqn/hobs-active-tx-ee-non-codebook-continuous-power-bounded-pilot.execution-report.md`
+48. `artifacts/hobs-active-tx-ee-non-codebook-continuous-power-bounded-pilot-summary/summary.json`
+49. `docs/research/catfish-ee-modqn/ee-modqn-anti-collapse-controller-plan-2026-05-01.md`
+50. `docs/research/catfish-ee-modqn/prompts/ee-modqn-anti-collapse-controller.prompt.md`
+51. `docs/research/catfish-ee-modqn/prompts/ee-modqn-anti-collapse-worker.prompt.md`
+52. `docs/research/catfish-ee-modqn/energy-efficient/README.md`
+53. `docs/research/catfish-ee-modqn/energy-efficient/ee-formula-final-review-with-codex-2026-05-01.md`
+54. `docs/research/catfish-ee-modqn/energy-efficient/modqn-r1-to-hobs-active-tx-ee-design-2026-05-01.md`
+55. `docs/research/catfish-ee-modqn/repository-curation-2026-05-01.md`
+56. `docs/ee-report.md`
 
 Use later phase reviews only as constraints unless the user explicitly asks to plan those phases.
 
@@ -850,7 +977,27 @@ Do not:
 38. treat Route `D` scalar reward gain as success evidence,
 39. scale Route `D` training before the one-active-beam collapse is addressed,
 40. use Catfish or Multi-Catfish as the immediate repair for the HOBS active-TX
-    EE one-beam-collapse blocker.
+    EE one-beam-collapse blocker,
+41. claim the capacity-aware anti-collapse gate promoted EE-MODQN effectiveness,
+42. continue the same capacity-aware assignment candidate with tuning or longer
+    training by default after its p05 throughput and handover / `r2` failures,
+43. use the anti-collapse candidate's scalar reward gain to override its failed
+    p05 throughput, handover, or `r2` guardrails,
+44. claim the QoS-sticky anti-collapse gate proves general EE-MODQN
+    effectiveness, physical energy saving, or HOBS optimizer reproduction,
+45. claim the QoS-sticky robustness gate proves general EE-MODQN effectiveness
+    rather than scoped robustness of the anti-collapse hook,
+46. claim the QoS-sticky broader-effectiveness gate promoted EE objective
+    contribution or recovered EE-MODQN effectiveness,
+47. continue tuning the current QoS-sticky EE objective route after the
+    broader-effectiveness handover / `r2` failure by default,
+48. treat the CP-base continuous-power design gate or implementation-readiness
+    slice as effectiveness evidence,
+49. treat the blocked CP-base bounded pilot as Catfish-EE readiness or
+    EE-MODQN effectiveness,
+50. rerun or tune the blocked CP-base candidate by default after it lost to
+    throughput + same guard + same continuous power and violated handover /
+    `r2` guardrails.
 
 ## Recommended Next Prompt
 
@@ -858,15 +1005,50 @@ Default next research action is paper-section synthesis / claim-boundary
 writing. Treat Phase `05B` as a bounded Multi-Catfish negative result, Phase
 `07B` as bounded single-Catfish intervention utility evidence, Phase `07D` as a
 bounded negative result for recovery promotion, RA-EE-09 as a negative tested
-RB / bandwidth result, and HOBS active-TX EE Route `D` as a formula / DPC
-denominator feasibility pass but learned-policy block.
+RB / bandwidth result, HOBS active-TX EE Route `D` as a formula / DPC denominator
+feasibility pass but learned-policy block, and the first HOBS active-TX EE
+anti-collapse gate as a bounded negative result for the tested capacity-aware
+assignment candidate. Treat the QoS-sticky overflow anti-collapse gate as a
+scoped bounded PASS for avoiding one-active-beam collapse while preserving the
+declared QoS / handover / power guardrails on the tiny matched protocol. Treat
+the QoS-sticky robustness gate as scoped evidence that this result reproduces
+across the declared seed triplets and nearby threshold ablations. Treat the
+QoS-sticky broader-effectiveness gate as a BLOCK for EE objective contribution:
+the anti-collapse-throughput control explains the useful gain boundary, and the
+QoS-sticky EE candidate violates handover / `r2` guardrails versus that control.
 
-If the explicit goal is to continue EE-MODQN, the next prompt must be a new
-anti-collapse / capacity / assignment design gate. It must not ask for more
-Route `D` training, Catfish repair, reward retuning, or Phase `03C`
-continuation. The design gate must first specify how one-active-beam collapse
-will be prevented, penalized, or made infeasible under learned greedy
-evaluation.
+The CP-base bounded matched pilot is also blocked. The EE candidate lost
+`EE_system` to throughput + same guard + same continuous power, violated
+handover / `r2` guardrails, and only won scalar reward. Default next action is
+paper-section synthesis / claim-boundary writing, not another execution prompt.
+If the explicit goal is to continue EE research, first open a new design gate
+with a materially different base-EE mechanism; do not run more Route `D`
+training, Catfish repair, reward retuning, Phase `03C` continuation, a rerun of
+the failed capacity-aware assignment candidate, tuning of the current
+QoS-sticky EE objective route, or tuning of the blocked CP-base pilot.
+
+The CP-base non-codebook continuous-power design gate and implementation-readiness
+slice are now complete. The readiness prompt was:
+
+```text
+docs/research/catfish-ee-modqn/prompts/hobs-active-tx-ee-non-codebook-continuous-power-implementation-readiness.prompt.md
+```
+
+That prompt authorized only an implementation-readiness / boundary-audit slice,
+which passed. The bounded pilot prompt was then drafted and executed:
+
+```text
+docs/research/catfish-ee-modqn/prompts/hobs-active-tx-ee-non-codebook-continuous-power-bounded-pilot.prompt.md
+```
+
+The resulting bounded pilot is blocked. Use
+`hobs-active-tx-ee-non-codebook-continuous-power-bounded-pilot.execution-report.md`
+and
+`artifacts/hobs-active-tx-ee-non-codebook-continuous-power-bounded-pilot-summary/summary.json`
+as the result authority. It preserves throughput + same guard + same
+continuous-power control as the decisive comparator and still forbids Catfish,
+Multi-Catfish, Phase `03C`, RA-EE learned association, frozen baseline mutation,
+and scalar-reward-only success.
 
 Do not use `prompts/05-multi-catfish-modqn-validation.prompt.md` to authorize
 full multi-agent implementation from the current Phase `05A` / `05R` evidence.

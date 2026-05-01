@@ -1,0 +1,82 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: hobs-active-tx-ee-qos-sticky-broader-effectiveness
+  label: hobs-active-tx-ee-qos-sticky-broader-effectiveness-anti-collapse-throughput-control
+  broader_effectiveness_role: anti-collapse-throughput-control
+  method_family: QoS-sticky HOBS-active-TX EE-MODQN
+  status: bounded-broader-effectiveness-control
+  purpose: >
+    Throughput-objective control with the same DPC sidecar and the same
+    QoS-sticky overflow anti-collapse mechanism. This isolates whether gains
+    come from anti-collapse alone rather than the EE objective.
+  method_markings:
+    - new extension / method variant
+    - bounded active-TX EE validation only
+    - not full EE-MODQN
+    - not physical energy saving
+    - not HOBS optimizer reproduction
+    - not RA-EE association
+    - not Catfish-EE
+
+baseline:
+  episodes: 5
+
+broader_effectiveness_protocol:
+  enabled: true
+  seed_triplets:
+    - [42, 1337, 7]
+    - [43, 1338, 8]
+    - [44, 1339, 9]
+  evaluation_seed_set: [100, 200, 300, 400, 500]
+  bounded_episode_budget: 5
+  role_count: 4
+  scalar_reward_diagnostic_only: true
+
+training_experiment:
+  kind: hobs-active-tx-ee-qos-sticky-broader-effectiveness-gate
+  experiment_id: HOBS-ACTIVE-TX-EE-QOS-STICKY-BROADER-ANTI-COLLAPSE-THROUGHPUT-CONTROL
+  method_family: QoS-sticky HOBS-active-TX EE-MODQN
+  phase: hobs-active-tx-ee-qos-sticky-broader-effectiveness
+  hobs_active_tx_ee_qos_sticky_broader_effectiveness:
+    enabled: true
+    r1_reward_mode: throughput
+    r1_label: Throughput with QoS-sticky overflow anti-collapse
+    r1_provenance: >
+      Throughput objective under the same HOBS-inspired DPC sidecar and same
+      QoS-sticky overflow anti-collapse mechanism as the EE candidate. This is
+      an anti-collapse throughput control, not the frozen MODQN baseline.
+    comparison_role: anti-collapse-throughput-control
+    anti_collapse_action_constraint:
+      enabled: true
+      mode: qos-sticky-overflow-reassignment
+      max_users_per_beam: 0
+      min_active_beams_target: 0
+      assignment_order: user-index
+      overload_threshold_users_per_beam: 50
+      qos_ratio_min: 0.95
+      allow_nonsticky_moves: false
+      nonsticky_move_budget: 0
+      provenance: >
+        Same opt-in QoS- and stickiness-preserving overflow reassignment as the
+        primary EE candidate. Non-sticky moves are disabled with a hard budget
+        of zero. No forced min_active_beams_target is used.
+
+resolved_assumptions:
+  hobs_power_surface:
+    assumption_id: ASSUME-MODQN-REP-024
+    value:
+      mode: hobs-dpc-sidecar
+      inactive_beam_policy: zero-w
+      dpc_initial_power_w: 1.0
+      dpc_step_size_w: 0.1
+      dpc_p_min_w: 0.1
+      dpc_p_beam_max_w: 2.0
+      dpc_p_sat_max_w: null
+      dpc_qos_thr_bps: 0.0
+      dpc_epsilon_p_w: 1.0e-9
+      units: linear-w
+      provenance: >
+        HOBS-inspired DPC sidecar. Same parameters as every broader-effectiveness
+        role. Not paper-backed for MODQN. Not a HOBS optimizer reproduction.

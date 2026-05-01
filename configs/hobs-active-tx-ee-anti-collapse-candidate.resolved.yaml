@@ -1,0 +1,64 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: hobs-active-tx-ee-anti-collapse
+  label: hobs-active-tx-ee-anti-collapse-candidate
+  method_family: HOBS-Active-TX-EE-anti-collapse-gate
+  status: bounded-design-gate-candidate
+  purpose: >
+    Matched CANDIDATE arm for the bounded anti-collapse design gate.
+    Uses the same HOBS-style active-TX EE r1 and the same HOBS-inspired DPC
+    sidecar as control, with one opt-in capacity-aware greedy assignment
+    constraint enabled. Same seeds, 5-episode budget, eval schedule, and
+    checkpoint protocol. This is not an effectiveness pilot.
+
+baseline:
+  episodes: 5
+
+training_experiment:
+  kind: hobs-active-tx-ee-anti-collapse-design-gate
+  experiment_id: HOBS-ACTIVE-TX-EE-ANTI-COLLAPSE-CANDIDATE
+  method_family: HOBS-Active-TX-EE-anti-collapse-gate
+  phase: hobs-active-tx-ee-anti-collapse
+  hobs_active_tx_ee_anti_collapse:
+    enabled: true
+    r1_reward_mode: hobs-active-tx-ee
+    r1_label: HOBS-style active-TX system EE with opt-in anti-collapse constraint
+    r1_provenance: >
+      eta_EE,active-TX = sum_u(R_u^t) /
+      (sum_b z_{s,b}^t p_{s,b}^t + epsilon_P). The DPC sidecar supplies
+      time-varying active-beam transmit powers. The only intended difference
+      from matched control is the explicit anti-collapse constraint below.
+    comparison_role: matched-candidate
+    anti_collapse_action_constraint:
+      enabled: true
+      mode: capacity-aware-greedy-assignment
+      max_users_per_beam: 50
+      min_active_beams_target: 2
+      assignment_order: user-index
+      provenance: >
+        Opt-in capacity-aware greedy assignment. During action selection, users
+        are processed in stable user-index order and assigned to the highest
+        ranked valid action whose current candidate-assignment load is below
+        max_users_per_beam. This makes one-active-beam collapse infeasible for
+        100-user greedy eval when enough valid beams exist. It is a new
+        design-gate extension surface, not frozen MODQN semantics.
+
+resolved_assumptions:
+  hobs_power_surface:
+    assumption_id: ASSUME-MODQN-REP-024
+    value:
+      mode: hobs-dpc-sidecar
+      inactive_beam_policy: zero-w
+      dpc_initial_power_w: 1.0
+      dpc_step_size_w: 0.1
+      dpc_p_min_w: 0.1
+      dpc_p_beam_max_w: 2.0
+      dpc_p_sat_max_w: null
+      dpc_qos_thr_bps: 0.0
+      dpc_epsilon_p_w: 1.0e-9
+      units: linear-w
+      provenance: >
+        HOBS-inspired DPC sidecar. Same parameters as control.
+        Not paper-backed for MODQN. Not a HOBS optimizer reproduction.

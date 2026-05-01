@@ -11,6 +11,18 @@ R1_REWARD_MODE_PER_USER_BEAM_EE_CREDIT = "per-user-beam-ee-credit"
 R1_REWARD_MODE_HOBS_ACTIVE_TX_EE = "hobs-active-tx-ee"
 PHASE_04_B_SINGLE_CATFISH_KIND = "phase-04-b-single-catfish-feasibility"
 HOBS_ACTIVE_TX_EE_MODQN_FEASIBILITY_KIND = "hobs-active-tx-ee-modqn-feasibility"
+HOBS_ACTIVE_TX_EE_ANTI_COLLAPSE_KIND = (
+    "hobs-active-tx-ee-anti-collapse-design-gate"
+)
+HOBS_ACTIVE_TX_EE_QOS_STICKY_BROADER_EFFECTIVENESS_KIND = (
+    "hobs-active-tx-ee-qos-sticky-broader-effectiveness-gate"
+)
+HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_IMPLEMENTATION_READINESS_KIND = (
+    "hobs-active-tx-ee-non-codebook-continuous-power-implementation-readiness"
+)
+HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_BOUNDED_PILOT_KIND = (
+    "hobs-active-tx-ee-non-codebook-continuous-power-bounded-pilot"
+)
 PHASE_05_B_MULTI_CATFISH_KIND = "phase-05-b-multi-catfish-bounded-pilot"
 PHASE_07_B_SINGLE_CATFISH_UTILITY_KIND = (
     "phase-07-b-single-catfish-intervention-utility"
@@ -139,6 +151,17 @@ class TrainerConfig:
     catfish_handover_spike_min_windows: int = 3
     catfish_phase07d_seed_triplets: tuple[tuple[int, int, int], ...] = ()
 
+    # -- HOBS active-TX EE anti-collapse opt-in surface --------------------
+    anti_collapse_action_constraint_enabled: bool = False
+    anti_collapse_constraint_mode: str = "disabled"
+    anti_collapse_max_users_per_beam: int = 0
+    anti_collapse_min_active_beams_target: int = 0
+    anti_collapse_assignment_order: str = "user-index"
+    anti_collapse_overload_threshold_users_per_beam: int = 0
+    anti_collapse_qos_ratio_min: float = 0.95
+    anti_collapse_allow_nonsticky_moves: bool = False
+    anti_collapse_nonsticky_move_budget: int = 0
+
     def __post_init__(self) -> None:
         if len(self.objective_weights) != 3:
             raise ValueError(
@@ -166,6 +189,10 @@ class TrainerConfig:
             PHASE_07_B_SINGLE_CATFISH_UTILITY_KIND,
             PHASE_07_D_R2_GUARDED_ROBUSTNESS_KIND,
             HOBS_ACTIVE_TX_EE_MODQN_FEASIBILITY_KIND,
+            HOBS_ACTIVE_TX_EE_ANTI_COLLAPSE_KIND,
+            HOBS_ACTIVE_TX_EE_QOS_STICKY_BROADER_EFFECTIVENESS_KIND,
+            HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_IMPLEMENTATION_READINESS_KIND,
+            HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_BOUNDED_PILOT_KIND,
         }:
             raise ValueError(
                 "training_experiment_kind must be one of "
@@ -177,7 +204,12 @@ class TrainerConfig:
                 f"{PHASE_05_B_MULTI_CATFISH_KIND!r}, "
                 f"{PHASE_07_B_SINGLE_CATFISH_UTILITY_KIND!r}, "
                 f"{PHASE_07_D_R2_GUARDED_ROBUSTNESS_KIND!r}, "
-                f"{HOBS_ACTIVE_TX_EE_MODQN_FEASIBILITY_KIND!r}" + "}, "
+                f"{HOBS_ACTIVE_TX_EE_MODQN_FEASIBILITY_KIND!r}, "
+                f"{HOBS_ACTIVE_TX_EE_ANTI_COLLAPSE_KIND!r}, "
+                f"{HOBS_ACTIVE_TX_EE_QOS_STICKY_BROADER_EFFECTIVENESS_KIND!r}"
+                f", {HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_IMPLEMENTATION_READINESS_KIND!r}"
+                f", {HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_BOUNDED_PILOT_KIND!r}"
+                + "}, "
                 f"got {self.training_experiment_kind!r}"
             )
         if self.r1_reward_mode not in {
@@ -215,12 +247,24 @@ class TrainerConfig:
             )
         if (
             self.r1_reward_mode == R1_REWARD_MODE_HOBS_ACTIVE_TX_EE
-            and self.training_experiment_kind
-            != HOBS_ACTIVE_TX_EE_MODQN_FEASIBILITY_KIND
+            and self.training_experiment_kind not in {
+                HOBS_ACTIVE_TX_EE_MODQN_FEASIBILITY_KIND,
+                HOBS_ACTIVE_TX_EE_ANTI_COLLAPSE_KIND,
+                HOBS_ACTIVE_TX_EE_QOS_STICKY_BROADER_EFFECTIVENESS_KIND,
+                HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_IMPLEMENTATION_READINESS_KIND,
+                HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_BOUNDED_PILOT_KIND,
+            }
         ):
             raise ValueError(
                 f"r1_reward_mode={R1_REWARD_MODE_HOBS_ACTIVE_TX_EE!r} requires "
-                f"training_experiment_kind={HOBS_ACTIVE_TX_EE_MODQN_FEASIBILITY_KIND!r}."
+                f"training_experiment_kind={HOBS_ACTIVE_TX_EE_MODQN_FEASIBILITY_KIND!r} "
+                f"or {HOBS_ACTIVE_TX_EE_ANTI_COLLAPSE_KIND!r} "
+                "or "
+                f"{HOBS_ACTIVE_TX_EE_QOS_STICKY_BROADER_EFFECTIVENESS_KIND!r} "
+                "or "
+                f"{HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_IMPLEMENTATION_READINESS_KIND!r} "
+                "or "
+                f"{HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_BOUNDED_PILOT_KIND!r}."
             )
         if (
             self.training_experiment_kind
@@ -720,6 +764,234 @@ class TrainerConfig:
                     raise ValueError(
                         "catfish_handover_spike_min_windows must be >= 0."
                     )
+        if self.training_experiment_kind == HOBS_ACTIVE_TX_EE_ANTI_COLLAPSE_KIND:
+            if self.r1_reward_mode != R1_REWARD_MODE_HOBS_ACTIVE_TX_EE:
+                raise ValueError(
+                    "HOBS active-TX EE anti-collapse gate requires "
+                    f"r1_reward_mode={R1_REWARD_MODE_HOBS_ACTIVE_TX_EE!r} "
+                    "for both matched arms."
+                )
+            if self.reward_calibration_enabled:
+                raise ValueError(
+                    "HOBS active-TX EE anti-collapse gate keeps reward calibration disabled."
+                )
+            if self.catfish_enabled:
+                raise ValueError(
+                    "HOBS active-TX EE anti-collapse gate must not enable Catfish."
+                )
+            if self.comparison_role == "matched-control":
+                if self.anti_collapse_action_constraint_enabled:
+                    raise ValueError(
+                        "Anti-collapse matched-control must keep the action "
+                        "constraint disabled."
+                    )
+            elif self.comparison_role == "matched-candidate":
+                if not self.anti_collapse_action_constraint_enabled:
+                    raise ValueError(
+                        "Anti-collapse matched-candidate must enable the opt-in "
+                        "action constraint."
+                    )
+            else:
+                raise ValueError(
+                    "HOBS active-TX EE anti-collapse gate requires "
+                    "comparison_role='matched-control' or 'matched-candidate'."
+                )
+        if (
+            self.training_experiment_kind
+            == HOBS_ACTIVE_TX_EE_QOS_STICKY_BROADER_EFFECTIVENESS_KIND
+        ):
+            if self.r1_reward_mode not in {
+                R1_REWARD_MODE_THROUGHPUT,
+                R1_REWARD_MODE_HOBS_ACTIVE_TX_EE,
+            }:
+                raise ValueError(
+                    "QoS-sticky broader-effectiveness gate requires "
+                    "r1_reward_mode='throughput' or 'hobs-active-tx-ee'."
+                )
+            if self.reward_calibration_enabled:
+                raise ValueError(
+                    "QoS-sticky broader-effectiveness gate keeps reward "
+                    "calibration disabled."
+                )
+            if self.catfish_enabled:
+                raise ValueError(
+                    "QoS-sticky broader-effectiveness gate must not enable Catfish."
+                )
+            if self.comparison_role in {
+                "matched-throughput-control",
+                "hobs-ee-control-no-anti-collapse",
+            }:
+                if self.anti_collapse_action_constraint_enabled:
+                    raise ValueError(
+                        "No-anti-collapse broader-effectiveness controls must keep "
+                        "the action constraint disabled."
+                    )
+            elif self.comparison_role in {
+                "qos-sticky-ee-candidate",
+                "anti-collapse-throughput-control",
+            }:
+                if not self.anti_collapse_action_constraint_enabled:
+                    raise ValueError(
+                        "QoS-sticky broader-effectiveness candidate and "
+                        "anti-collapse throughput control must enable the opt-in "
+                        "action constraint."
+                    )
+                if (
+                    self.anti_collapse_constraint_mode
+                    != "qos-sticky-overflow-reassignment"
+                ):
+                    raise ValueError(
+                        "QoS-sticky broader-effectiveness enabled roles require "
+                        "anti_collapse_constraint_mode="
+                        "'qos-sticky-overflow-reassignment'."
+                    )
+            else:
+                raise ValueError(
+                    "QoS-sticky broader-effectiveness gate requires one of "
+                    "comparison_role='matched-throughput-control', "
+                    "'hobs-ee-control-no-anti-collapse', "
+                    "'qos-sticky-ee-candidate', or "
+                    "'anti-collapse-throughput-control'."
+                )
+        if (
+            self.training_experiment_kind
+            in {
+                HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_IMPLEMENTATION_READINESS_KIND,
+                HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_BOUNDED_PILOT_KIND,
+            }
+        ):
+            if self.method_family not in {
+                "CP-base-EE-MODQN implementation-readiness",
+                "CP-base-EE-MODQN",
+                "CP-base-EE-MODQN bounded matched pilot",
+            }:
+                raise ValueError(
+                    "CP-base continuous-power configs "
+                    "must use method_family='CP-base-EE-MODQN "
+                    "implementation-readiness', 'CP-base-EE-MODQN', or "
+                    "'CP-base-EE-MODQN bounded matched pilot'."
+                )
+            if self.r1_reward_mode not in {
+                R1_REWARD_MODE_THROUGHPUT,
+                R1_REWARD_MODE_HOBS_ACTIVE_TX_EE,
+            }:
+                raise ValueError(
+                    "CP-base continuous-power configs require "
+                    "r1_reward_mode='throughput' or 'hobs-active-tx-ee'."
+                )
+            if self.reward_calibration_enabled:
+                raise ValueError(
+                    "CP-base continuous-power configs keep reward calibration disabled."
+                )
+            if self.catfish_enabled:
+                raise ValueError(
+                    "CP-base continuous-power configs must not enable Catfish."
+                )
+            if self.comparison_role == "throughput-control":
+                if self.r1_reward_mode != R1_REWARD_MODE_THROUGHPUT:
+                    raise ValueError(
+                        "CP-base throughput-control requires r1_reward_mode='throughput'."
+                    )
+            elif self.comparison_role == "ee-candidate":
+                if self.r1_reward_mode != R1_REWARD_MODE_HOBS_ACTIVE_TX_EE:
+                    raise ValueError(
+                        "CP-base ee-candidate requires "
+                        "r1_reward_mode='hobs-active-tx-ee'."
+                    )
+            elif self.comparison_role == "boundary-audit":
+                pass
+            else:
+                raise ValueError(
+                    "CP-base continuous-power configs require "
+                    "comparison_role='throughput-control', 'ee-candidate', "
+                    "or 'boundary-audit'."
+                )
+            if not self.anti_collapse_action_constraint_enabled:
+                raise ValueError(
+                    "CP-base continuous-power configs must keep the shared "
+                    "anti-collapse guard enabled for the boundary proof."
+                )
+            if (
+                self.anti_collapse_constraint_mode
+                != "qos-sticky-overflow-reassignment"
+            ):
+                raise ValueError(
+                    "CP-base continuous-power configs use the shared "
+                    "qos-sticky-overflow-reassignment guard only."
+                )
+        if self.anti_collapse_action_constraint_enabled:
+            if self.training_experiment_kind not in {
+                HOBS_ACTIVE_TX_EE_ANTI_COLLAPSE_KIND,
+                HOBS_ACTIVE_TX_EE_QOS_STICKY_BROADER_EFFECTIVENESS_KIND,
+                HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_IMPLEMENTATION_READINESS_KIND,
+                HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_BOUNDED_PILOT_KIND,
+            }:
+                raise ValueError(
+                    "anti_collapse_action_constraint_enabled is only allowed for "
+                    f"{HOBS_ACTIVE_TX_EE_ANTI_COLLAPSE_KIND!r} or "
+                    f"{HOBS_ACTIVE_TX_EE_QOS_STICKY_BROADER_EFFECTIVENESS_KIND!r} "
+                    "or "
+                    f"{HOBS_ACTIVE_TX_EE_NON_CODEBOOK_CONTINUOUS_POWER_IMPLEMENTATION_READINESS_KIND!r}."
+                )
+            if self.anti_collapse_constraint_mode not in {
+                "capacity-aware-greedy-assignment",
+                "qos-sticky-overflow-reassignment",
+            }:
+                raise ValueError(
+                    "anti_collapse_constraint_mode must be "
+                    "'capacity-aware-greedy-assignment' or "
+                    "'qos-sticky-overflow-reassignment' when enabled."
+                )
+            if self.anti_collapse_constraint_mode == "capacity-aware-greedy-assignment":
+                if self.anti_collapse_max_users_per_beam < 1:
+                    raise ValueError("anti_collapse_max_users_per_beam must be >= 1.")
+                if self.anti_collapse_min_active_beams_target < 2:
+                    raise ValueError(
+                        "anti_collapse_min_active_beams_target must be >= 2."
+                    )
+            if (
+                self.anti_collapse_constraint_mode
+                == "qos-sticky-overflow-reassignment"
+            ):
+                if self.anti_collapse_overload_threshold_users_per_beam < 1:
+                    raise ValueError(
+                        "anti_collapse_overload_threshold_users_per_beam must be >= 1."
+                    )
+                if self.anti_collapse_min_active_beams_target != 0:
+                    raise ValueError(
+                        "qos-sticky-overflow-reassignment must not set "
+                        "anti_collapse_min_active_beams_target."
+                    )
+                if self.anti_collapse_qos_ratio_min <= 0.0:
+                    raise ValueError("anti_collapse_qos_ratio_min must be > 0.")
+                if self.anti_collapse_nonsticky_move_budget < 0:
+                    raise ValueError(
+                        "anti_collapse_nonsticky_move_budget must be >= 0."
+                    )
+                if (
+                    self.anti_collapse_allow_nonsticky_moves
+                    and self.anti_collapse_nonsticky_move_budget < 1
+                ):
+                    raise ValueError(
+                        "anti_collapse_allow_nonsticky_moves requires a positive "
+                        "anti_collapse_nonsticky_move_budget."
+                    )
+            if self.anti_collapse_assignment_order != "user-index":
+                raise ValueError(
+                    "anti_collapse_assignment_order currently supports only "
+                    "'user-index'."
+                )
+        else:
+            if self.anti_collapse_constraint_mode not in {
+                "disabled",
+                "capacity-aware-greedy-assignment",
+                "qos-sticky-overflow-reassignment",
+            }:
+                raise ValueError(
+                    "anti_collapse_constraint_mode must be 'disabled' or "
+                    "'capacity-aware-greedy-assignment' or "
+                    "'qos-sticky-overflow-reassignment'."
+                )
         if self.catfish_enabled:
             if self.catfish_replay_capacity <= 0:
                 raise ValueError("catfish_replay_capacity must be > 0.")

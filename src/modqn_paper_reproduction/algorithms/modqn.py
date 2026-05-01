@@ -23,6 +23,7 @@ Reproduction-assumption:
 from __future__ import annotations
 
 import copy
+import math
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -127,6 +128,23 @@ class MODQNTrainer:
         self._evaluation_seed_set: tuple[int, ...] = ()
         self._best_eval_summary: EvalSummary | None = None
         self._best_eval_payload: CheckpointPayloadV1 | None = None
+        self._anti_collapse_diagnostics = self._empty_anti_collapse_diagnostics()
+
+    def _empty_anti_collapse_diagnostics(self) -> dict[str, int]:
+        return {
+            "overflow_steps": 0,
+            "overflow_user_count": 0,
+            "sticky_override_count": 0,
+            "nonsticky_move_count": 0,
+            "qos_guard_reject_count": 0,
+            "handover_guard_reject_count": 0,
+        }
+
+    def reset_anti_collapse_diagnostics(self) -> None:
+        self._anti_collapse_diagnostics = self._empty_anti_collapse_diagnostics()
+
+    def get_anti_collapse_diagnostics(self) -> dict[str, int]:
+        return dict(self._anti_collapse_diagnostics)
 
     # -- epsilon schedule (ASSUME-MODQN-REP-004) ----------------------------
 
@@ -188,30 +206,15 @@ class MODQNTrainer:
             key=lambda action: (-float(scalarized_row[action]), int(action)),
         )
 
-    def select_actions(
+    def _select_unconstrained_actions(
         self,
-        states_encoded: np.ndarray,
+        scalarized: np.ndarray,
         masks: list[ActionMask],
         eps: float,
-        *,
-        objective_weights: tuple[float, float, float] | None = None,
     ) -> np.ndarray:
-        """Epsilon-greedy masked action selection with scalarized Q.
-
-        At each decision step:
-        1. Compute Q1, Q2, Q3 for each user
-        2. Scalarize: Q_scalar = w1*Q1 + w2*Q2 + w3*Q3
-        3. Mask invalid actions to -inf
-        4. epsilon-greedy over the masked scalarized Q
-
-        Returns actions array shape (num_users,).
-        """
+        """Return the normal MODQN epsilon-greedy actions."""
         U = len(masks)
         actions = np.zeros(U, dtype=np.int32)
-        w = objective_weights or self.config.objective_weights
-        q_values = self._predict_objective_q_values(states_encoded)
-        scalarized = self._scalarize_q_values(q_values, w)
-
         for uid in range(U):
             valid = np.where(masks[uid].mask)[0]
             if len(valid) == 0:
@@ -228,6 +231,245 @@ class MODQNTrainer:
                 actions[uid] = 0 if selected_action is None else selected_action
 
         return actions
+
+    def _select_capacity_constrained_actions(
+        self,
+        scalarized: np.ndarray,
+        masks: list[ActionMask],
+        eps: float,
+    ) -> np.ndarray:
+        """Centralized opt-in assignment constraint for anti-collapse pilots.
+
+        This is not part of the frozen MODQN baseline.  The candidate gate uses
+        it only when explicitly configured so that learned greedy evaluation
+        cannot place more than a declared number of users on one beam.
+        """
+        U = len(masks)
+        actions = np.zeros(U, dtype=np.int32)
+        max_users_per_beam = int(self.config.anti_collapse_max_users_per_beam)
+        assigned_counts = np.zeros(self.action_dim, dtype=np.int32)
+        ranked_choices: list[list[int]] = []
+
+        for uid in range(U):
+            valid = np.flatnonzero(masks[uid].mask)
+            if valid.size == 0:
+                ranked_choices.append([])
+                continue
+            if self._train_rng.random() < eps:
+                ranked_choices.append(
+                    [int(action) for action in self._train_rng.permutation(valid)]
+                )
+            else:
+                ranked_choices.append(
+                    self._rank_masked_actions(scalarized[uid], masks[uid].mask)
+                )
+
+        for uid, ranked in enumerate(ranked_choices):
+            if not ranked:
+                actions[uid] = 0
+                continue
+            selected = ranked[0]
+            for action in ranked:
+                if assigned_counts[action] < max_users_per_beam:
+                    selected = action
+                    break
+            actions[uid] = int(selected)
+            assigned_counts[int(selected)] += 1
+
+        return actions
+
+    def _current_beam_from_state(self, state: UserState) -> int | None:
+        access = np.asarray(state.access_vector, dtype=np.float64)
+        if access.size == 0 or float(np.max(access)) <= 0.0:
+            return None
+        return int(np.argmax(access))
+
+    def _estimated_qos_throughput(
+        self,
+        *,
+        state: UserState,
+        beam: int,
+        projected_load: int | float,
+    ) -> float:
+        if beam < 0 or beam >= self.action_dim:
+            return 0.0
+        snr = max(float(state.channel_quality[beam]), 0.0)
+        load = max(float(projected_load), 1.0)
+        bandwidth_hz = float(self.env.channel_config.bandwidth_hz)
+        return (bandwidth_hz / load) * math.log2(1.0 + snr)
+
+    def _record_anti_collapse_counter(self, key: str, count: int = 1) -> None:
+        self._anti_collapse_diagnostics[key] = (
+            int(self._anti_collapse_diagnostics.get(key, 0)) + int(count)
+        )
+
+    def _select_qos_sticky_overflow_reassignment_actions(
+        self,
+        scalarized: np.ndarray,
+        masks: list[ActionMask],
+        eps: float,
+        raw_states: list[UserState] | None,
+    ) -> np.ndarray:
+        """Overflow-only sticky reassignment for the QoS-preserving gate."""
+        base_actions = self._select_unconstrained_actions(scalarized, masks, eps)
+        if raw_states is None:
+            raise ValueError(
+                "qos-sticky-overflow-reassignment requires raw UserState values "
+                "for access_vector and channel_quality diagnostics."
+            )
+        if len(raw_states) != len(masks):
+            raise ValueError(
+                "raw_states length must match masks length for "
+                "qos-sticky-overflow-reassignment."
+            )
+
+        threshold = int(self.config.anti_collapse_overload_threshold_users_per_beam)
+        projected_loads = np.bincount(
+            base_actions.astype(np.int64),
+            minlength=self.action_dim,
+        ).astype(np.int32)
+        overloaded = np.flatnonzero(projected_loads > threshold)
+        if overloaded.size == 0:
+            return base_actions
+
+        self._record_anti_collapse_counter("overflow_steps")
+        actions = base_actions.copy()
+        working_loads = projected_loads.copy()
+        qos_ratio_min = float(self.config.anti_collapse_qos_ratio_min)
+        allow_nonsticky = bool(self.config.anti_collapse_allow_nonsticky_moves)
+        nonsticky_budget = int(self.config.anti_collapse_nonsticky_move_budget)
+
+        for source in (int(value) for value in overloaded.tolist()):
+            source_users = [
+                uid
+                for uid, action in enumerate(base_actions.tolist())
+                if int(action) == source
+            ]
+            overflow_users = source_users[threshold:]
+            self._record_anti_collapse_counter(
+                "overflow_user_count",
+                len(overflow_users),
+            )
+
+            for uid in overflow_users:
+                if int(working_loads[source]) <= threshold:
+                    break
+
+                state = raw_states[uid]
+                source_estimate = self._estimated_qos_throughput(
+                    state=state,
+                    beam=source,
+                    projected_load=int(projected_loads[source]),
+                )
+
+                current_beam = self._current_beam_from_state(state)
+                if (
+                    current_beam is not None
+                    and current_beam != source
+                    and 0 <= current_beam < self.action_dim
+                    and bool(masks[uid].mask[current_beam])
+                    and int(working_loads[current_beam]) + 1 <= threshold
+                ):
+                    target_load = int(working_loads[current_beam]) + 1
+                    target_estimate = self._estimated_qos_throughput(
+                        state=state,
+                        beam=current_beam,
+                        projected_load=target_load,
+                    )
+                    if target_estimate + 1e-12 >= qos_ratio_min * source_estimate:
+                        actions[uid] = int(current_beam)
+                        working_loads[source] -= 1
+                        working_loads[current_beam] += 1
+                        self._record_anti_collapse_counter("sticky_override_count")
+                        continue
+                    self._record_anti_collapse_counter("qos_guard_reject_count")
+
+                if not allow_nonsticky:
+                    self._record_anti_collapse_counter("handover_guard_reject_count")
+                    continue
+
+                if (
+                    int(self._anti_collapse_diagnostics["nonsticky_move_count"])
+                    >= nonsticky_budget
+                ):
+                    self._record_anti_collapse_counter("handover_guard_reject_count")
+                    continue
+
+                moved_nonsticky = False
+                for target in self._rank_masked_actions(
+                    scalarized[uid],
+                    masks[uid].mask,
+                ):
+                    if target == source or target == current_beam:
+                        continue
+                    if int(working_loads[target]) + 1 > threshold:
+                        continue
+                    target_load = int(working_loads[target]) + 1
+                    target_estimate = self._estimated_qos_throughput(
+                        state=state,
+                        beam=target,
+                        projected_load=target_load,
+                    )
+                    if target_estimate + 1e-12 < qos_ratio_min * source_estimate:
+                        self._record_anti_collapse_counter("qos_guard_reject_count")
+                        continue
+                    actions[uid] = int(target)
+                    working_loads[source] -= 1
+                    working_loads[target] += 1
+                    self._record_anti_collapse_counter("nonsticky_move_count")
+                    moved_nonsticky = True
+                    break
+
+                if not moved_nonsticky:
+                    self._record_anti_collapse_counter("handover_guard_reject_count")
+
+        return actions
+
+    def select_actions(
+        self,
+        states_encoded: np.ndarray,
+        masks: list[ActionMask],
+        eps: float,
+        *,
+        objective_weights: tuple[float, float, float] | None = None,
+        raw_states: list[UserState] | None = None,
+    ) -> np.ndarray:
+        """Epsilon-greedy masked action selection with scalarized Q.
+
+        At each decision step:
+        1. Compute Q1, Q2, Q3 for each user
+        2. Scalarize: Q_scalar = w1*Q1 + w2*Q2 + w3*Q3
+        3. Mask invalid actions to -inf
+        4. epsilon-greedy over the masked scalarized Q
+
+        Returns actions array shape (num_users,).
+        """
+        w = objective_weights or self.config.objective_weights
+        q_values = self._predict_objective_q_values(states_encoded)
+        scalarized = self._scalarize_q_values(q_values, w)
+
+        if self.config.anti_collapse_action_constraint_enabled:
+            if (
+                self.config.anti_collapse_constraint_mode
+                == "capacity-aware-greedy-assignment"
+            ):
+                return self._select_capacity_constrained_actions(
+                    scalarized,
+                    masks,
+                    eps,
+                )
+            if (
+                self.config.anti_collapse_constraint_mode
+                == "qos-sticky-overflow-reassignment"
+            ):
+                return self._select_qos_sticky_overflow_reassignment_actions(
+                    scalarized,
+                    masks,
+                    eps,
+                    raw_states,
+                )
+
+        return self._select_unconstrained_actions(scalarized, masks, eps)
 
     def select_actions_with_diagnostics(
         self,
@@ -526,6 +768,7 @@ class MODQNTrainer:
                 masks,
                 eps=0.0,
                 objective_weights=weights,
+                raw_states=states,
             )
             result = self.env.step(actions, env_rng)
 
@@ -538,6 +781,7 @@ class MODQNTrainer:
             if result.done:
                 break
 
+            states = result.user_states
             encoded = self._encode_states(result.user_states)
             masks = result.action_masks
 
@@ -806,7 +1050,12 @@ class MODQNTrainer:
 
             for _step_idx in range(self.env.config.steps_per_episode):
                 # Select actions
-                actions = self.select_actions(encoded, masks, eps)
+                actions = self.select_actions(
+                    encoded,
+                    masks,
+                    eps,
+                    raw_states=states,
+                )
 
                 # Step environment
                 result = self.env.step(actions, self._env_rng)
@@ -839,6 +1088,7 @@ class MODQNTrainer:
                     update_count += 1
 
                 # Advance
+                states = result.user_states
                 encoded = next_encoded
                 masks = result.action_masks
 

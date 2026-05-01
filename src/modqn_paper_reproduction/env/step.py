@@ -91,6 +91,14 @@ Each active beam's power evolves via P_b(t) = P_b(t-1) + xi_b(t-1) with
 xi sign-flipped when per-beam EE decreases. Creates time-varying denominator
 independent of interference or learning. Not a HOBS optimizer reproduction."""
 
+HOBS_POWER_SURFACE_NON_CODEBOOK_CONTINUOUS_POWER = "non-codebook-continuous-power"
+"""Opt-in CP-base implementation-readiness surface.
+
+Active-beam power is computed analytically from post-action load and assigned
+unit-power channel-quality features. It is not a finite codebook, profile
+selector, optimizer, or post-hoc EE rescore.
+"""
+
 POWER_CODEBOOK_FIXED_PROFILES = {
     "fixed-low",
     "fixed-mid",
@@ -284,19 +292,46 @@ class PowerSurfaceConfig:
     dpc_epsilon_p_w: float = 1e-9
     """Stability floor for per-beam EE denominator (W). Prevents 0/0."""
 
+    # -- CP-base: analytic non-codebook continuous-power sidecar ------------
+    continuous_p_active_lo_w: float = 0.05
+    """Lower active-beam transmit-power bound for CP-base sidecar (W)."""
+
+    continuous_p_active_hi_w: float = 0.25
+    """Upper active-beam transmit-power bound for CP-base sidecar (W)."""
+
+    continuous_alpha: float = 0.85
+    """Load-pressure coefficient for CP-base sidecar."""
+
+    continuous_beta: float = 0.35
+    """Assigned channel-pressure coefficient for CP-base sidecar."""
+
+    continuous_kappa: float = 0.60
+    """Overflow-pressure coefficient for CP-base sidecar."""
+
+    continuous_bias: float = -2.0
+    """Bias term for CP-base sidecar pressure score."""
+
+    continuous_q_ref: float = 0.0
+    """Reference unit-power link-quality feature for channel pressure."""
+
+    continuous_n_qos: float = 50.0
+    """QoS / overload reference load used in overflow pressure."""
+
     def __post_init__(self) -> None:
         if self.hobs_power_surface_mode not in {
             HOBS_POWER_SURFACE_STATIC_CONFIG,
             HOBS_POWER_SURFACE_ACTIVE_LOAD_CONCAVE,
             HOBS_POWER_SURFACE_PHASE_03C_B_POWER_CODEBOOK,
             HOBS_POWER_SURFACE_DPC_SIDECAR,
+            HOBS_POWER_SURFACE_NON_CODEBOOK_CONTINUOUS_POWER,
         }:
             raise ValueError(
                 "hobs_power_surface_mode must be one of "
                 f"{{{HOBS_POWER_SURFACE_STATIC_CONFIG!r}, "
                 f"{HOBS_POWER_SURFACE_ACTIVE_LOAD_CONCAVE!r}, "
                 f"{HOBS_POWER_SURFACE_PHASE_03C_B_POWER_CODEBOOK!r}, "
-                f"{HOBS_POWER_SURFACE_DPC_SIDECAR!r}}}, "
+                f"{HOBS_POWER_SURFACE_DPC_SIDECAR!r}, "
+                f"{HOBS_POWER_SURFACE_NON_CODEBOOK_CONTINUOUS_POWER!r}}}, "
                 f"got {self.hobs_power_surface_mode!r}"
             )
         if self.inactive_beam_policy not in {
@@ -341,6 +376,9 @@ class PowerSurfaceConfig:
                 f"got {self.power_codebook_levels_w!r}"
             )
         if (
+            self.hobs_power_surface_mode
+            == HOBS_POWER_SURFACE_PHASE_03C_B_POWER_CODEBOOK
+            and
             self.max_power_w is not None
             and max(self.power_codebook_levels_w) > float(self.max_power_w)
         ):
@@ -376,9 +414,9 @@ class PowerSurfaceConfig:
             raise ValueError(
                 "sinr_intra_satellite_interference requires a non-static "
                 "hobs_power_surface_mode (active-load-concave or "
-                "phase-03c-b-power-codebook). Static-config uses a fixed "
-                "scalar tx_power_w which cannot support meaningful per-beam "
-                "interference audit."
+                "phase-03c-b-power-codebook or non-codebook-continuous-power). "
+                "Static-config uses a fixed scalar tx_power_w which cannot "
+                "support meaningful per-beam interference audit."
             )
         if self.hobs_power_surface_mode == HOBS_POWER_SURFACE_DPC_SIDECAR:
             if self.inactive_beam_policy != "zero-w":
@@ -415,6 +453,59 @@ class PowerSurfaceConfig:
                 raise ValueError(
                     f"dpc_epsilon_p_w must be > 0, got {self.dpc_epsilon_p_w}"
                 )
+        if (
+            self.hobs_power_surface_mode
+            == HOBS_POWER_SURFACE_NON_CODEBOOK_CONTINUOUS_POWER
+        ):
+            if self.inactive_beam_policy != "zero-w":
+                raise ValueError(
+                    "non-codebook-continuous-power requires "
+                    "inactive_beam_policy='zero-w'."
+                )
+            if self.total_power_budget_w is None:
+                raise ValueError(
+                    "non-codebook-continuous-power requires total_power_budget_w."
+                )
+            if self.continuous_p_active_lo_w < 0.0:
+                raise ValueError(
+                    "p_active_lo_w must be >= 0 for "
+                    "non-codebook-continuous-power."
+                )
+            if self.continuous_p_active_hi_w <= self.continuous_p_active_lo_w:
+                raise ValueError(
+                    "p_active_hi_w must be > p_active_lo_w for "
+                    "non-codebook-continuous-power."
+                )
+            if (
+                self.max_power_w is not None
+                and self.continuous_p_active_hi_w > float(self.max_power_w)
+            ):
+                raise ValueError(
+                    "p_active_hi_w must not exceed max_power_w for "
+                    "non-codebook-continuous-power."
+                )
+            if self.continuous_n_qos <= 0.0:
+                raise ValueError(
+                    "n_qos must be > 0 for non-codebook-continuous-power."
+                )
+            for name, value in {
+                "alpha": self.continuous_alpha,
+                "beta": self.continuous_beta,
+                "kappa": self.continuous_kappa,
+            }.items():
+                if value < 0.0 or not math.isfinite(value):
+                    raise ValueError(
+                        f"{name} must be finite and >= 0 for "
+                        "non-codebook-continuous-power."
+                    )
+            for name, value in {
+                "bias": self.continuous_bias,
+                "q_ref": self.continuous_q_ref,
+            }.items():
+                if not math.isfinite(value):
+                    raise ValueError(
+                        f"{name} must be finite for non-codebook-continuous-power."
+                    )
 
 
 # ---------------------------------------------------------------------------
@@ -581,6 +672,24 @@ class StepEnvironment:
         self._num_beams_total = (
             self._orbit.num_satellites * self._beam.num_beams
         )
+        if (
+            self._power_surface_cfg.hobs_power_surface_mode
+            == HOBS_POWER_SURFACE_NON_CODEBOOK_CONTINUOUS_POWER
+        ):
+            budget_w = self._power_surface_cfg.total_power_budget_w
+            worst_case_power_w = (
+                self._num_beams_total
+                * self._power_surface_cfg.continuous_p_active_hi_w
+            )
+            if budget_w is None or worst_case_power_w > float(budget_w) + 1e-12:
+                raise ValueError(
+                    "non-codebook-continuous-power requires p_active_hi_w * "
+                    "total_beam_count <= total_power_budget_w so the rollout "
+                    "surface is always total-power bounded; got "
+                    f"{self._power_surface_cfg.continuous_p_active_hi_w} * "
+                    f"{self._num_beams_total} = {worst_case_power_w} > "
+                    f"{budget_w}."
+                )
 
         # Mutable state (set by reset)
         self._t_s: float = 0.0
@@ -829,7 +938,10 @@ class StepEnvironment:
         budget_w = (
             self._power_surface_cfg.total_power_budget_w
             if self._power_surface_cfg.hobs_power_surface_mode
-            == HOBS_POWER_SURFACE_PHASE_03C_B_POWER_CODEBOOK
+            in {
+                HOBS_POWER_SURFACE_PHASE_03C_B_POWER_CODEBOOK,
+                HOBS_POWER_SURFACE_NON_CODEBOOK_CONTINUOUS_POWER,
+            }
             else None
         )
         budget_excess_w = (
@@ -904,12 +1016,71 @@ class StepEnvironment:
             if 0 <= beam_idx < LK:
                 beam_loads[beam_idx] += 1
 
+        continuous_power_mode = (
+            self._power_surface_cfg.hobs_power_surface_mode
+            == HOBS_POWER_SURFACE_NON_CODEBOOK_CONTINUOUS_POWER
+        )
+        precomputed_vis_all: list[list[VisibilityResult]] | None = None
+        precomputed_masks: list[np.ndarray] | None = None
+        precomputed_unit_snr = np.zeros((U, LK), dtype=np.float64)
+        precomputed_channel_gain = np.zeros((U, L), dtype=np.float64)
+        if continuous_power_mode:
+            precomputed_vis_all = []
+            precomputed_masks = []
+            for uid in range(U):
+                ulat, ulon = self._user_positions[uid]
+                vis_all = self._orbit.all_visibility(ulat, ulon, self._t_s)
+                precomputed_vis_all.append(vis_all)
+
+                mask_arr = np.zeros(LK, dtype=bool)
+                unit_snr_arr = np.zeros(LK, dtype=np.float64)
+                for vr in vis_all:
+                    if not vr.is_visible:
+                        continue
+                    base = vr.sat_index * K
+                    if (
+                        self._step_cfg.action_mask_eligibility_mode
+                        == "satellite-visible-all-beams"
+                    ):
+                        mask_arr[base: base + K] = True
+                    else:
+                        local_beam = self._beam.nearest_beam(
+                            sats[vr.sat_index],
+                            ulat,
+                            ulon,
+                        )
+                        mask_arr[base + local_beam] = True
+                    if vr.slant_range_km > 0:
+                        ch = compute_channel(
+                            slant_range_km=vr.slant_range_km,
+                            altitude_km=self._orbit.config.altitude_km,
+                            config=self._channel_cfg,
+                            rng=rng,
+                            fading=True,
+                            tx_power_w=1.0,
+                        )
+                        precomputed_channel_gain[uid, vr.sat_index] = ch.channel_gain
+                        unit_snr_arr[base: base + K] = ch.snr_linear
+                precomputed_masks.append(mask_arr)
+                precomputed_unit_snr[uid] = unit_snr_arr
+
         # DPC sidecar: use pre-updated DPC power instead of _beam_transmit_power_decision.
         if self._power_surface_cfg.hobs_power_surface_mode == HOBS_POWER_SURFACE_DPC_SIDECAR:
             # _dpc_power_w was already updated in step() before this call.
             # Inactive beams are already 0 W (set by _dpc_apply_update).
             beam_transmit_power_w = self._dpc_power_w.copy()
             selected_power_profile = HOBS_POWER_SURFACE_DPC_SIDECAR
+        elif continuous_power_mode:
+            channel_quality_features = np.log1p(np.maximum(precomputed_unit_snr, 0.0))
+            (
+                beam_transmit_power_w,
+                selected_power_profile,
+            ) = _non_codebook_continuous_beam_transmit_power_decision(
+                beam_loads,
+                assignments=self._assignments,
+                unit_channel_quality=channel_quality_features,
+                power_surface_config=self._power_surface_cfg,
+            )
         else:
             beam_transmit_power_w, selected_power_profile = _beam_transmit_power_decision(
                 beam_loads,
@@ -929,23 +1100,30 @@ class StepEnvironment:
             ulat, ulon = self._user_positions[uid]
 
             # -- visibility for all satellites --
-            vis_all = self._orbit.all_visibility(ulat, ulon, self._t_s)
+            if continuous_power_mode:
+                if precomputed_vis_all is None or precomputed_masks is None:
+                    raise RuntimeError("continuous power precompute state is missing")
+                vis_all = precomputed_vis_all[uid]
+                mask_arr = precomputed_masks[uid].copy()
+            else:
+                vis_all = self._orbit.all_visibility(ulat, ulon, self._t_s)
 
             # -- action mask (ASSUME-MODQN-REP-012) --
-            mask_arr = np.zeros(LK, dtype=bool)
-            for vr in vis_all:
-                if not vr.is_visible:
-                    continue
-                base = vr.sat_index * K
-                if self._step_cfg.action_mask_eligibility_mode == "satellite-visible-all-beams":
-                    mask_arr[base: base + K] = True
-                else:
-                    local_beam = self._beam.nearest_beam(
-                        sats[vr.sat_index],
-                        ulat,
-                        ulon,
-                    )
-                    mask_arr[base + local_beam] = True
+            if not continuous_power_mode:
+                mask_arr = np.zeros(LK, dtype=bool)
+                for vr in vis_all:
+                    if not vr.is_visible:
+                        continue
+                    base = vr.sat_index * K
+                    if self._step_cfg.action_mask_eligibility_mode == "satellite-visible-all-beams":
+                        mask_arr[base: base + K] = True
+                    else:
+                        local_beam = self._beam.nearest_beam(
+                            sats[vr.sat_index],
+                            ulat,
+                            ulon,
+                        )
+                        mask_arr[base + local_beam] = True
 
             # -- channel quality: SNR to every beam --
             # NOTE (F3 follow-up): channel fading draws consume *rng*
@@ -965,35 +1143,40 @@ class StepEnvironment:
                 self._power_surface_cfg.hobs_power_surface_mode
                 == HOBS_POWER_SURFACE_STATIC_CONFIG
             )
-            for vr in vis_all:
-                if vr.is_visible and vr.slant_range_km > 0:
-                    ch = compute_channel(
-                        slant_range_km=vr.slant_range_km,
-                        altitude_km=self._orbit.config.altitude_km,
-                        config=self._channel_cfg,
-                        rng=rng,
-                        fading=True,
-                        tx_power_w=None if static_power_mode else 1.0,
-                    )
-                    channel_gain_per_sat[vr.sat_index] = ch.channel_gain
-                    base = vr.sat_index * K
-                    # All beams of a visible satellite share the same
-                    # slant-range-based SNR. The paper does not model
-                    # per-beam off-axis gain. In opt-in HOBS power-surface
-                    # mode, the per-beam transmit power is the explicit
-                    # numerator power P_b(t); baseline mode keeps the old
-                    # scalar config-power SNR path.
-                    if static_power_mode:
-                        snr_arr[base: base + K] = ch.snr_linear
-                    else:
-                        for local_beam in range(K):
-                            beam_idx = base + local_beam
-                            tx_power_w = float(beam_transmit_power_w[beam_idx])
-                            snr_arr[beam_idx] = (
-                                0.0
-                                if tx_power_w <= 0.0
-                                else (tx_power_w * ch.channel_gain) / ch.noise_power_w
-                            )
+            if continuous_power_mode:
+                snr_arr = precomputed_unit_snr[uid] * beam_transmit_power_w
+                channel_gain_per_sat = precomputed_channel_gain[uid].copy()
+            else:
+                for vr in vis_all:
+                    if vr.is_visible and vr.slant_range_km > 0:
+                        ch = compute_channel(
+                            slant_range_km=vr.slant_range_km,
+                            altitude_km=self._orbit.config.altitude_km,
+                            config=self._channel_cfg,
+                            rng=rng,
+                            fading=True,
+                            tx_power_w=None if static_power_mode else 1.0,
+                        )
+                        channel_gain_per_sat[vr.sat_index] = ch.channel_gain
+                        base = vr.sat_index * K
+                        # All beams of a visible satellite share the same
+                        # slant-range-based SNR. The paper does not model
+                        # per-beam off-axis gain. In opt-in HOBS power-surface
+                        # mode, the per-beam transmit power is the explicit
+                        # numerator power P_b(t); baseline mode keeps the old
+                        # scalar config-power SNR path.
+                        if static_power_mode:
+                            snr_arr[base: base + K] = ch.snr_linear
+                        else:
+                            for local_beam in range(K):
+                                beam_idx = base + local_beam
+                                tx_power_w = float(beam_transmit_power_w[beam_idx])
+                                snr_arr[beam_idx] = (
+                                    0.0
+                                    if tx_power_w <= 0.0
+                                    else (tx_power_w * ch.channel_gain)
+                                    / ch.noise_power_w
+                                )
 
             # Route A opt-in: replace SNR with SINR using intra-satellite interference.
             # Only applied in non-static (HOBS) power-surface mode.
@@ -1595,6 +1778,33 @@ def _beam_transmit_power_decision(
 
     if (
         power_surface_config.hobs_power_surface_mode
+        == HOBS_POWER_SURFACE_NON_CODEBOOK_CONTINUOUS_POWER
+    ):
+        # Runtime continuous power is computed in _build_states_and_masks after
+        # the assigned unit-power channel features are known. This fallback is
+        # diagnostics-only for scalar reward-scale reporting.
+        loads = beam_loads.astype(np.float64, copy=False)
+        powers = np.zeros_like(loads, dtype=np.float64)
+        active = loads > 0.0
+        if not np.any(active):
+            return powers, ""
+        lo = float(power_surface_config.continuous_p_active_lo_w)
+        hi = float(power_surface_config.continuous_p_active_hi_w)
+        channel_pressure = _softplus(0.0)
+        for idx in np.flatnonzero(active):
+            n_b = float(loads[int(idx)])
+            score = (
+                float(power_surface_config.continuous_alpha) * math.log1p(n_b)
+                + float(power_surface_config.continuous_beta) * channel_pressure
+                + float(power_surface_config.continuous_kappa)
+                * _softplus((n_b / float(power_surface_config.continuous_n_qos)) - 1.0)
+                + float(power_surface_config.continuous_bias)
+            )
+            powers[int(idx)] = lo + (hi - lo) * _sigmoid(score)
+        return powers, ""
+
+    if (
+        power_surface_config.hobs_power_surface_mode
         == HOBS_POWER_SURFACE_PHASE_03C_B_POWER_CODEBOOK
     ):
         return _power_codebook_beam_transmit_power_decision(
@@ -1626,6 +1836,73 @@ def _beam_transmit_power_decision(
         active_power = np.minimum(active_power, float(power_surface_config.max_power_w))
     powers[active] = active_power
     return powers, HOBS_POWER_SURFACE_ACTIVE_LOAD_CONCAVE
+
+
+def _softplus(value: float) -> float:
+    """Stable ``log(1 + exp(x))`` for scalar pressure terms."""
+    return float(np.logaddexp(0.0, float(value)))
+
+
+def _sigmoid(value: float) -> float:
+    """Stable scalar logistic transform."""
+    x = float(value)
+    if x >= 0.0:
+        z = math.exp(-x)
+        return 1.0 / (1.0 + z)
+    z = math.exp(x)
+    return z / (1.0 + z)
+
+
+def _non_codebook_continuous_beam_transmit_power_decision(
+    beam_loads: np.ndarray,
+    *,
+    assignments: np.ndarray,
+    unit_channel_quality: np.ndarray,
+    power_surface_config: PowerSurfaceConfig,
+) -> tuple[np.ndarray, str]:
+    """Compute CP-base analytic active-beam powers.
+
+    ``unit_channel_quality`` is the log1p unit-power SNR feature for each
+    user/beam. The policy affects the output through ``assignments``: changing
+    the selected beam changes load, active-beam state, and the assigned
+    channel-pressure aggregate before throughput or rewards are computed.
+    """
+    loads = beam_loads.astype(np.float64, copy=False)
+    powers = np.zeros_like(loads, dtype=np.float64)
+    active = loads > 0.0
+    if not np.any(active):
+        return powers, ""
+
+    lo = float(power_surface_config.continuous_p_active_lo_w)
+    hi = float(power_surface_config.continuous_p_active_hi_w)
+    alpha = float(power_surface_config.continuous_alpha)
+    beta = float(power_surface_config.continuous_beta)
+    kappa = float(power_surface_config.continuous_kappa)
+    bias = float(power_surface_config.continuous_bias)
+    q_ref = float(power_surface_config.continuous_q_ref)
+    n_qos = float(power_surface_config.continuous_n_qos)
+
+    assigned = assignments.astype(np.int64, copy=False)
+    for beam_idx in np.flatnonzero(active):
+        user_indices = np.flatnonzero(assigned == int(beam_idx))
+        if user_indices.size == 0:
+            continue
+        q_values = unit_channel_quality[user_indices, int(beam_idx)]
+        channel_pressure = float(
+            np.mean([_softplus(q_ref - float(q)) for q in q_values])
+        )
+        n_b = float(loads[int(beam_idx)])
+        load_pressure = math.log1p(n_b)
+        overflow_pressure = _softplus((n_b / n_qos) - 1.0)
+        score = (
+            alpha * load_pressure
+            + beta * channel_pressure
+            + kappa * overflow_pressure
+            + bias
+        )
+        powers[int(beam_idx)] = lo + (hi - lo) * _sigmoid(score)
+
+    return powers, ""
 
 
 def _nearest_codebook_level(value: float, levels: tuple[float, ...]) -> float:

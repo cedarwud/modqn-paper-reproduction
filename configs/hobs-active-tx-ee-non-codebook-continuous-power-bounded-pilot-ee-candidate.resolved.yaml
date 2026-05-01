@@ -1,0 +1,95 @@
+config_role: resolved-run-follow-on
+inherits_from: modqn-paper-baseline.resolved-template.yaml
+
+track:
+  phase: hobs-active-tx-ee-non-codebook-continuous-power-bounded-pilot
+  label: hobs-active-tx-ee-non-codebook-continuous-power-bounded-pilot-ee-candidate
+  comparison_role: ee-candidate
+  method_family: CP-base-EE-MODQN bounded matched pilot
+  status: bounded-pilot-candidate
+  purpose: >
+    CP-base EE objective candidate for the bounded matched pilot. It must be
+    compared only against the throughput control with the same continuous power
+    sidecar and same QoS-sticky overflow structural guard.
+  method_markings:
+    - CP-base-EE-MODQN bounded matched pilot
+    - candidate differs from control only by r1_reward_mode
+    - not Catfish-EE readiness
+    - not general EE-MODQN effectiveness
+    - not physical energy saving
+    - not HOBS optimizer reproduction
+
+baseline:
+  episodes: 5
+
+bounded_pilot_protocol:
+  enabled: true
+  method_label: CP-base-EE-MODQN bounded matched pilot
+  scalar_reward_diagnostic_only: true
+  candidate_control_only_intended_difference: r1_reward_mode
+  seed_triplets:
+    - [42, 1337, 7]
+    - [43, 1338, 8]
+    - [44, 1339, 9]
+  evaluation_seed_set: [100, 200, 300, 400, 500]
+  bounded_episode_budget: 5
+  role_count: 2
+
+training_experiment:
+  kind: hobs-active-tx-ee-non-codebook-continuous-power-bounded-pilot
+  experiment_id: HOBS-ACTIVE-TX-EE-NON-CODEBOOK-CONTINUOUS-POWER-BOUNDED-PILOT-EE-CANDIDATE
+  method_family: CP-base-EE-MODQN bounded matched pilot
+  phase: hobs-active-tx-ee-non-codebook-continuous-power-bounded-pilot
+  hobs_active_tx_ee_non_codebook_continuous_power:
+    enabled: true
+    r1_reward_mode: hobs-active-tx-ee
+    r1_label: HOBS active-TX EE with shared non-codebook continuous power
+    r1_provenance: >
+      eta_EE_active_TX = sum_u(R_u^t) /
+      (sum_b z_b^t p_b^t + epsilon_P), using the same rollout-time analytic
+      continuous active-beam power sidecar and same QoS-sticky overflow
+      structural guard as the throughput control.
+    comparison_role: ee-candidate
+    anti_collapse_action_constraint:
+      enabled: true
+      mode: qos-sticky-overflow-reassignment
+      max_users_per_beam: 0
+      min_active_beams_target: 0
+      assignment_order: user-index
+      overload_threshold_users_per_beam: 50
+      qos_ratio_min: 0.95
+      allow_nonsticky_moves: false
+      nonsticky_move_budget: 0
+      provenance: >
+        Shared structural guard only. It is not counted as EE objective
+        evidence. Non-sticky moves are disabled and no forced active-beam
+        target is used.
+
+resolved_assumptions:
+  hobs_power_surface:
+    assumption_id: ASSUME-MODQN-REP-025
+    value:
+      mode: non-codebook-continuous-power
+      inactive_beam_policy: zero-w
+      p_active_lo_w: 0.05
+      p_active_hi_w: 0.25
+      alpha: 0.85
+      beta: 0.35
+      kappa: 0.6
+      bias: -2.0
+      q_ref: 0.0
+      n_qos: 50.0
+      max_power_w: 0.25
+      total_power_budget_w: 8.0
+      sinr_intra_satellite_interference: false
+      units: linear-w
+      channel_quality_feature: log1p(unit-power-snr-linear)
+      finite_codebook_levels_absent: true
+      selected_power_profile_absent: true
+      provenance: >
+        Analytic rollout-time continuous-power sidecar for the CP-base bounded
+        pilot. Active powers are computed after policy action / shared
+        structural guard and before SINR, throughput, reward, and EE metrics.
+        No finite codebook, selected profile, rounding path, HOBS optimizer,
+        oracle, future information, offline replay oracle, or post-hoc rescore
+        is used.
