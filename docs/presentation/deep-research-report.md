@@ -155,6 +155,82 @@ Phase 01F 的 beam-aware follow-on 很有價值，但它也沒有授權 repo 把
 如果你要把這段變成口頭報告的最後一頁，我會建議你用下面這個說法收尾：  
 **這個專案最成功的地方，不是已經完美重現論文數值，而是把「論文規格、缺失資訊、工程假設、訓練流程、比較 protocol、負面結果、claim boundary」全部拆開來公開化。** 從研究誠實性來看，這其實比只展示一組漂亮最終曲線更有價值。fileciteturn7file0 fileciteturn15file0 fileciteturn16file0
 
+### Thesis section draft: scoped HEA-MODQN result
+
+本 thesis section 只能放 `Handover-Energy-Aware MODQN` (`HEA-MODQN`) 的
+scoped positive result。它應被描述為
+`service-continuity-sensitive MODQN extension`，而不是 active-TX EE route、
+Catfish route、Multi-Catfish route、或 Phase 06 前置結果。2026-05-02 之後的
+Catfish 只允許作為 Multi-Catfish-first redesign future work；它不改寫本節
+HEA / `EE_HO` claim。
+
+可用 claim wording：
+
+> Under a frozen high handover-cost / service-continuity-sensitive sensitivity
+> setting, HEA-MODQN improves both the declared handover-aware utility and the
+> ratio-form handover-aware EE_HO relative to matched throughput-objective
+> MODQN while preserving p05 throughput, served ratio, and outage guardrails.
+
+簡報可引用的公式證據鏈：
+
+| Slide point | Evidence source | How to say it safely |
+|---|---|---|
+| Handover events can carry explicit energy / operational cost | `paper-catalog/catalog/PAP-2025-EAQL.json`; `paper-catalog/catalog/PAP-2025-BIPARTITE-HM.json` | Prior LEO handover studies model handover energy or cost terms in the decision objective / strategy cost. |
+| A ratio-form handover-aware EE can be defined for sensitivity analysis | `system-model-refs/system-model-formulas.md` §3.14-3.16 | We evaluate a thesis-level `EE_HO = throughput / (communication energy + handover-event energy)` sensitivity metric. |
+| The per-handover energy value is not a universal constant | `system-model-refs/simulator-parameter-spec.md` §6 | `E_HO` is declared as an assumption-set / sensitivity parameter; low-cost rows remain visible. |
+| Current PASS is scoped utility-form plus scoped ratio-form EE_HO | Clean HEA artifact / validator gate | The positive result supports both `J = sum R - lambda_HO E_HO,total` and `EE_HO = total_bits / (communication_energy + E_HO,total)` only in the declared high-cost sensitivity setting. |
+
+建議 thesis tables / figures：
+
+| Table / figure | Content |
+|---|---|
+| Claim-boundary table | active-TX EE-MODQN `BLOCK / NOT PROMOTED`; CF-RA-CP active-TX EE `BLOCK`; HEA-MODQN utility + ratio-form `EE_HO` scoped gates `PASS`; HEA robustness / attribution `PASS`; Catfish / Multi-Catfish for EE repair `BLOCKED / NOT PROMOTED`; Catfish-over-HEA baseline parity gate `PASS` for readiness only; Catfish-over-HEA bounded matched pilot `BLOCK`; Multi-Catfish redesign plan is current design authority; Gate 1 read-only diagnostics returned `NEEDS MORE DESIGN`; Gate 1A transition-provenance SDD is the next design gate; Catfish-EE / Phase 06 blocked; scalar reward diagnostic only |
+| Sensitivity heatmap | `J_delta` over `E_HO` and `lambda_HO`, with primary subset `15/15`, secondary subset `6/6`, break-even-near `E_HO=130`, `lambda_HO=0.2`, and low-cost `E_HO=3`, `lambda_HO=0.2` visibly marked |
+| Guardrail table | primary mean `J_delta=13288.26934925599`, candidate vs ablation mean primary `J_delta=13288.26934925599`, lambda-zero ablation primary wins `0/15`, primary min p05 ratio `0.9665274269295018`, served delta `0`, outage delta `0`, primary mean handover delta `-43.733333333333334` |
+| Ratio-form EE_HO table | primary candidate/control `414946.480518 / 412914.217690 bits/J`, `EE_HO_delta=+2032.262828`, `EE_HO_ratio=1.0049217555`, `15/15` cells and `3/3` seed triplets positive; secondary candidate/control `1278023.040718 / 1272319.566835 bits/J`, `EE_HO_delta=+5703.473883`; low-cost `E_HO=3`, `lambda_HO=0.2` has `EE_HO_delta=0` |
+| Stop-loss table | communication-only `EE_general = total_bits / communication_energy_joules` has `0/30` candidate wins, `0/15` primary wins, `0/6` secondary wins, primary mean `EE_delta≈-82980 bits/J`, secondary mean `EE_delta≈-74659 bits/J`; therefore removing `E_HO,total` blocks the relaxed general-EE claim |
+
+敘事邊界要一起寫清楚：high-cost `E_HO` / `lambda_HO` 是 sensitivity /
+utility-accounting penalties，不是 physical constants；low-cost row 的
+`J_delta=0` 與 `EE_HO_delta=0` 代表不能 claim low-cost success；active-TX EE
+與 scalar reward 都只能作 diagnostic；這段不宣稱 general EE-MODQN
+superiority、不宣稱 active-TX EE recovery、不宣稱 physical energy-saving、不宣稱
+Catfish-EE 或 Phase 06 readiness，也不把 Multi-Catfish 當作 EE repair。
+
+場景合理性的口頭說法要明確：這不是任意造一個不存在的情境。LEO handover
+文獻已有 handover energy、setup cost、RTT、strategy cost、energy weight 等
+建模先例；系統模型也允許 `E_HO` 作為 scenario / sensitivity parameter。可是
+目前高成本 row 只能代表 service-continuity-sensitive sensitivity regime，例如
+handover signaling、setup/recovery、短暫中斷、QoS continuity 或 terminal-side
+overhead 壓力的綜合懲罰；不能說真實 LEO handover 一般就是 `130 J`、`150 J` 或
+`200 J`。
+
+最後一次放寬審查也要講清楚：如果把 denominator 改成一般
+`total_bits / communication_energy_joules`，HEA candidate 在 clean artifact
+中是 `0/30` wins，primary subset `0/15` wins。也就是說，這個方法不能放寬成
+general EE 或 active-TX EE；成功只存在於 handover-aware denominator。
+
+若簡報需要回答「為什麼可以把 handover energy 放進 EE 分母」，建議說法是：
+
+> The denominator extension is not introduced as a universal physical constant.
+> It is a sensitivity-defined handover-aware EE metric. Prior LEO handover work
+> models handover energy or handover cost explicitly, and our system model keeps
+> `E_HO` as a declared assumption parameter. The claim is therefore limited to
+> high handover-cost / service-continuity-sensitive scenarios.
+
+建議下一步仍是 thesis tables / figures / narrative polish。Catfish-over-HEA
+已可作為 default-off readiness-only 訓練介入 surface 記錄，而且 baseline
+parity gate 已通過 default vs explicit `catfish_enabled=false` 的 trainStep
+一致性；但 enabled bounded pilot 已經 BLOCK，不能寫成 effectiveness evidence。
+如果要繼續 Catfish，必須改走
+`2026-05-02-multi-catfish-redesign-plan.md` 與
+`2026-05-02-multi-catfish-gate1a-transition-provenance-sdd.md`：Gate 1 已確認
+現有 artifacts 只有 aggregate / seed / cell 層級，不足以支援 transition-level
+Catfish scoring。下一步是 transition-provenance schema / coordinator diagnostics
+設計，不是 implementation、training 或 pilot。先設計 Multi-Catfish，Single-
+Catfish 只是 collapsed ablation。Catfish 不得被寫成 EE repair、Active-TX EE
+recovery、Catfish-EE、Phase 06、或目前已成功的 Multi-Catfish。
+
 ## 簡報濃縮版
 
 **投影片：專案要回答的真正問題**

@@ -1,7 +1,19 @@
 # Phase 05: Multi-Catfish-MODQN Validation
 
-**Status:** Phase 07C records bounded single-Catfish utility; Multi-Catfish remains closed
+**Status:** Historical Phase 05 route closed; superseded as the active planning
+surface by the 2026-05-02 Multi-Catfish redesign plan
 **Question:** Does objective-specialized Catfish add value beyond single Catfish?
+
+## 2026-05-02 Supersession Note
+
+This file remains the authority for the old Phase `05` route and why it was not
+promoted. It should not be used as the next implementation prompt.
+
+The active Catfish planning line is now
+`2026-05-02-multi-catfish-redesign-plan.md`. That line does not continue Phase
+`05B` by tuning ratios, adding seeds, or extending training. It redesigns
+Multi-Catfish first around the fixed scoped HEA / `EE_HO` surface, with
+Single-Catfish represented only as a collapsed ablation.
 
 ## Decision
 
@@ -303,7 +315,7 @@ Bounded result:
 Phase 07B bounded implementation / diagnostics / pilot: PASS
 Bounded single-Catfish intervention utility evidence: PASS
 Broader Catfish-MODQN effectiveness promotion: NOT PROMOTED
-Multi-Catfish reopening: BLOCKED / DEFERRED
+Old Phase 05 Multi-Catfish reopening: BLOCKED / DEFERRED
 Phase 06 / Catfish-EE-MODQN: BLOCKED
 ```
 
@@ -324,11 +336,11 @@ Caveats:
 1. `r2` / handovers worsened,
 2. aggregate metrics did not support asymmetric gamma as an active mechanism,
 3. broader Catfish-MODQN effectiveness is not promoted,
-4. Multi-Catfish and Phase `06` remain blocked.
+4. old Phase `05` Multi-Catfish and Phase `06` remain blocked.
 
 At Phase `07C`, the next gate was Phase `07D` r2-guarded single-Catfish
-robustness planning, not Multi-Catfish reopening. Phase `07D` has now run and
-failed its acceptance gate.
+robustness planning, not old Phase `05` Multi-Catfish reopening. Phase `07D`
+has now run and failed its acceptance gate.
 
 ### 07D: R2-Guarded Single-Catfish Robustness
 
@@ -345,7 +357,7 @@ Bounded result:
 Phase 07D bounded implementation / runs / diagnostics: PASS
 Phase 07D acceptance / recovery promotion: FAIL
 Broader Catfish-MODQN effectiveness: NOT PROMOTED
-Multi-Catfish reopening: BLOCKED
+Old Phase 05 Multi-Catfish reopening: BLOCKED
 Phase 06 / Catfish-EE-MODQN: BLOCKED
 ```
 

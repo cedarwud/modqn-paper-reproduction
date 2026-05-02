@@ -73,21 +73,33 @@ copied into this repo by default:
 |---|---|---|
 | `paper-catalog/` | do not import | Source-of-truth paper catalog and PDFs are workspace-level literature authority, not repo-local development files. |
 | `system-model-refs/` | do not import | Canonical cross-paper formula synthesis should stay central; copy only bounded excerpts if a future report needs them. |
-| `catfish/` / `catfish-independent-synthesis/` | do not import now | Catfish is not the next EE repair path. Keep as external source material unless a future Catfish-specific gate reopens. |
+| `catfish/` / `catfish-independent-synthesis/` | do not bulk-import | These folders are now historical / concept-source material for the reopened Multi-Catfish redesign line. They must not override `2026-05-02-multi-catfish-redesign-plan.md`; import only bounded excerpts if a future Catfish-specific gate needs them. |
 | `ntn-showcase-stack/` | do not import | Cross-repo coordination / presentation framing only; it must not override this repo's evidence chain. |
 | `modqn-ee-presentation-pack/` | do not import | Derived slide / presentation package; useful for communication, not for implementation authority. |
 | `modqn-multicatfish-presentation-pack/` | do not import | Derived slide / presentation package; useful for communication, not for implementation authority. |
 | `ntn-sim-core/` | do not import | Separate simulator / presentation target. Use via explicit integration contracts only. |
 
-## Current Next-Step Boundary
+## 2026-05-02 Update: Current Next-Step Boundary
 
-For EE-MODQN continuation, the next useful work is not repository cleanup and
-not more Route `D` training. It is a new anti-collapse / capacity / assignment
-design gate that addresses:
+For the EE formula route, the next useful work is not repository cleanup and
+not more Route `D` training. The active-TX / CP-base routes have since reached
+their stop-loss boundary, while HEA-MODQN became the scoped positive thesis
+result. The accepted EE formula surface is now fixed to scoped HEA:
 
 ```text
-all_evaluated_steps_one_active_beam = true
+EE_HO = total_bits / (communication_energy_joules + E_HO_total_joules)
+E_HO_total_joules = handover_count * E_HO
 ```
 
-Catfish / Multi-Catfish should not be imported or attached as the next EE repair
-mechanism unless that base anti-collapse gate first passes.
+Catfish / Multi-Catfish still must not be imported or attached as an EE repair
+mechanism for active-TX, CP-base, Phase `06`, or general communication-only EE.
+However, the Catfish concept has been reopened as a separate Multi-Catfish-first
+redesign line over the fixed scoped HEA surface. The current authority for that
+line is:
+
+```text
+docs/research/catfish-ee-modqn/2026-05-02-multi-catfish-redesign-plan.md
+```
+
+Old single-first and Phase `05` materials are now historical evidence and
+failure constraints, not the next execution plan.

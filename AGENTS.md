@@ -80,6 +80,16 @@ read:
 
 1. `docs/phases/phase-03a-ntn-sim-core-bundle-replay-integration-sdd.md`
 
+For the current EE / HEA / Catfish thesis-controller line, also read:
+
+1. `docs/ee-report.md`
+2. `docs/presentation/deep-research-report.md`
+3. `docs/research/catfish-ee-modqn/00-validation-master-plan.md`
+4. `docs/research/catfish-ee-modqn/execution-handoff.md`
+5. `docs/research/catfish-ee-modqn/2026-05-02-multi-catfish-redesign-plan.md`
+6. `docs/research/catfish-ee-modqn/2026-05-02-multi-catfish-gate1a-transition-provenance-sdd.md`
+7. `docs/research/catfish-ee-modqn/energy-efficient/README.md`
+
 If the user explicitly asks whether reproduction work may reopen, also
 read:
 
@@ -161,6 +171,25 @@ What is already true:
 22. curated OriginLab-ready plotting CSVs should be regenerated through
     `docs/origin-plot-data-runbook.md` and tracked only under
     `artifacts/origin-plot-data/`
+23. as of `2026-05-02`, the thesis-safe EE result is scoped
+    `HEA-MODQN`: utility-form `J` and ratio-form handover-aware
+    `EE_HO` pass only under the frozen high handover-cost /
+    service-continuity-sensitive sensitivity setting
+24. the relaxed communication-only / general EE formula remains blocked:
+    removing `E_HO,total` gives `0/30` candidate wins in the clean HEA
+    artifact
+25. Catfish / Multi-Catfish remain historical bounded evidence and negative
+    boundary findings for EE repair; Catfish-over-HEA readiness / baseline
+    parity passed, but the enabled bounded matched pilot blocked the old
+    generic single-intervention route
+26. the current Catfish planning line is
+    `2026-05-02-multi-catfish-redesign-plan.md`: Multi-Catfish is designed
+    first over the fixed scoped HEA / `EE_HO` surface, and Single-Catfish is
+    only the collapsed ablation
+27. the Gate 1 read-only Multi-Catfish diagnostics result is
+    `NEEDS MORE DESIGN`: current artifacts are aggregate / seed / cell level
+    and do not support transition-level `catfish-ee`, `catfish-ho`,
+    `catfish-qos`, or coordinator diagnostics
 
 What is not yet established:
 
@@ -175,6 +204,16 @@ What is not yet established:
 7. a broader globe-centric or same-page consumer presentation follow-on
    remains separate work
 8. any landed Phase 04 internal hardening slice beyond Slice E
+9. general EE-MODQN superiority, active-TX EE recovery, Catfish-EE /
+   Phase `06` readiness, Multi-Catfish repair, or physical energy-saving
+   claims
+10. Catfish-over-HEA effectiveness; readiness / baseline-parity only proves a
+    default-off hook plus disabled train-step parity, and the enabled bounded
+    pilot is blocked
+11. Multi-Catfish effectiveness; the current redesign plan is documentation /
+    planning only until future matched evidence promotes it
+12. transition-level Catfish scoring readiness; Gate 1A must define and accept
+    a transition-provenance schema before implementation or pilot work
 
 ## Current Guardrails
 
@@ -200,3 +239,16 @@ What is not yet established:
    but the kickoff and later slices are not landed
    producer-contract changes unless a later explicit status note says
    so.
+11. Treat `docs/research/catfish-ee-modqn/execution-handoff.md` as the
+    current EE / HEA / Catfish claim-boundary handoff.
+12. Future Catfish work must start from
+    `docs/research/catfish-ee-modqn/2026-05-02-multi-catfish-redesign-plan.md`.
+    It must remain a training-time intervention over the scoped HEA baseline,
+    preserve the no-Catfish baseline path when disabled, keep HEA `J` and
+    ratio-form `EE_HO` fixed, and must not be framed as EE repair, Active-TX EE
+    recovery, Phase `06`, or current Multi-Catfish effectiveness.
+13. Gate 1A
+    `docs/research/catfish-ee-modqn/2026-05-02-multi-catfish-gate1a-transition-provenance-sdd.md`
+    is the current next Catfish design surface. Do not infer transition-level
+    scores from aggregate `J_delta`, aggregate `EE_HO_delta`, scalar reward,
+    active-TX EE, or seed-level summaries.

@@ -1,7 +1,18 @@
 # Phase 04: Single Catfish-MODQN Feasibility
 
-**Status:** Feasibility design defined; needs pilot evidence  
+**Status:** Historical feasibility branch; superseded as the active Catfish
+development path by `2026-05-02-multi-catfish-redesign-plan.md`
 **Question:** Can Catfish training mechanics attach to the original MODQN backbone?
+
+## 2026-05-02 Supersession Note
+
+This file remains useful as historical evidence for how the old single-first
+Catfish route was scoped. It is no longer the next execution plan.
+
+Current Catfish planning uses a Multi-Catfish-first architecture over the fixed
+scoped HEA / `EE_HO` surface. Single-Catfish is now a collapsed ablation of that
+architecture, not the required first implementation step and not an EE repair
+mechanism. See `2026-05-02-multi-catfish-redesign-plan.md`.
 
 ## Decision
 

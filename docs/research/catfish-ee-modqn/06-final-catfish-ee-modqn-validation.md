@@ -1,7 +1,20 @@
 # Phase 06: Final Catfish-EE-MODQN Validation
 
-**Status:** Final validation design defined; final claim blocked  
+**Status:** Historical final-method design; final claim blocked and not the
+active Catfish redesign path
 **Question:** Does Catfish improve EE-MODQN under the final claim boundary?
+
+## 2026-05-02 Supersession Note
+
+Phase `06` remains blocked. The current Catfish redesign is not a Phase `06`
+restart and is not a Catfish-EE-MODQN promotion path.
+
+The active design authority is
+`2026-05-02-multi-catfish-redesign-plan.md`, which keeps HEA utility `J`,
+ratio-form `EE_HO`, simulator behavior, reward semantics, state/action surface,
+evaluation, and policy selection fixed. Any future Multi-Catfish claim must
+first pass no-Catfish HEA, collapsed single-Catfish, and full Multi-Catfish
+matched controls under the scoped HEA boundary.
 
 ## Decision
 

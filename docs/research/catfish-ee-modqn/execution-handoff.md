@@ -1,7 +1,7 @@
 # Catfish / EE-MODQN Execution Handoff
 
 **Date:** `2026-05-02`
-**Status:** handoff after HOBS active-TX EE QoS-sticky broader-effectiveness block and CP-base bounded matched pilot BLOCK
+**Status:** handoff after HEA-MODQN scoped thesis PASS, blocked Catfish-over-HEA pilot, Multi-Catfish redesign reset, and Gate 1 `NEEDS MORE DESIGN`
 **Scope:** planning and execution control for the next Catfish / EE-MODQN research step. This document does not authorize code changes by itself.
 
 ## Current Conclusion
@@ -210,6 +210,185 @@ and does not authorize tuning reruns. See
 and
 `artifacts/hobs-active-tx-ee-non-codebook-continuous-power-bounded-pilot-summary/summary.json`.
 
+The thesis/report synchronization boundary now also includes a separate
+`Handover-Energy-Aware MODQN` (`HEA-MODQN`) result. This is a
+service-continuity-sensitive MODQN extension, not an active-TX EE repair route
+and not a Catfish route.
+
+```text
+Active-TX EE-MODQN: BLOCK / NOT PROMOTED
+CF-RA-CP active-TX EE: BLOCK
+HEA-MODQN high handover-cost / service-continuity-sensitive scoped pilot: PASS
+HEA-MODQN ratio-form EE_HO clean artifact gate: PASS, scoped
+HEA-MODQN robustness / attribution gate: PASS
+Catfish / Multi-Catfish for EE repair: BLOCKED / NOT PROMOTED
+Catfish-over-HEA baseline parity gate: PASS readiness / parity only
+Catfish-over-HEA bounded matched pilot: BLOCK
+Multi-Catfish redesign plan: PASS for documentation / redesign planning only
+Catfish-EE / Phase 06: BLOCKED
+Scalar reward: diagnostic only
+```
+
+The HEA-MODQN positive claim is limited to the frozen high handover-cost /
+service-continuity-sensitive sensitivity setting:
+
+```text
+Under a frozen high handover-cost / service-continuity-sensitive sensitivity
+setting, HEA-MODQN improves both the declared handover-aware utility and the
+ratio-form handover-aware EE_HO relative to matched throughput-objective MODQN
+while preserving p05 throughput, served ratio, and outage guardrails.
+```
+
+For future thesis writing and presentation, the evidence chain for a possible
+ratio-form `handover-aware EE` definition is:
+
+```text
+eta_EE,HO =
+  (sum_t sum_u R_u^t Delta_t)
+  /
+  (sum_t sum_s P_tot,s^t Delta_t + E_HO,total)
+
+E_HO,total = sum_t sum_u delta_HO,u^t * E_u,HO
+```
+
+Use these sources when explaining why the denominator may include handover-event
+energy in a sensitivity scenario:
+
+1. `system-model-refs/system-model-formulas.md` §3.14-3.16 - local formula
+   authority for handover-aware EE, plus the boundary separating it from
+   active-TX EE and utility-form fallback.
+2. `system-model-refs/simulator-parameter-spec.md` §6 - parameter authority:
+   `E_u,HO` is a scenario / sensitivity parameter, not a universal physical
+   constant.
+3. `paper-catalog/catalog/PAP-2025-EAQL.json` - energy-aware handover utility
+   and reward precedent using `lambda * E_handover`.
+4. `paper-catalog/catalog/PAP-2025-BIPARTITE-HM.json` - handover strategy-cost
+   precedent with per-handover energy, setup cost, RTT, and sensitivity to
+   energy weight.
+
+Do not use this source chain to claim that active-TX EE recovered, that
+`E_HO=3 J` is a universal LEO constant, or that any future utility-form
+HEA-MODQN PASS automatically proves ratio-form `EE_HO`. The current ratio-form
+claim is accepted only because a separate clean artifact / validator gate
+directly checked explicit `total_bits`, `communication_energy_joules`,
+`handover_count`, `E_HO_total_joules`, and `EE_HO_bits_per_joule` fields.
+
+Scenario realism boundary for thesis writing:
+
+1. The high handover-cost / service-continuity-sensitive condition is
+   literature-defensible because prior LEO handover work models handover energy
+   or operational handover cost in decision objectives and strategy costs.
+2. `E_u,HO` remains a scenario / sensitivity parameter, not a universal LEO
+   constant.
+3. High-cost rows (`E_HO=130/150/200`) should be described as a declared
+   sensitivity regime for signaling, setup/recovery, interruption, QoS
+   continuity, or terminal-side overhead pressure.
+4. Do not describe the high-cost values as measured physical spacecraft energy
+   or as a general NTN deployment default.
+
+Final relaxation / stop-loss review:
+
+1. The clean artifact directly supports a zero-run check of
+   `EE_general = total_bits / communication_energy_joules`.
+2. That relaxed communication-only formula fails: candidate wins are `0/30`
+   across the full grid, `0/15` in the primary high-cost subset, and `0/6` in
+   the secondary subset. Primary mean communication-only `EE_delta` is about
+   `-82980 bits/J`; secondary mean communication-only `EE_delta` is about
+   `-74659 bits/J`.
+3. The HEA-MODQN win disappears when `E_HO,total` is removed. The accepted
+   result is therefore handover-aware / service-continuity-sensitive only, not
+   general communication-energy-only EE.
+4. Do not open another EE design gate from this evidence; proceed to thesis
+   writing under the scoped claim boundary.
+
+Recorded metrics:
+
+```text
+primary subset positive cells = 15/15
+secondary subset positive cells = 6/6
+primary mean J_delta = 13288.26934925599
+candidate vs ablation mean primary J_delta = 13288.26934925599
+break-even-near E_HO=130, lambda_HO=0.2 J_delta = 217.11219999700552
+low-cost E_HO=3, lambda_HO=0.2 J_delta = 0
+primary candidate/control EE_HO = 414946.480518 / 412914.217690 bits/J
+primary EE_HO_delta = +2032.262828 bits/J
+primary EE_HO_ratio = 1.0049217555
+secondary candidate/control EE_HO = 1278023.040718 / 1272319.566835 bits/J
+secondary EE_HO_delta = +5703.473883 bits/J
+low-cost E_HO=3, lambda_HO=0.2 EE_HO_delta = 0
+communication-only EE candidate wins = 0/30
+primary communication-only EE wins = 0/15
+secondary communication-only EE wins = 0/6
+primary mean communication-only EE_delta ~= -82980 bits/J
+secondary mean communication-only EE_delta ~= -74659 bits/J
+lambda-zero ablation primary wins = 0/15
+primary min p05 throughput ratio = 0.9665274269295018
+served_delta = 0
+outage_delta = 0
+primary mean handover_delta = -43.733333333333334
+```
+
+The low-cost `J_delta=0` / `EE_HO_delta=0` row must stay visible. High-cost
+`E_HO` / `lambda_HO` values are sensitivity / utility-accounting penalties, not
+physical constants. Active-TX EE and scalar reward are diagnostic only for this
+result. Do not claim general EE-MODQN superiority, active-TX EE recovery,
+physical energy-saving, Catfish-EE readiness, Phase `06` readiness,
+Multi-Catfish repair, or scalar-reward success from HEA-MODQN.
+
+The next action for the thesis result remains tables / figures / narrative
+polish. A bounded `Catfish-over-HEA` readiness slice passed in `ntn-sim-core`,
+but the subsequent bounded matched pilot is blocked. The enabled generic
+single intervention path produced:
+
+```text
+mean J_delta = -1136.0548587210574
+mean EE_HO_delta = +225.88343883804046
+J non-worse cells = 7 / 15
+EE_HO non-worse cells = 13 / 15
+max handover delta = +7
+max r2 worsening = 7
+seed 5103/6103/7103 J_delta_sum = -37775.76469904102
+```
+
+This is not Catfish effectiveness, not sample-efficiency evidence, not
+Catfish-EE, not Phase `06`, not Active-TX EE recovery, and not Multi-Catfish
+promotion. It is a negative boundary result for the old generic
+single-training-batch-intervention path. Evidence source for HEA:
+`ntn-sim-core/artifacts/handover-energy-aware-modqn-bounded-matched-pilot/summary.json`.
+
+Catfish-over-HEA readiness status:
+
+```text
+readiness slice = PASS
+baseline parity gate = PASS
+catfish_enabled default = false
+intervention_policy_id default = disabled
+intervention_ratio default = 0
+bounded matched pilot = BLOCK
+disabled trainStep parity = PASS in readiness validator
+Gate 1 read-only diagnostics = NEEDS MORE DESIGN
+next gate = Gate 1A transition-provenance schema / coordinator diagnostics SDD
+forbidden = Catfish-EE, Phase 06, EE repair, active-TX EE recovery
+```
+
+Current Catfish planning boundary:
+
+```text
+Multi-Catfish redesign plan = current design authority
+Gate 1 offline diagnostics = NEEDS MORE DESIGN
+Gate 1A transition-provenance SDD = current next design surface
+Single-Catfish = collapsed ablation of the Multi-Catfish design
+Catfish concept = external training stimulus + high-quality experience distillation
+fixed surfaces = HEA utility J, ratio-form EE_HO, simulator behavior, reward semantics, state/action, evaluation, policy selection
+next action = transition-level schema / coordinator diagnostics design, not implementation or pilot
+```
+
+Use `2026-05-02-multi-catfish-redesign-plan.md` and
+`2026-05-02-multi-catfish-gate1a-transition-provenance-sdd.md` as the current
+Catfish design authorities. Do not use old Phase `04`, Phase `05`, Phase `06`,
+or Catfish-over-HEA prompt text as the next execution plan; those files are now
+historical constraints and failure evidence.
+
 The RA-EE follow-on is now also closed at the current evidence boundary:
 
 ```text
@@ -239,15 +418,13 @@ Phases `04` to `06` remain evidence-gated:
    not be mixed into Phase `03` or RA-EE. Phase `04-B` runnable evidence and
    Phase `04C` bounded attribution are complete, but Catfish-MODQN effectiveness
    is not promoted.
-2. Phase `05` must not jump directly to three Catfish agents. Phase `05A`
-   multi-buffer validation is complete and blocks escalation: objective-specific
-   buffers were not meaningfully distinct, so Phase `05B` and full
-   multi-Catfish agents remain blocked. The only allowed continuation is
-   Phase `05R`, a planning / diagnostic-only objective-buffer-redesign gate.
-   Phase `05R` has since passed, Phase `05B` planning passed, and the bounded
-   Phase `05B` pilot has now completed. Runnable evidence passed, but
-   acceptance / effectiveness failed. Phase `05C` closes the current
-   Multi-Catfish route as not promoted.
+2. Phase `05` historical evidence must not be continued directly. Phase `05A`
+   multi-buffer validation failed objective-buffer distinctness, Phase `05R`
+   passed only a diagnostic redesign gate, and Phase `05B` runnable evidence
+   failed acceptance / effectiveness. Phase `05C` closes that route as not
+   promoted. The current reopened Catfish path is not "continue Phase `05`";
+   it is the new Multi-Catfish-first redesign in
+   `2026-05-02-multi-catfish-redesign-plan.md`.
 3. Phase `06` cannot make final Catfish-EE-MODQN claims. The current evidence
    has no promoted EE-MODQN route and no promoted Multi-Catfish route.
 
@@ -292,7 +469,7 @@ post-07B disposition:
 ```text
 Phase 07B bounded single-Catfish utility evidence: PASS
 Broader Catfish-MODQN effectiveness promotion: NOT PROMOTED
-Multi-Catfish reopening: BLOCKED / DEFERRED
+Old Phase 05 Multi-Catfish reopening: BLOCKED / DEFERRED
 Phase 06 / Catfish-EE-MODQN: BLOCK
 ```
 
@@ -310,7 +487,7 @@ pilot:
 Phase 07D bounded implementation / runs / diagnostics: PASS
 Phase 07D acceptance / recovery promotion: FAIL
 Broader Catfish-MODQN effectiveness: NOT PROMOTED
-Multi-Catfish reopening: BLOCKED
+Old Phase 05 Multi-Catfish reopening: BLOCKED
 Phase 06 / Catfish-EE-MODQN: BLOCKED
 ```
 
@@ -329,8 +506,10 @@ Read in this order when taking over the plan:
 1. `AGENTS.md`
 2. `docs/research/catfish-ee-modqn/00-validation-master-plan.md`
 3. `docs/research/catfish-ee-modqn/execution-handoff.md`
-4. `docs/research/catfish-ee-modqn/development-guardrails.md`
-5. `docs/research/catfish-ee-modqn/reviews/01-modqn-baseline-anchor.review.md`
+4. `docs/research/catfish-ee-modqn/2026-05-02-multi-catfish-redesign-plan.md`
+5. `docs/research/catfish-ee-modqn/2026-05-02-multi-catfish-gate1a-transition-provenance-sdd.md`
+6. `docs/research/catfish-ee-modqn/development-guardrails.md`
+6. `docs/research/catfish-ee-modqn/reviews/01-modqn-baseline-anchor.review.md`
 6. `docs/research/catfish-ee-modqn/reviews/02-hobs-ee-formula-validation.review.md`
 7. `docs/research/catfish-ee-modqn/reviews/03-ee-modqn-validation.review.md`
 8. `docs/research/catfish-ee-modqn/02-hobs-ee-formula-validation.md`
@@ -374,14 +553,20 @@ Read in this order when taking over the plan:
 46. `docs/research/catfish-ee-modqn/prompts/hobs-active-tx-ee-non-codebook-continuous-power-bounded-pilot.prompt.md`
 47. `docs/research/catfish-ee-modqn/hobs-active-tx-ee-non-codebook-continuous-power-bounded-pilot.execution-report.md`
 48. `artifacts/hobs-active-tx-ee-non-codebook-continuous-power-bounded-pilot-summary/summary.json`
-49. `docs/research/catfish-ee-modqn/ee-modqn-anti-collapse-controller-plan-2026-05-01.md`
-50. `docs/research/catfish-ee-modqn/prompts/ee-modqn-anti-collapse-controller.prompt.md`
-51. `docs/research/catfish-ee-modqn/prompts/ee-modqn-anti-collapse-worker.prompt.md`
-52. `docs/research/catfish-ee-modqn/energy-efficient/README.md`
-53. `docs/research/catfish-ee-modqn/energy-efficient/ee-formula-final-review-with-codex-2026-05-01.md`
-54. `docs/research/catfish-ee-modqn/energy-efficient/modqn-r1-to-hobs-active-tx-ee-design-2026-05-01.md`
-55. `docs/research/catfish-ee-modqn/repository-curation-2026-05-01.md`
-56. `docs/ee-report.md`
+49. `ntn-sim-core/artifacts/handover-energy-aware-modqn-bounded-matched-pilot/summary.json`
+50. `ntn-sim-core/artifacts/handover-energy-aware-modqn-bounded-matched-pilot/full-sensitivity-table.csv`
+51. `internal/ntn-sim-core/devlogs/2026-05-02-handover-energy-aware-modqn-bounded-pilot.md`
+52. `ntn-sim-core/src/core/experiments/catfish-over-hea-intervention.ts`
+53. `ntn-sim-core/scripts/validate-catfish-over-hea-readiness.ts`
+54. `internal/ntn-sim-core/devlogs/2026-05-02-catfish-over-hea-readiness-documentation-sync.md`
+55. `docs/research/catfish-ee-modqn/ee-modqn-anti-collapse-controller-plan-2026-05-01.md`
+56. `docs/research/catfish-ee-modqn/prompts/ee-modqn-anti-collapse-controller.prompt.md`
+57. `docs/research/catfish-ee-modqn/prompts/ee-modqn-anti-collapse-worker.prompt.md`
+58. `docs/research/catfish-ee-modqn/energy-efficient/README.md`
+59. `docs/research/catfish-ee-modqn/energy-efficient/ee-formula-final-review-with-codex-2026-05-01.md`
+60. `docs/research/catfish-ee-modqn/energy-efficient/modqn-r1-to-hobs-active-tx-ee-design-2026-05-01.md`
+61. `docs/research/catfish-ee-modqn/repository-curation-2026-05-01.md`
+62. `docs/ee-report.md`
 
 Use later phase reviews only as constraints unless the user explicitly asks to plan those phases.
 
@@ -852,7 +1037,7 @@ Phase `07B` bounded pilot is complete:
 Phase 07B bounded implementation / diagnostics / pilot: PASS
 Bounded single-Catfish intervention utility evidence: PASS
 Broader Catfish-MODQN effectiveness promotion: NOT PROMOTED
-Multi-Catfish reopening: BLOCKED / DEFERRED
+Old Phase 05 Multi-Catfish reopening: BLOCKED / DEFERRED
 Phase 06 / Catfish-EE-MODQN: BLOCKED
 ```
 
@@ -887,7 +1072,8 @@ the supported active mechanism. Do not claim handover / `r2` improvement.
 
 At Phase `07C`, the next valid gate was Phase `07D` r2-guarded
 single-Catfish robustness planning. Phase `07D` has now run and failed its
-acceptance gate, so it must not reopen Multi-Catfish or Phase `06`.
+acceptance gate, so it must not reopen the old Phase `05` Multi-Catfish route
+or Phase `06`.
 
 ## Phase 07D R2-Guarded Robustness Result
 
@@ -897,7 +1083,7 @@ Phase `07D` bounded pilot is complete:
 Phase 07D bounded implementation / runs / diagnostics: PASS
 Phase 07D acceptance / recovery promotion: FAIL
 Broader Catfish-MODQN effectiveness: NOT PROMOTED
-Multi-Catfish reopening: BLOCKED
+Old Phase 05 Multi-Catfish reopening: BLOCKED
 Phase 06 / Catfish-EE-MODQN: BLOCKED
 ```
 

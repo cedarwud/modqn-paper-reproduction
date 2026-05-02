@@ -1,5 +1,197 @@
 # `modqn-paper-reproduction` EE 路線下一步評估報告
 
+## 2026-05-02 HEA-MODQN scoped thesis claim boundary
+
+本節同步 `Handover-Energy-Aware MODQN` (`HEA-MODQN`) 的 thesis/report
+claim boundary。這個 method 也可寫成
+`service-continuity-sensitive MODQN extension`。不要把 method name 寫成
+HOBS；multi-beam SINR 與 active transmit-power accounting 只能作為
+system-model source 的背景引用，不是此 HEA-MODQN claim 的方法名稱或成功證據。
+
+目前 controller state：
+
+```text
+Active-TX EE-MODQN: BLOCK / NOT PROMOTED
+CF-RA-CP active-TX EE: BLOCK
+HEA-MODQN high handover-cost / service-continuity-sensitive utility gate: PASS, scoped
+HEA-MODQN ratio-form EE_HO clean artifact gate: PASS, scoped
+HEA-MODQN robustness / attribution gate: PASS
+Catfish / Multi-Catfish for EE repair: BLOCKED / NOT PROMOTED
+Catfish-over-HEA baseline parity gate: PASS readiness / parity only
+Catfish-over-HEA bounded matched pilot: BLOCK
+Multi-Catfish redesign plan: current design authority
+Multi-Catfish Gate 1 read-only diagnostics: NEEDS MORE DESIGN
+Multi-Catfish Gate 1A transition provenance SDD: current next design gate
+Catfish-EE / Phase 06: BLOCKED
+Scalar reward: diagnostic only
+```
+
+正面 claim 只限於 frozen high handover-cost /
+service-continuity-sensitive sensitivity setting。可直接放進論文的文字是：
+
+> Under a frozen high handover-cost / service-continuity-sensitive sensitivity
+> setting, HEA-MODQN improves both the declared handover-aware utility and the
+> ratio-form handover-aware EE_HO relative to matched throughput-objective
+> MODQN while preserving p05 throughput, served ratio, and outage guardrails.
+
+這個 `J` 與 `EE_HO` 都是 thesis sensitivity accounting，不是 physical
+energy saving result，也不是 active-TX EE recovery。High-cost `E_HO` 與
+`lambda_HO` 值是 sensitivity / utility-accounting penalties，不是 physical
+constants；`lambda_HO` 只影響 utility-form objective / policy selection，不進
+ratio-form `EE_HO` denominator。
+
+Formula / literature evidence for presentation:
+
+```text
+eta_EE,HO =
+  (sum_t sum_u R_u^t Delta_t)
+  /
+  (sum_t sum_s P_tot,s^t Delta_t + E_HO,total)
+
+E_HO,total = sum_t sum_u delta_HO,u^t * E_u,HO
+```
+
+This ratio-form `handover-aware energy efficiency` is a defensible thesis-level
+extension for sensitivity analysis, but it is not a single-paper copied
+standard metric. The evidence chain to cite in slides is:
+
+| Evidence source | What it supports | Claim limit |
+|---|---|---|
+| `system-model-refs/system-model-formulas.md` §3.14-3.16 | Defines `eta_EE,HO` and separates active-TX EE, total communication-power proxy, handover-aware EE, and utility fallback | `eta_EE,HO` requires explicit `E_u,HO` assumption set and sensitivity path |
+| `system-model-refs/simulator-parameter-spec.md` §6 | Treats `hoEnergyJoules` as a scenario parameter and `lambdaHo=0.2` as an EAQL-derived utility anchor | No universal LEO physical default for per-handover energy |
+| `paper-catalog/catalog/PAP-2025-EAQL.json` | Uses an energy-aware handover utility / reward with `lambda * E_handover` and reports handover-energy sensitivity | Supports handover energy cost in decision objective, not a copied ratio denominator |
+| `paper-catalog/catalog/PAP-2025-BIPARTITE-HM.json` | Includes per-handover energy, RTT, and setup cost in strategy cost and analyzes energy-weight sensitivity | Supports operational / energy handover cost modeling, not direct MODQN evidence |
+
+Therefore, it is acceptable to present `EE_HO` as a scenario-declared,
+handover-aware EE metric in a high handover-cost / service-continuity-sensitive
+section. It must not be presented as the original active-TX EE metric, a
+physical satellite energy-saving measurement, or a universal EE definition.
+The clean ratio-form artifact gate has also passed for the same scoped high-cost
+setting, but the result remains scenario-declared and sensitivity-bound.
+
+Scenario realism boundary for thesis writing:
+
+1. The condition is academically reasonable because prior LEO handover work
+   models handover energy, operational handover cost, setup cost, RTT, or energy
+   weighting inside handover decisions.
+2. The condition is not a universal physical baseline. `E_u,HO` has no
+   corpus-wide LEO default in `system-model-refs/simulator-parameter-spec.md`;
+   every numeric use must be declared as a scenario / sensitivity assumption.
+3. The high-cost rows (`E_HO=130/150/200`) should be described as a
+   service-continuity-sensitive regime where handover events stand in for
+   signaling, setup, interruption, recovery, QoS continuity, or terminal-side
+   overhead pressure. Do not write that real LEO handovers are generally
+   `130 J`, `150 J`, or `200 J`.
+4. The low-cost reference (`E_HO=3`, `lambda_HO=0.2`) remains visible and neutral;
+   it supports no low-cost success claim.
+5. The thesis-safe interpretation is "reasonable sensitivity setting", not
+   "measured spacecraft energy saving" or "general NTN deployment default".
+
+Final relaxation / stop-loss review:
+
+1. The clean artifact can directly evaluate the relaxed communication-only
+   formula:
+
+   ```text
+   EE_general = total_bits / communication_energy_joules
+   ```
+
+2. Removing `E_HO,total` from the denominator blocks the relaxed claim. The
+   candidate has `0/30` wins over matched throughput-control across the full
+   sensitivity grid, `0/15` wins in the primary high-cost subset, and `0/6`
+   wins in the secondary subset. Primary mean communication-only
+   `EE_delta` is about `-82980 bits/J`; secondary mean communication-only
+   `EE_delta` is about `-74659 bits/J`. The break-even-near
+   `E_HO=130`, `lambda_HO=0.2` row has communication-only
+   `EE_delta` about `-9735 bits/J`, and the low-cost
+   `E_HO=3`, `lambda_HO=0.2` row remains `0`.
+3. Therefore the HEA-MODQN win is specifically a handover-aware /
+   service-continuity-sensitive result. It comes from reducing the
+   handover-event denominator burden under the declared high-cost setting, not
+   from improving general communication-energy-only EE.
+4. This fires the stop-loss condition for further relaxation: do not remove
+   the handover denominator and still claim EE superiority; do not reopen
+   active-TX, CP-base, RA-EE association, or Catfish as a last-minute repair
+   path.
+
+Metrics to record：
+
+| Metric | Value |
+|---|---:|
+| primary subset positive cells | `15/15` |
+| secondary subset positive cells | `6/6` |
+| primary mean `J_delta` | `13288.26934925599` |
+| candidate vs ablation mean primary `J_delta` | `13288.26934925599` |
+| break-even-near `E_HO=130`, `lambda_HO=0.2` `J_delta` | `217.11219999700552` |
+| low-cost `E_HO=3`, `lambda_HO=0.2` `J_delta` | `0` |
+| primary candidate mean `EE_HO` | `414946.480518 bits/J` |
+| primary control mean `EE_HO` | `412914.217690 bits/J` |
+| primary `EE_HO_delta` | `+2032.262828 bits/J` |
+| primary `EE_HO_ratio` | `1.0049217555` |
+| secondary candidate mean `EE_HO` | `1278023.040718 bits/J` |
+| secondary control mean `EE_HO` | `1272319.566835 bits/J` |
+| secondary `EE_HO_delta` | `+5703.473883 bits/J` |
+| secondary `EE_HO_ratio` | `1.0044827369` |
+| low-cost `E_HO=3`, `lambda_HO=0.2` `EE_HO_delta` | `0` |
+| communication-only EE candidate wins | `0/30` |
+| primary communication-only EE wins | `0/15` |
+| secondary communication-only EE wins | `0/6` |
+| primary mean communication-only `EE_delta` | `about -82980 bits/J` |
+| secondary mean communication-only `EE_delta` | `about -74659 bits/J` |
+| lambda-zero ablation primary wins | `0/15` |
+| primary min p05 throughput ratio | `0.9665274269295018` |
+| served delta | `0` |
+| outage delta | `0` |
+| primary mean handover delta | `-43.733333333333334` |
+
+The low-cost reference stays visible: `E_HO=3`, `lambda_HO=0.2` has
+`J_delta=0`, so no low-cost success is claimed.
+
+Claim boundaries:
+
+1. active-TX EE results remain separate and diagnostic for this thesis claim,
+2. scalar reward is diagnostic only,
+3. high-cost values are sensitivity / utility-accounting penalties,
+4. no low-cost success claim is authorized,
+5. no physical energy-saving result is authorized,
+6. no Catfish, Multi-Catfish effectiveness, Catfish-EE, or Phase `06` readiness follows from
+   this result,
+7. Catfish-over-HEA readiness is separate and default-off; its enabled bounded
+   pilot is blocked and is not evidence of Catfish effectiveness or HEA metric
+   improvement,
+8. the current Catfish work, if reopened, is Multi-Catfish-first redesign
+   planning with Single-Catfish as a collapsed ablation.
+
+Forbidden rewrites:
+
+1. do not generalize any EE variant as superior to MODQN,
+2. do not describe active-TX EE as recovered or promoted,
+3. do not write that an optimizer from the HOBS line was reproduced,
+4. do not write that Catfish-EE or Phase `06` is ready,
+5. do not describe Multi-Catfish as an EE repair,
+6. do not treat scalar reward as proof of success.
+
+Next step for the thesis result is tables / figures / narrative polish and
+status sync. Catfish-over-HEA may be discussed as a separate default-off
+training-enhancement readiness surface over HEA-MODQN, but the enabled bounded
+pilot is blocked. Current Catfish planning must use
+`docs/research/catfish-ee-modqn/2026-05-02-multi-catfish-redesign-plan.md`
+and
+`docs/research/catfish-ee-modqn/2026-05-02-multi-catfish-gate1a-transition-provenance-sdd.md`.
+Gate 1 read-only diagnostics found only aggregate / seed / cell provenance, so
+transition-level Catfish scoring remains `NEEDS MORE DESIGN`. Multi-Catfish is
+designed first, Single-Catfish is a collapsed ablation, and no Catfish pilot
+may be framed as EE repair, Active-TX EE recovery, Catfish-EE, Phase `06`,
+current Multi-Catfish effectiveness, or HEA thesis-claim dependency.
+
+Authority evidence:
+
+```text
+ntn-sim-core/artifacts/handover-energy-aware-modqn-bounded-matched-pilot/summary.json
+ntn-sim-core/artifacts/handover-energy-aware-modqn-bounded-matched-pilot/full-sensitivity-table.csv
+internal/ntn-sim-core/devlogs/2026-05-02-handover-energy-aware-modqn-bounded-pilot.md
+```
+
 ## 2026-05-01 CP-base non-codebook continuous-power design gate update
 
 本節同步 `HOBS-active-TX non-codebook continuous-power base EE-MODQN`
